@@ -1,0 +1,13 @@
+type AccountAddress {
+  _id: ID
+  address: String!
+  chain: Chain
+  account: Account
+  passKeyId: String
+  counter: Int
+}
+type Address {
+  _id: ID
+  address: String!
+  chain: Chain
+}

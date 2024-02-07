@@ -1,0 +1,8 @@
+type AccountThread {
+  _id: ID
+  account: Account
+  thread: Thread
+  isAccepted: Boolean
+  latestMessage: ThreadMessage
+  userLastSeen: String
+}

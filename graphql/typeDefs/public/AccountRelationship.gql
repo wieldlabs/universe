@@ -1,0 +1,8 @@
+type AccountRelationship {
+  _id: ID
+  from: Account
+  to: Account
+  connection: AccountRelationship # inverse relationship account 'to' to account 'from'
+  isFollowing: Boolean
+  isBlocking: Boolean
+}

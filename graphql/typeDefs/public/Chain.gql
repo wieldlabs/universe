@@ -1,0 +1,4 @@
+type Chain {
+  chainId: Int
+  name: String
+}

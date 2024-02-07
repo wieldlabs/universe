@@ -1,0 +1,27 @@
+enum Asset3DFormat {
+  GLTF
+  FBX
+}
+enum Asset3DType {
+  LAND
+  PROPS
+  HUMANOID
+}
+
+type Asset3DUnion {
+  _id: ID
+  asset3D: Asset3D
+  type: String # can only be ASSET_3D
+}
+
+type Asset3D implements Asset {
+  _id: ID
+  url: String
+  name: String
+  previewImage: String
+  format: Asset3DFormat
+  assetType: Asset3DType
+  description: String
+  rarity: AssetRarity
+  components: [RichContentBlock]
+}

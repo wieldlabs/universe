@@ -1,0 +1,172 @@
+input PostFilter {
+  account: ID
+  post: ID
+  community: ID
+  channel: ID
+  communities: [ID]
+  excludeComments: Boolean
+  excludeChannels: Boolean
+  explore: Boolean
+}
+input AccountRelationshipFilter {
+  from: ID
+  to: ID
+  isFollowing: Boolean # return only if isFollowing status match
+  excludeNotConnected: Boolean # return only if both account follow each other
+}
+input CommunityAssetFilter {
+  communityId: ID
+  type: CommunityAssetType
+}
+input QuestFilter {
+  communities: [ID]
+  domains: [String]
+  domain: String
+}
+input CommunitiesFilter {
+  domains: [String]
+}
+input AccountChannelFilter {
+  communityId: ID
+}
+type WalletAccountSigninResponse {
+  message: String
+  encyrptedWalletJson: String
+}
+
+### Query on different models
+# This helps Apollo Cache during typePolicies reconciliation
+# So updating one query does not refresh other unrelated query
+type NotificationQuery {
+  _id: ID
+  getAccountNotifications(limit: Int, offset: Int): [Notification] #require auth
+  counUnseenNotifications: Int #require auth
+}
+type ChannelRecipientQuery {
+  _id: ID
+  getAccountChannelRecipients(limit: Int, offset: Int): [ChannelRecipient] #require auth
+}
+# @TODO deprecate this and use AccountQuery
+type SearchQuery {
+  searchAccountByUsernameOrAddressOrEns(query: String): [Account]
+}
+type AccountQuery {
+  _id: ID
+  searchAccountByUsernameOrAddressOrEns(query: String): [Account]
+  getWalletAccountSigninMessage(
+    walletEmail: String!
+  ): WalletAccountSigninResponse
+  searchAccountByIdentity(query: String): [Account]
+  getAccountSigninMessage(address: String!, chainId: Int!): String
+}
+type CommunityQuery {
+  _id: ID
+  getCommunityByDomainOrTokenId(
+    bebdomain: String
+    tokenId: String
+    tld: String
+  ): Community
+  getCommunityById(id: ID): Community
+  searchCommunityByDomainOrName(query: String): [Community]
+}
+type RoleQuery {
+  _id: ID
+  getRoleById(id: ID): Role
+  canClaimRole(roleId: ID!): Boolean
+}
+
+type QuestQuery {
+  getQuests(limit: Int, offset: Int, filters: QuestFilter): [Quest]
+}
+type CommunityQuestQuery {
+  getLeaderboard(communityId: ID!, limit: Int): [Score]
+  getCommunityQuestStatus(questId: ID!, communityId: ID!): CommunityQuestStatus
+  getCommunityQuestStatusByAddress(
+    questId: ID!
+    communityId: ID!
+    address: String!
+  ): CommunityQuestStatus
+  checkIfCommunityQuestClaimedByAddress(
+    questId: ID!
+    communityId: ID!
+    address: String!
+  ): Boolean
+  getCommunityQuest(questId: ID!, communityId: ID!): CommunityQuest
+  getCommunityRewards(
+    limit: Int
+    offset: Int
+    communityId: ID
+  ): [CommunityReward]
+}
+type CommunityAssetQuery {
+  getCommunityAssets(
+    limit: Int
+    offset: Int
+    filters: CommunityAssetFilter
+  ): [CommunityAsset]
+}
+
+type ChannelQuery {
+  _id: ID
+  getChannelById(id: ID!): Channel
+  # get all permission overwrites for role or member
+  getPermissionOverwritesFor(
+    channelId: ID!
+    objectId: ID!
+    objectType: Int! # 1: role, 2: member
+  ): [PermissionOverwrite]
+  # calculate the final permission for role or member in channel after overwrite
+  getFinalPermissionFor(channelId: ID!, objectId: ID!, objectType: Int): String
+  getAccountChannels(
+    limit: Int
+    offset: Int
+    filters: AccountChannelFilter
+  ): [Channel] #require auth
+}
+#####
+
+### Root
+type Query {
+  findAccountByAddressAndChain(address: String!, chainId: Int!): Account
+  findAccountByFarcasterUsername(username: String!): Account
+  getCurrentAccount: Account #require auth
+  getThread(threadId: ID!): Thread #require auth
+  getPostFeed(
+    limit: Int
+    offset: Int
+    filters: PostFilter
+    sort: String
+  ): [Post]
+  getAccountRelationships(
+    limit: Int
+    offset: Int
+    filters: AccountRelationshipFilter
+  ): [AccountRelationship]
+  getPost(id: ID!): Post
+  getCommunityAddressScore(address: String!, bebdomain: String!): Int
+  getReactionsByPostId(limit: Int, offset: Int, postId: ID!): [AccountReaction]
+  getReactionByAccountAndObjectId(
+    reactionObjectType: String!
+    reactionObjectTypeId: ID!
+  ): AccountReaction
+  getCurrentAccountAvailableRoles(communityId: ID!): [Role]
+  getAccountNotifications: [Notification] # @deprecated
+  getInventoryByAddress(limit: Int, offset: Int): [QuestReward] # Get all the rewards for an address, could be from claiming a CommunityReward or Quest
+  getCommunities(
+    limit: Int
+    offset: Int
+    sort: String
+    filters: CommunitiesFilter
+  ): [Community]
+  # Model Queries #
+  NotificationQuery: NotificationQuery
+  SearchQuery: SearchQuery
+  CommunityQuery: CommunityQuery
+  RoleQuery: RoleQuery
+  AccountQuery: AccountQuery
+  CommunityAssetQuery: CommunityAssetQuery
+  QuestQuery: QuestQuery
+  CommunityQuestQuery: CommunityQuestQuery
+  ChannelRecipientQuery: ChannelRecipientQuery
+  ChannelQuery: ChannelQuery
+}

@@ -1,0 +1,13 @@
+type Modification3D {
+  _id: ID
+  transition: Vector3D
+  rotation: Vector3D
+  scale: Vector3D
+}
+
+type Vector3D {
+  _id: ID
+  x: Int # the x position of the asset, with 2 decimals
+  y: Int # the y position of the asset, with 2 decimals
+  z: Int # the z position of the asset, with 2 decimals
+}

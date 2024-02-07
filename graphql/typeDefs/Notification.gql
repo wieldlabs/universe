@@ -1,0 +1,20 @@
+enum NotificationType {
+  MESSAGE_REQUEST
+  POST_COMMENT
+  POST_REACTION
+  CONNECTION_REQUEST
+  POST_MENTION
+}
+
+type Notification {
+  _id: ID
+  content: Content
+  initiator: Account
+  receiver: Account
+  externalUrl: String
+  lastSeen: String
+  createdAt: String
+  image: Image
+  title: String
+  type: NotificationType
+}

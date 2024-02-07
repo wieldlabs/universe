@@ -1,0 +1,9 @@
+type Link {
+  _id: ID
+  url: String
+  image: String
+  title: String
+  description: String
+  logo: String
+  iframe: String
+}

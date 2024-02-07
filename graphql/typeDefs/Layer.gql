@@ -1,0 +1,5 @@
+type Layer {
+  _id: ID
+  src: String
+  zIndex: Int
+}

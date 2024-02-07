@@ -1,0 +1,73 @@
+enum QuestScheduleType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  ONCE
+}
+enum QuestRequirementType {
+  COMMUNITY_PARTICIPATION
+  FARCASTER_ACCOUNT
+  FARCASTER_CASTS_250
+  FARCASTER_CASTS_100
+  FARCASTER_CASTS_1
+  FARCASTER_COMMENT_10
+  FARCASTER_LIKES_10
+  FARCASTER_LIKES_100
+  FARCASTER_FARQUEST_TAGGED
+  TOTAL_NFT
+  VALID_NFT
+  VALID_NFT_3
+  VALID_NFT_5
+  FARCASTER_FOLLOWERS_10000
+  FARCASTER_FOLLOWERS_5000
+  FARCASTER_FOLLOWERS_1000
+  FARCASTER_FOLLOWERS_100
+  FARCASTER_FOLLOWERS_10
+  SCORE
+  SHARE
+  MULTICHOICE_SINGLE_QUIZ
+  FARMARKET_LISTING_FIRST
+  FARMARKET_BUY_FIRST
+  FARMARKET_OFFER_FIRST
+  AUTO_CLAIM
+}
+enum QuestRewardType {
+  ASSET_3D
+  SCORE
+  IMAGE
+}
+
+type ImageUnion {
+  _id: ID
+  image: Image
+  type: String # can only be IMAGE
+}
+# add more types here Asset3DUnion | NFTUnion | etc
+union QuestRewardItem = Asset3DUnion | ImageUnion
+
+type QuestRequirement {
+  _id: ID
+  title: String
+  type: QuestRequirementType
+  data: [KeyValueFields]
+}
+
+type QuestReward {
+  _id: ID
+  title: String
+  type: QuestRewardType
+  quantity: Int
+  reward: QuestRewardItem
+}
+
+type Quest {
+  _id: ID
+  description: Content
+  title: String
+  schedule: QuestScheduleType
+  imageUrl: String
+  requirements: [QuestRequirement]
+  rewards: [QuestReward]
+  startsAt: String
+  endsAt: String
+}

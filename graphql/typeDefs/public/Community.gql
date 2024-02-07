@@ -1,0 +1,41 @@
+type RentPrice {
+  base: String
+  premium: String
+}
+type Commitment {
+  hash: String
+  secret: String
+}
+type CommunityCurrentACcountPermission {
+  canAdmin: Boolean @cacheControl(maxAge: 3600)
+  canRead: Boolean @cacheControl(maxAge: 3600) # can read default @all channel
+  canWrite: Boolean @cacheControl(maxAge: 3600) # can write default @all channel
+}
+type Community {
+  _id: ID
+  description: String # @Todo remove this fields
+  bio: Content
+  name: String
+  host: String
+  image: Image
+  bannerImage: Image
+  membersCount: Int
+  bebdomain: String
+  socialLinks: SocialLinks
+  accountCommunity: AccountCommunity # the current account associated with community. require auth
+  members(limit: Int, offset: Int, sort: String): [AccountCommunity]
+    @cacheControl(maxAge: 60)
+  owner: Account
+  tokenOwnerAddress: String @cacheControl(maxAge: 60)
+  permissions: [Permission]
+  roles(limit: Int, offset: Int, sort: String): [Role]
+  channels: [Channel]
+  tokenId: ID @cacheControl(maxAge: 60)
+  tld: String
+  available: Boolean @cacheControl(maxAge: 60)
+  expiresAt: String @cacheControl(maxAge: 60)
+  rentPrice(duration: String): RentPrice @cacheControl(maxAge: 60)
+  commitment(address: String, duration: String): Commitment
+  # admin
+  currentAccountPermissions: CommunityCurrentACcountPermission
+}

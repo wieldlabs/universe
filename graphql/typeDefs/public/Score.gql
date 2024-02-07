@@ -1,0 +1,6 @@
+type Score {
+  scoreType: String
+  account: Account
+  score: String
+  address: String
+}

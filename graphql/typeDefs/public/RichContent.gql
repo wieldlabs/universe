@@ -1,0 +1,46 @@
+type ImageUnion {
+  _id: ID
+  image: Image
+  type: String
+}
+type LinkUnion {
+  _id: ID
+  link: Link
+  type: String
+}
+type RichEmbedUnion {
+  _id: ID
+  richEmbed: RichEmbed
+  type: String
+}
+type QuestUnion {
+  _id: ID
+  quest: Quest
+  type: String
+}
+
+type ScriptableActionUnion {
+  _id: ID
+  scriptableAction: ScriptableAction
+  type: String
+}
+
+union RichBlock =
+    ImageUnion
+  | LinkUnion
+  | RichEmbedUnion
+  | QuestUnion
+  | ScriptableActionUnion
+
+type RichContentBlock {
+  id: ID
+  blockType: String
+  # can include multiple different blocks. use graphql union
+  block: RichBlock
+}
+
+type RichContent {
+  _id: ID
+  content: Content
+  blocks: [RichContentBlock]
+}

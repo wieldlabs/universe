@@ -1,0 +1,11 @@
+type Image {
+  _id: ID
+  src: String
+  name: String
+  isVerified: Boolean
+  verificationOrigin: String
+  verificationExternalUrl: String
+  description: String
+  metadata: [KeyValueFields]
+  layers: [Layer]
+}

@@ -1,0 +1,7 @@
+type AccountCommunityRole {
+  _id: ID
+  accountCommunity: AccountCommunity
+  role: Role
+  isManagedByIndexer: Boolean
+  isValid: Boolean
+}

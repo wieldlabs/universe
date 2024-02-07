@@ -1,0 +1,9 @@
+type Permission {
+  _id: ID
+  community: Community
+  description: Content
+  name: String
+  editable: Boolean
+  bitwiseFlag: String
+  bitwisePosition: Int
+}

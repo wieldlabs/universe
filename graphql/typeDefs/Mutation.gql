@@ -1,0 +1,448 @@
+type AuthBySignatureResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  account: Account
+  accessToken: String
+}
+type AccountAddressMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  accountAddress: AccountAddress
+  account: Account
+}
+type AccountMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  account: Account
+}
+type AccountRolesMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  account: Account
+  roles: [Role]
+}
+type AccountDeleteMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+type AccountSectionMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  accountSection: AccountSection
+}
+type ThreadTransactionSingleMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  threadTransaction: ThreadTransaction
+}
+type ThreadTransactionMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  thread: Thread
+  threadTransaction: ThreadTransaction
+}
+type AccountThreadMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  accountThread: AccountThread
+}
+type AccountChannelMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  accountChannel: AccountChannel
+}
+type ThreadMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  thread: Thread
+  accountThreads: [AccountThread]
+}
+type ThreadMessageMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  threadMessage: ThreadMessage
+}
+type PostMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  post: Post
+}
+type AccountRelationshipMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  relationship: AccountRelationship
+}
+type AccountCommunityMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  accountCommunity: AccountCommunity
+}
+type AccountReactionWithPostMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  post: Post
+  accountReaction: AccountReaction
+}
+type CommunityMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  community: Community
+}
+type ChannelMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  channel: Channel
+}
+type ChannelDeleteMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  channelId: ID
+}
+type RoleMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  role: Role
+}
+type RoleDeleteMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  roleId: ID
+}
+type AccountCommunityRoleMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  accountCommunityRole: AccountCommunityRole
+}
+type IndexerRuleMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  indexerRule: IndexerRule
+}
+type PermissionOverwriteMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  permissionOverwrite: PermissionOverwrite
+}
+type CommunityQuestMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  communityQuest: CommunityQuest
+}
+type CommunityRoomMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  peers: [Peer]
+}
+type CommunityQuestWithAssetsMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  communityQuest: CommunityQuest
+  communityAssets: [CommunityAsset]
+}
+type CommunityAssetMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  communityAsset: CommunityAsset
+  communityAssetMetadata: CommunityAssetMetadata
+}
+type PaymasterMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  maxPriorityFeePerGas: String
+  preVerificationGas: String
+  callGasLimit: String
+  verificationGasLimit: String
+  paymasterAndData: String
+  maxFeePerGas: String
+  initCode: String
+  sender: String
+  nonce: String
+  callData: String
+}
+
+type WithCountMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  count: Int
+}
+enum PaymasterRequestType {
+  CREATE_BACKPACK
+  SPONSORED_ITEM
+}
+enum AuthType {
+  PASSKEY
+  SIGNATURE
+  MAGIC_LINK
+  WARPCAST
+  FID
+}
+
+type Mutation {
+  # Account mutations
+  createAccountFromAddress(
+    address: String!
+    chainId: Int!
+    email: String
+  ): AccountMutationResponse
+  addRecoverer(
+    address: String
+    encyrptedWalletJson: String
+    id: String
+    signature: String
+    type: String
+  ): AccountMutationResponse
+  addEncryptedWalletJson(encyrptedWalletJson: String!): AccountMutationResponse
+  authByEncryptedWalletJson(
+    encyrptedWalletJson: String!
+    email: String!
+    chainId: Int!
+    signature: String!
+  ): AuthBySignatureResponse
+  authBySignature(
+    address: String!
+    chainId: Int!
+    signature: String!
+    type: AuthType
+    id: String # for magic link, warpcast...
+  ): AuthBySignatureResponse
+  updateCurrentAccount(
+    email: String
+    username: String
+    location: String
+    profileImageId: String
+    bio: String
+    isOnboarded: Boolean
+    expoPushToken: String
+  ): AccountMutationResponse
+  updateCurrentAddress(
+    address: String!
+    signature: String!
+  ): AccountAddressMutationResponse
+  claimAllRoles(communityId: ID!): AccountRolesMutationResponse
+  deleteAccount: AccountDeleteMutationResponse
+  # Account sections mutations, require auth
+  addAccountSection(
+    includeDefaultEntry: Boolean
+    title: String
+  ): AccountSectionMutationResponse
+  updateAccountSection(
+    isVisible: Boolean
+    title: String
+    accountSectionId: ID!
+  ): AccountSectionMutationResponse
+  deleteAccountSection(accountSectionId: ID!): AccountSectionMutationResponse
+  updateAccountSectionEntry(
+    entryId: ID!
+    accountSectionId: ID!
+    imageId: ID
+    link: String
+    title: String
+  ): AccountSectionMutationResponse
+  addAccountSectionEntry(accountSectionId: ID!): AccountSectionMutationResponse
+  deleteAccountSectionEntry(
+    entryId: ID!
+    accountSectionId: ID!
+  ): AccountSectionMutationResponse
+
+  # Thread mutations, require auth
+  createThread(
+    recipientAddress: String!
+    recipientChainId: Int!
+  ): ThreadMutationResponse
+  createStakedThread(
+    recipientAddress: String!
+    recipientChainId: Int!
+    nonce: String!
+    tokenAmount: String!
+    signature: String!
+    transactionHash: String!
+  ): ThreadTransactionMutationResponse
+  completeThreadTransaction(
+    threadTransactionId: ID!
+    completionTransactionHash: String!
+  ): ThreadTransactionSingleMutationResponse
+
+  # AccountThread mutation, require auth
+  acceptAccountThread(threadId: ID!): AccountThreadMutationResponse
+  updateAccountThreadLastSeen(threadId: ID!): AccountThreadMutationResponse
+
+  # ThreadMessage mutations, require auth
+  createThreadMessage(
+    threadId: ID!
+    contentRaw: String
+    contentJson: String
+    contentHtml: String
+    blocks: [RichContentBlockInput!]
+  ): ThreadMessageMutationResponse
+
+  # Post mutations, require auth
+  createPostOrReplyForAccount(
+    parentId: ID
+    communityId: ID
+    channelId: ID
+    contentRaw: String
+    contentJson: String
+    contentHtml: String
+    blocks: [RichContentBlockInput!]
+  ): PostMutationResponse
+  hidePost(postId: ID!): PostMutationResponse # require auth and admin permission
+  # AccountReaction mutations, require auth
+  reactForPost(
+    postId: ID!
+    reactionType: String!
+    amount: Int
+  ): AccountReactionWithPostMutationResponse
+  # AccountRelationship mutations, require auth
+  toggleFollow(to: ID!): AccountRelationshipMutationResponse
+  toggleBlock(to: ID!): AccountRelationshipMutationResponse
+
+  # Notification mutations, require auth
+  updateUnseenNotifications: WithCountMutationResponse
+
+  # AccountCommunity mutations, require auth
+  updateAccountCommunityLastSeen(
+    communityId: ID!
+  ): AccountCommunityMutationResponse
+  joinOrLeaveAccountCommunity(
+    communityId: ID!
+    joined: Boolean!
+  ): AccountCommunityMutationResponse
+
+  # AccountChannel mutation, require auth
+  updateAccountChannelLastSeen(channelId: ID!): AccountChannelMutationResponse
+
+  # Community mutations, require auth
+  editCommunity(
+    communityId: String!
+    name: String
+    imageId: String
+    bannerImageId: String
+    bio: ContentInput
+  ): CommunityMutationResponse # only owner or admins of community
+  editCommunityAddressScore(
+    bebdomain: String!
+    address: String!
+    score: Int
+    modifier: Int
+  ): CommunityMutationResponse # only owner or admins of community
+  registerCommunity(bebdomain: String!, tld: String): CommunityMutationResponse
+
+  # Channel mutations, require auth
+  addChannelForCommunity(
+    communityId: ID!
+    channelInput: ChannelInput
+    recipients: [String!]
+  ): ChannelMutationResponse # owner or admins of community and anyone with createChannel permission in community
+  editChannel(
+    channelId: ID!
+    channelInput: ChannelInput
+  ): ChannelMutationResponse # only owner or admins of community
+  deleteChannel(channelId: ID!): ChannelMutationResponse # only owner or admins of community
+  #
+  # Role mutations, require auth
+  createRoleForCommunity(
+    communityId: ID!
+    roleInput: RoleInput
+    ruleDataInputs: [IndexerRuleDataInput]
+  ): RoleMutationResponse # only owner or admins of community
+  editRole(roleId: ID!, roleInput: RoleInput): RoleMutationResponse # only owner or admins of community
+  deleteRole(roleId: ID!): RoleDeleteMutationResponse # only owner or admins of community
+  updateRolePermissions(
+    roleId: ID!
+    permissionIds: [String]
+  ): RoleMutationResponse # only owner or admins of community
+  #
+  # PermissionOverwrite mutations, require auth
+  createPermissionOverwrite(channelId: ID!): PermissionOverwriteMutationResponse # only owner or admins of community
+  deletePermissionOverwrite(
+    permissionOverwriteId: ID!
+  ): PermissionOverwriteMutationResponse # only owner or admins of community
+  deleteAllPermissionOverwrites(channelId: ID!): WithCountMutationResponse # only owner or admins of community
+  #
+  # IndexerRule mutations, require auth
+  createIndexerRuleForRole(
+    roleId: ID!
+    ruleDataInput: IndexerRuleDataInput
+  ): IndexerRuleMutationResponse # only owner or admins of community
+  editIndexerRule(
+    indexerRuleId: ID!
+    ruleDataInput: IndexerRuleDataInput
+  ): IndexerRuleMutationResponse # only owner or admins of community
+  #
+  # AccountCommunityRole mutations, require auth
+  grantRole(
+    roleId: ID!
+    accountId: String # account to grant role to
+    address: String # address to grant role to
+  ): AccountCommunityRoleMutationResponse # only owner or admins of community
+  revokeRole(
+    roleId: ID!
+    accountId: String # account to revoke role to
+    address: String # address to revoke role to
+  ): AccountCommunityRoleMutationResponse # only owner or admins of community
+  claimRole(roleId: ID!): AccountCommunityRoleMutationResponse # only authenticated account
+  claimReward(
+    questId: ID!
+    communityId: ID!
+    questData: [QuestInput]
+  ): CommunityQuestWithAssetsMutationResponse
+  claimRewardByAddress(
+    questId: ID!
+    communityId: ID!
+    address: String!
+    questData: [QuestInput]
+  ): CommunityQuestWithAssetsMutationResponse # anyone can claim reward
+  claimCommunityRewardByAddress(
+    communityRewardId: ID!
+    address: String!
+  ): CommunityQuestWithAssetsMutationResponse # anyone can claim CommunityReward
+  #
+  # CommunityAsset mutations, require auth
+  editCommunityAsset(
+    communityAssetId: ID!
+    metadataId: ID
+    position: PositionInput
+    positions: [PositionInput]
+    deleteAsset: Boolean
+  ): CommunityAssetMutationResponse # only owner or admins of community
+  # CommunityRoom mutations, requires auth
+  getPeers(communityId: ID!): CommunityRoomMutationResponse
+  setPeer(communityId: ID!, peerId: String): CommunityRoomMutationResponse
+  # Paymaster mutations, requires auth
+  requestGasAndPaymasterAndData(
+    type: PaymasterRequestType!
+    typeId: ID
+    params: String
+    userOp: RequestPaymasterInput
+  ): PaymasterMutationResponse
+}

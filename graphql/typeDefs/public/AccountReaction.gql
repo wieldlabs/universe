@@ -1,0 +1,15 @@
+type Reaction {
+  _id: ID
+  likes: Int
+  # bebin and bebout
+}
+
+union ReactionObject = Post
+
+type AccountReaction {
+  _id: ID
+  reactions: Reaction
+  account: Account
+  reactionObjectType: String
+  reactionObject: ReactionObject
+}

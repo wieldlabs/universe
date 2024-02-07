@@ -1,0 +1,59 @@
+type IndexerRuleAllowlist {
+  _id: ID
+  addresses: [String]
+  chain: Chain
+  indexerRule: IndexerRule
+}
+type IndexerRuleAPI {
+  _id: ID
+  uri: String
+  indexerRule: IndexerRule
+}
+type IndexerRuleNFT {
+  _id: ID
+  address: Address
+  indexerRule: IndexerRule
+  tokenId: String
+  minAmount: String
+}
+type IndexerRuleAllowlistUnion {
+  _id: ID
+  indexerRuleType: IndexerRuleType
+  indexerRuleAllowlistData: IndexerRuleAllowlist
+}
+type IndexerRuleAPIUnion {
+  _id: ID
+  indexerRuleType: IndexerRuleType
+  indexerRuleAPIData: IndexerRuleAPI
+}
+type IndexerRuleNFTUnion {
+  _id: ID
+  indexerRuleType: IndexerRuleType
+  indexerRuleNFTData: IndexerRuleNFT
+}
+union IndexerRuleData =
+    IndexerRuleAllowlistUnion
+  | IndexerRuleNFTUnion
+  | IndexerRuleAPIUnion
+
+enum IndexerRuleType {
+  ALLOWLIST
+  PUBLIC
+  NFT
+  FARCASTER
+  API
+}
+enum IndexerRuleOwnerType {
+  ROLE
+  CHANNEL
+  RICH_BLOCK
+}
+type IndexerRule {
+  _id: ID
+  indexerRuleType: IndexerRuleType
+  community: Community
+  lastIndexedBlock: String
+  lastIndexedAt: String
+  ruleOwnerType: IndexerRuleOwnerType
+  ruleData: IndexerRuleData
+}

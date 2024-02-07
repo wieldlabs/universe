@@ -1,0 +1,16 @@
+type Role {
+  _id: ID
+  name: String
+  description: Content
+  community: Community
+  slug: String
+  position: Int
+  editable: Boolean
+  icon: Image
+  isManagedByIndexer: Boolean
+  permissionString: String
+  indexerRules: [IndexerRule]
+  membersCount: Int
+  members(limit: Int, offset: Int, sort: String): [AccountCommunityRole]
+  accountCommunityRole: AccountCommunityRole # the current account associated with role. require auth
+}

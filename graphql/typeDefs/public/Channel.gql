@@ -1,0 +1,51 @@
+type AccountRecipientUnion {
+  _id: ID
+  account: Account
+  type: RecipientType
+}
+type RoleRecipientUnion {
+  _id: ID
+  role: Role
+  type: RecipientType
+}
+type AccountChannel {
+  _id: ID
+  channel: Channel
+  account: Account
+  userLastSeen: String
+}
+union Recipient = RoleRecipientUnion | AccountRecipientUnion
+
+enum RecipientType {
+  ACCOUNT
+  ROLE
+}
+type ChannelRecipient {
+  _id: ID
+  channel: Channel
+  recipientType: RecipientType
+  recipient: Recipient
+  slug: String # unique slugs like "address@bebdomain.cast" or "role@bebdomain.cast"
+}
+
+type ChannelCurrentAccountPermission {
+  canRead: Boolean @cacheControl(maxAge: 3600) # can read channel
+  canWrite: Boolean @cacheControl(maxAge: 3600) # can write channel
+}
+
+type Channel {
+  _id: ID
+  name: String
+  slug: String
+  community: Community
+  description: Content
+  recipients: [ChannelRecipient]
+  color: String
+  icon: Image
+  permissionOverwrites: [PermissionOverwrite]
+  createdBy: Account
+  currentAccountChannel: AccountChannel # require auth
+  lastPostCreatedAt: String
+  lastPost: Post
+  currentAccountPermissions: ChannelCurrentAccountPermission
+}

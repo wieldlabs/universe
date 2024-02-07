@@ -1,0 +1,21 @@
+type PostCurrentAccountPermissions {
+  _id: ID
+  canHide: Boolean
+  canRead(channelId: String): Boolean @cacheControl(maxAge: 30, scope: PRIVATE) # simplified validPermission method
+}
+type Post {
+  _id: ID
+  richContent: RichContent
+  channel: Channel
+  account: Account
+  parent: Post
+  replies(limit: Int, offset: Int): [Post]
+  createdAt: String
+  reactionCount: Int
+  commentCount: Int
+  rootCommentCount: Int
+  community: Community
+  isHidden: Boolean
+  # admin
+  currentAccountPermissions: PostCurrentAccountPermissions
+}

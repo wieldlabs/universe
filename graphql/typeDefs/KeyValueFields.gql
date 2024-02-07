@@ -1,0 +1,5 @@
+type KeyValueFields {
+  _id: ID
+  key: String
+  value: String
+}

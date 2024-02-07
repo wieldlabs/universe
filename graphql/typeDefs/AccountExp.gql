@@ -1,0 +1,14 @@
+type Portfolio {
+  NFTScore: String
+  NFTScoreUSD: String
+  tokenScore: String
+  walletScore: String
+  updatedAt: String
+}
+type AccountExp {
+  _id: ID
+  baseExp: Int
+  exp: Int
+  account: Account
+  portfolio: [Portfolio]
+}

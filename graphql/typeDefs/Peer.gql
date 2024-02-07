@@ -1,0 +1,5 @@
+type Peer {
+  peerId: String
+  username: String
+  expiresAt: String
+}

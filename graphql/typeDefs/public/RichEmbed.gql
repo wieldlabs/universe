@@ -1,0 +1,11 @@
+type RichEmbed {
+  _id: ID
+  title: String
+  description: Content
+  timestamp: String
+  image: Image
+  thumbnail: Image
+  color: String
+  url: String
+  fields: KeyValueFields
+}

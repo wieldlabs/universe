@@ -1,0 +1,19 @@
+{
+  "extends": ["eslint:recommended"],
+  "env": {
+    "node": true,
+    "es6": true,
+    "amd": true,
+    "jest": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2023,
+    "sourceType": "module"
+  },
+  "rules": {
+    "no-unused-vars": "warn",
+    "no-constant-condition": "warn",
+    "no-control-regex": 0,
+    "no-unreachable": "warn"
+  }
+}

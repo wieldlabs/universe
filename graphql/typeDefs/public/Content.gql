@@ -1,0 +1,5 @@
+type Content {
+  raw: String
+  json: String
+  html: String
+}

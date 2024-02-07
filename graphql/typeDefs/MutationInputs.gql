@@ -1,0 +1,64 @@
+input RichContentBlockInput {
+  blockType: String!
+  blockId: ID!
+}
+
+input QuestInput {
+  key: String
+  value: String
+}
+
+input ContentInput {
+  raw: String
+  json: String
+  html: String
+}
+
+input ChannelInput {
+  name: String!
+  description: ContentInput
+  iconId: String
+  color: String
+}
+
+input RoleInput {
+  name: String!
+  description: ContentInput
+  iconId: String
+  color: String
+  isManagedByIndexer: Boolean
+}
+
+input PositionInput {
+  x: Int
+  y: Int
+  z: Int
+}
+
+input RequestPaymasterInput {
+  initCode: String
+  sender: String
+  nonce: String
+  callData: String
+}
+
+input IndexerRuleNFTInput {
+  address: String
+  tokenId: String
+  minAmount: String
+  chainId: Int
+}
+input IndexerRuleAPIInput {
+  uri: String!
+}
+
+input IndexerRuleAllowlistInput {
+  addresses: [String]
+}
+
+input IndexerRuleDataInput {
+  indexerRuleType: IndexerRuleType
+  indexerRuleAllowlistInput: IndexerRuleAllowlistInput
+  indexerRuleNFTInput: IndexerRuleNFTInput
+  indexerRuleAPIInput: IndexerRuleAPIInput
+}

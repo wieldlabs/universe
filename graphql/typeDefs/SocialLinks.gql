@@ -1,0 +1,9 @@
+type SocialLinks {
+  _id: ID
+  discord: String
+  medium: String
+  telegram: String
+  twitter: String
+  instagram: String
+  website: String
+}

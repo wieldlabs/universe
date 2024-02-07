@@ -1,0 +1,28 @@
+enum CommunityAssetType {
+  ASSET_3D
+}
+
+# add more types here Asset3DUnion | NFTUnion | etc
+union CommunityAssetItem = Asset3DUnion
+
+type CommunityAssetModification {
+  _id: ID
+  position: [Int]
+}
+type CommunityAssetMetadata {
+  _id: ID
+  position: Vector3D
+  modification: Modification3D
+}
+
+type CommunityAsset {
+  _id: ID
+  community: Community
+  type: CommunityAssetType
+  asset: CommunityAssetItem
+  modification: Modification3D
+  position: Vector3D
+  positions: [Vector3D]
+  maxQuantity: Int
+  metadata: [CommunityAssetMetadata]
+}

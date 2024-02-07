@@ -1,0 +1,14 @@
+type AccountCommunityCurrentACcountPermission {
+  canRead: Boolean @cacheControl(maxAge: 3600)
+  canWrite: Boolean @cacheControl(maxAge: 3600)
+}
+
+type AccountCommunity {
+  _id: ID
+  account: Account
+  community: Community
+  joined: Boolean
+  unseenPostsCount: Int @cacheControl(maxAge: 30, scope: PRIVATE) # require auth
+  lastSeen: String
+  currentAccountPermissions: AccountCommunityCurrentACcountPermission
+}

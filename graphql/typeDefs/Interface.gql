@@ -1,0 +1,18 @@
+enum AssetRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+  MYTHICAL
+  ONE_OF_ONE
+}
+interface MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+}
+interface Asset {
+  description: String
+  rarity: AssetRarity
+}

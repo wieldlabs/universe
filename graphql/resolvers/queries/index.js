@@ -1,0 +1,5 @@
+const merge = require("lodash/merge"), AccountQuery = require("./AccountQuery")["resolvers"], CommunityAssetQuery = require("./CommunityAssetQuery")["resolvers"], CommunityQuery = require("./CommunityQuery")["resolvers"], NotificationQuery = require("./NotificationQuery")["resolvers"], RoleQuery = require("./RoleQuery")["resolvers"], SearchQuery = require("./SearchQuery")["resolvers"], QuestQuery = require("./QuestQuery")["resolvers"], CommunityQuestQuery = require("./CommunityQuestQuery")["resolvers"], ChannelRecipientQuery = require("./ChannelRecipientQuery")["resolvers"], ChannelQuery = require("./ChannelQuery")["resolvers"], resolvers = merge(CommunityQuery, CommunityQuestQuery, AccountQuery, CommunityAssetQuery, NotificationQuery, RoleQuery, SearchQuery, QuestQuery, ChannelRecipientQuery, ChannelQuery);
+
+module.exports = {
+  resolvers: resolvers
+};

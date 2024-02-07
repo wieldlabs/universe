@@ -1,0 +1,8 @@
+union PermissionOverwriteObject = Role | Account
+
+type PermissionOverwrite {
+  _id: ID
+  object: PermissionOverwriteObject
+  allowedPermissionString: String
+  objectType: Int
+}

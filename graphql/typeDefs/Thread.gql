@@ -1,0 +1,29 @@
+type ThreadTransaction {
+  _id: ID
+  thread: Thread
+  signature: String
+  nonce: String
+  tokenAddress: Address
+  isCompleted: Boolean
+  tokenAmount: String
+  sender: Account
+  recipient: Account
+  transactionHash: String
+  completionTransactionHash: String
+}
+
+type ThreadMessage {
+  _id: ID
+  thread: Thread
+  sender: Account
+  richContent: RichContent
+  createdAt: String
+}
+
+type Thread {
+  _id: ID
+  messages(limit: Int, offset: Int): [ThreadMessage]
+  transactions: [ThreadTransaction]
+  recipients: [Account]
+  recipientAccountThreads: [AccountThread]
+}

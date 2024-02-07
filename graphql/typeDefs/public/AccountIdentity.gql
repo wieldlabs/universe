@@ -1,0 +1,33 @@
+type Pfp {
+  url: String
+  verified: Boolean
+}
+
+type HubRichContent {
+  text: String
+  mentions: [String]
+}
+
+type FarcasterIdentity {
+  fid: ID
+  followingCount: Int
+  followerCount: Int
+  pfp: Pfp
+  bio: HubRichContent
+  external: Boolean
+  username: String
+  displayName: String
+}
+
+type ENSIdentity {
+  _id: ID
+  account: Account
+  ens: String
+  avatarUrl: String
+  twitter: String
+}
+type AccountIdentity {
+  _id: ID
+  farcaster: FarcasterIdentity
+  ens: ENSIdentity
+}

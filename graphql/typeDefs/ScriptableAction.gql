@@ -1,0 +1,6 @@
+type ScriptableAction {
+  _id: ID
+  title: String
+  originalScriptUrl: String
+  scriptUrl: String
+}

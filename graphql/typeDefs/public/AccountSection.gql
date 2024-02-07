@@ -1,0 +1,14 @@
+type SectionEntry {
+  content: Content
+  link: String
+  image: Image
+  title: String
+  _id: ID
+}
+
+type AccountSection {
+  _id: ID
+  title: String
+  isVisible: Boolean
+  entries: [SectionEntry]
+}
