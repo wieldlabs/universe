@@ -82,7 +82,7 @@ class AccountRecovererService {
   }) {
     return {
       type: a,
-      id: t,
+      id: t.toString(),
       pubKey: r?.toLowerCase?.()
     };
   }

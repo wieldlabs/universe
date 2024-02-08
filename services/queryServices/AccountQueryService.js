@@ -12,26 +12,26 @@ class AccountQueryService extends AccountService {
     }));
   }
   async backpackClaimed(e) {
-    var r = new _CacheService(), c = walletConfig(), t = await this.backpackAddress(e);
-    return !!t && ((t = await isDeployedContract(t, {
-      network: c.CHAIN_ID,
-      apiKey: c.API_KEY
+    var r = new _CacheService(), t = walletConfig(), c = await this.backpackAddress(e);
+    return !!c && ((c = await isDeployedContract(c, {
+      network: t.CHAIN_ID,
+      apiKey: t.API_KEY
     })) && r.set({
       key: "BackpackClaimed",
       params: {
         account: e._id
       },
-      value: t,
+      value: c,
       expiresAt: null
-    }), t);
+    }), c);
   }
   async backpackAddress(e) {
     try {
-      var r, c, t, a, s, n, o = (await e?.populate?.("addresses"))?.addresses?.[0]?.address;
-      return e && o ? (r = new _CacheService(), c = walletConfig(), t = new ethers.providers.AlchemyProvider(c.CHAIN_ID, c.API_KEY), 
-      a = new ethers.Contract(c.FACTORY_CONTRACT_ADDRESS, c.FACTORY_ABI, t), s = (await AccountNonce.findOne({
+      var r, t, c, s, a, n, o = (await e?.populate?.("addresses"))?.addresses?.[0]?.address;
+      return e && o ? (r = new _CacheService(), t = walletConfig(), c = new ethers.providers.AlchemyProvider(t.CHAIN_ID, t.API_KEY), 
+      s = new ethers.Contract(t.FACTORY_CONTRACT_ADDRESS, t.FACTORY_ABI, c), a = (await AccountNonce.findOne({
         account: e._id
-      })).salt, n = await a.getAddress(o, s), r.set({
+      })).salt, n = await s.getAddress(o, a), r.set({
         key: "BackpackAddress",
         params: {
           account: e._id
@@ -43,33 +43,38 @@ class AccountQueryService extends AccountService {
       return null;
     }
   }
-  identities(t) {
+  identities(c) {
     try {
-      const c = new FarcasterHubService();
+      const s = new FarcasterHubService();
       return {
-        _id: t._id,
+        _id: c._id,
         farcaster: async (e = 0, r) => {
-          return await c.getProfileByAccount(t, r.isExternal);
+          if (r.signerId) {
+            const t = await s.getProfileFid(r.signerId);
+            return t;
+          }
+          const t = await s.getProfileByAccount(c, r.isExternal);
+          return t;
         },
         ens: async () => {
-          await t.populate("addresses");
+          await c.populate("addresses");
           var {
             avatarUrl: e,
             twitter: r,
-            ens: c
-          } = await resolveEnsDataFromAddress(t.addresses[0].address);
+            ens: t
+          } = await resolveEnsDataFromAddress(c.addresses[0].address);
           return {
             avatarUrl: e,
             twitter: r,
-            ens: c,
-            account: t,
-            _id: t._id
+            ens: t,
+            account: c,
+            _id: c._id
           };
         }
       };
     } catch (e) {
       return {
-        _id: t._id,
+        _id: c._id,
         farcaster: null,
         ens: null
       };

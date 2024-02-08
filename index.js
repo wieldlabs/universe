@@ -30,7 +30,8 @@ http.createServer(app));
         return {
           ...r,
           accountId: t.payload.id,
-          isExternal: t.payload.isExternal
+          isExternal: t.payload.isExternal,
+          signerId: t.payload.signerId
         };
       } catch (e) {
         try {

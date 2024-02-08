@@ -8,6 +8,9 @@ class FarcasterHubService {
     let t;
     return (t = !0 === r ? e.recoverers?.find?.(e => "FARCASTER_SIGNER_EXTERNAL" === e.type) : !1 === r ? e.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type) : (t = e.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type)) || e.recoverers?.find?.(e => "FARCASTER_SIGNER_EXTERNAL" === e.type)) || null;
   }
+  async getProfileFid(e) {
+    return await getFarcasterUserByFid(e);
+  }
   async getProfileByAccount(e, r) {
     return (e = e && this._getSigner(e, r)) ? await getFarcasterUserByFid(e.id) : null;
   }

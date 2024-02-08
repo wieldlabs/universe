@@ -85,7 +85,7 @@ const authContext = async (r, e, t) => {
     var o = await Account.findById(n.payload.id);
     if (!o) throw new Error(`Account id ${n.payload.id} not found`);
     if (o.deleted) throw new Error(`Account id ${n.payload.id} deleted`);
-    var c = await s.getFidByAccount(o, n.payload.isExternal);
+    var c = n.payload.signerId || await s.getFidByAccount(o, n.payload.isExternal);
     r.context = {
       ...r.context || {},
       accountId: n.payload.id,
@@ -100,7 +100,8 @@ const authContext = async (r, e, t) => {
       accountId: null,
       fid: null,
       account: null,
-      hubClient: a
+      hubClient: a,
+      signerId: null
     };
   }
   t();
@@ -734,13 +735,14 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
   }
 }, getMarketplaceV1Listings = async (e, r) => {
   try {
-    var [ t, a ] = await new _MarketplaceService().getListings({
+    var t = new _MarketplaceService(), [ a, s ] = (e.query.limit = Math.min(e.query.limit || 10, 25), 
+    await t.getListings({
       ...e.query,
       filters: JSON.parse(e.query.filters || "{}")
-    });
+    }));
     return r.json({
-      listings: t,
-      next: a
+      listings: a,
+      next: s
     });
   } catch (e) {
     console.error(e), r.status(500).json({
