@@ -134,9 +134,7 @@ class MarketplaceService {
   }
   async fetchDataForFids(e) {
     return Promise.all(e.map(async e => {
-      var [ t, r, a ] = await Promise.all([ this.fetchUserData(e), this.fetchListing(e), this.getBestOffer({
-        fid: e
-      }) ]);
+      var [ t, r, a ] = await Promise.all([ this.fetchUserData(e), this.fetchListing(e) ]);
       return {
         fid: e,
         user: t,

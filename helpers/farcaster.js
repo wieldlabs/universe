@@ -427,29 +427,29 @@ const postMessage = async ({
     });
   }
   return null;
-}, getFarcasterCastByHash = async (e, t = {}) => {
+}, getFarcasterCastByHash = async (t, e = {}) => {
   var a = getMemcachedClient();
   let r, s;
-  if (t.fid) {
+  if (e.fid) {
     try {
-      const w = await a.get(`getFarcasterCastByHash_${t.fid}:` + e);
+      const w = await a.get(`getFarcasterCastByHash_${e.fid}:` + t);
       w && (r = JSON.parse(w.value));
     } catch (e) {
       console.error(e);
     }
     if (!r) {
       if (!(s = await Casts.findOne({
-        hash: e,
+        hash: t,
         deletedAt: null
       }))) return null;
       var [ i, n ] = await Promise.all([ Reactions.exists({
         targetHash: s.hash,
-        fid: t.fid,
+        fid: e.fid,
         reactionType: ReactionType.REACTION_TYPE_LIKE,
         deletedAt: null
       }), Reactions.exists({
         targetHash: s.hash,
-        fid: t.fid,
+        fid: e.fid,
         reactionType: ReactionType.REACTION_TYPE_RECAST,
         deletedAt: null
       }) ]);
@@ -458,17 +458,17 @@ const postMessage = async ({
         isSelfRecast: n
       };
       try {
-        await a.set(`getFarcasterCastByHash_${t.fid}:` + e, JSON.stringify(r));
+        await a.set(`getFarcasterCastByHash_${e.fid}:` + t, JSON.stringify(r));
       } catch (e) {
         console.error(e);
       }
     }
   }
   try {
-    const w = await a.get("getFarcasterCastByHash:" + e);
+    const w = await a.get("getFarcasterCastByHash:" + t);
     if (w) return (l = JSON.parse(w.value)).author && (l.author = await getFarcasterUserAndLinksByFid({
       fid: l.author.fid,
-      context: t
+      context: e
     })), {
       ...l,
       ...r
@@ -477,10 +477,10 @@ const postMessage = async ({
     console.error(e);
   }
   if (!(s = s || await Casts.findOne({
-    hash: e,
+    hash: t,
     deletedAt: null
   }))) return null;
-  var [ i, n, l, t, c, o ] = await Promise.all([ Casts.countDocuments({
+  var [ i, n, l, e, c, o ] = await Promise.all([ Casts.countDocuments({
     parentHash: s.hash,
     deletedAt: null
   }), Reactions.countDistinct({
@@ -493,33 +493,33 @@ const postMessage = async ({
     deletedAt: null
   }), getFarcasterUserByFid(s.parentFid), getFarcasterUserAndLinksByFid({
     fid: s.fid,
-    context: t
+    context: e
   }), Reactions.find({
     targetHash: s.hash,
     reactionType: ReactionType.REACTION_TYPE_RECAST,
     deletedAt: null
-  }).select("fid") ]), d = s.mentions.map(e => getFarcasterUserByFid(e)), o = o.map(e => getFarcasterUserByFid(e.fid)), [ g, d ] = await Promise.all([ Promise.all(d), Promise.all(o) ]), o = s.text;
+  }).select("fid") ]), d = s.mentions.map(e => getFarcasterUserByFid(e)), o = o.map(e => getFarcasterUserByFid(e.fid)), [ g, ,  ] = await Promise.all([ Promise.all(d), Promise.all(o) ]), d = s.text;
   let u = 0;
   var y, f, m, h, F, p = [];
-  let A = Buffer.from(o, "utf-8");
+  let A = Buffer.from(d, "utf-8");
   for (let e = 0; e < g.length; e++) g[e] && (m = s.mentionsPositions[e], y = g[e].username || "fid:" + g[e].fid, 
   y = Buffer.from("@" + y, "utf-8"), f = g[e].originalMention || "", f = Buffer.from(f, "utf-8").length, 
   m = m + u, h = A.slice(0, m), F = A.slice(m + f), A = Buffer.concat([ h, y, F ]), 
   u += y.length - f, p.push(m));
-  o = A.toString("utf-8");
+  d = A.toString("utf-8");
   const w = {
     hash: s.hash,
     parentHash: s.parentHash,
     parentFid: s.parentFid,
     parentUrl: s.parentUrl,
     threadHash: s.threadHash,
-    text: o,
+    text: d,
     embeds: JSON.parse(s.embeds),
     mentions: g,
     mentionsPositions: p,
     external: s.external,
     author: c,
-    parentAuthor: t,
+    parentAuthor: e,
     timestamp: s.timestamp.getTime(),
     replies: {
       count: i
@@ -528,15 +528,14 @@ const postMessage = async ({
       count: n
     },
     recasts: {
-      count: l,
-      recasters: d
+      count: l
     },
     deletedAt: s.deletedAt
   };
   try {
-    await a.set("getFarcasterCastByHash:" + e, JSON.stringify(w));
+    await a.set("getFarcasterCastByHash:" + t, JSON.stringify(w));
   } catch (e) {
-    console.error(e);
+    console.error("getFarcasterCastByHash:" + t, e);
   }
   return {
     ...w,

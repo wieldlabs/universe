@@ -130,9 +130,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   deletedAt: 1,
   timestamp: -1
 }), castsSchema.index({
-  fid: 1,
-  deletedAt: 1
-}), castsSchema.index({
   threadHash: 1,
   deletedAt: 1
 }), castsSchema.index({
@@ -249,7 +246,8 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   timestamps: !0
 })), userDataSchema = (verificationsSchema.index({
   fid: 1,
-  claim: "text"
+  claim: "text",
+  deletedAt: 1
 }), verificationsSchema.index({
   claim: "text",
   deletedAt: 1
@@ -393,11 +391,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   fid: 1,
   targetFid: 1,
   type: 1
-}), linksSchema.index({
-  fid: 1,
-  targetFid: 1,
-  type: 1,
-  deletedAt: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -457,9 +450,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   notificationType: 1,
   deletedAt: 1
 }), notificationsSchema.index({
-  "payload.linkHash": 1
+  "payload.linkHash": 1,
+  deletedAt: 1
 }), notificationsSchema.index({
-  "payload.castHash": 1
+  "payload.castHash": 1,
+  deletedAt: 1
 }), new mongoose.Schema({
   buyerAddress: {
     type: String,
