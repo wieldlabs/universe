@@ -121,7 +121,7 @@ const postMessage = async ({
     console.error(e);
   }
   if (!e) return null;
-  var [ a, r, s, i ] = await Promise.all([ Links.countDocuments({
+  var [ a, r, s, i, n ] = await Promise.all([ Links.countDocuments({
     fid: e,
     type: "follow",
     deletedAt: null
@@ -137,7 +137,7 @@ const postMessage = async ({
   }), Fids.findOne({
     fid: e,
     deletedAt: null
-  }) ]), n = {
+  }), getConnectedAddressForFid(e) ]), l = {
     fid: e,
     followingCount: a,
     followerCount: r,
@@ -150,45 +150,46 @@ const postMessage = async ({
       mentions: []
     },
     external: !1,
-    custodyAddress: i?.custodyAddress
+    custodyAddress: i?.custodyAddress,
+    connectedAddress: n
   };
-  let l = i?.timestamp;
-  var c = {};
-  for (const y of s) {
-    y.external && (n.external = !0), l = l || y.createdAt, y.createdAt < l && (l = y.createdAt);
-    var o = y.value.startsWith("0x") ? y.value.slice(2) : y.value, d = Buffer.from(o, "hex").toString("utf8");
-    switch (y.type) {
+  let c = i?.timestamp;
+  var o = {};
+  for (const f of s) {
+    f.external && (l.external = !0), c = c || f.createdAt, f.createdAt < c && (c = f.createdAt);
+    var d = f.value.startsWith("0x") ? f.value.slice(2) : f.value, g = Buffer.from(d, "hex").toString("utf8");
+    switch (f.type) {
      case UserDataType.USER_DATA_TYPE_USERNAME:
-      c.username || (n.username = d, c.username = !0);
+      o.username || (l.username = g, o.username = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_DISPLAY:
-      c.displayName || (n.displayName = d, c.displayName = !0);
+      o.displayName || (l.displayName = g, o.displayName = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_PFP:
-      c.pfp || (n.pfp.url = d, c.pfp = !0);
+      o.pfp || (l.pfp.url = g, o.pfp = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_BIO:
-      if (!c.bio) {
-        n.bio.text = d;
-        for (var g, u = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; g = u.exec(d); ) n.bio.mentions.push(g[1]);
-        c.bio = !0;
+      if (!o.bio) {
+        l.bio.text = g;
+        for (var u, y = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; u = y.exec(g); ) l.bio.mentions.push(u[1]);
+        o.bio = !0;
       }
       break;
 
      case UserDataType.USER_DATA_TYPE_URL:
-      c.url || (n.url = d, c.url = !0);
+      o.url || (l.url = g, o.url = !0);
     }
   }
-  n.registeredAt = l?.getTime();
+  l.registeredAt = c?.getTime();
   try {
-    await t.set("getFarcasterUserByFid:" + e, JSON.stringify(n));
+    await t.set("getFarcasterUserByFid:" + e, JSON.stringify(l));
   } catch (e) {
     console.error(e);
   }
-  return n;
+  return l;
 }, getFarcasterUserAndLinksByFid = async ({
   fid: e,
   context: t
