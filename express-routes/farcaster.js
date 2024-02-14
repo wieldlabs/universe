@@ -60,14 +60,14 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
 }, limiter = rateLimit({
   windowMs: 3e3,
   max: getLimit(2.5),
-  message: "Too many requests or invalid API key! See docs.wield.co for more info.",
+  message: "Too many requests or invalid API key! See docs.far.quest for more info.",
   validate: {
     limit: !1
   }
 }), heavyLimiter = rateLimit({
   windowMs: 2e3,
   max: getLimit(.3),
-  message: "Too many requests or invalid API key! See docs.wield.co for more info.",
+  message: "Too many requests or invalid API key! See docs.far.quest for more info.",
   validate: {
     limit: !1
   }
@@ -576,7 +576,8 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       var o = await n.get("getAddressPasses:" + s);
       if (o) return a.json({
         result: {
-          passes: JSON.parse(o.value)
+          passes: JSON.parse(o.value),
+          isHolder: !0
         },
         source: "v2"
       });
@@ -598,12 +599,12 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       console.error(e);
     }
     if (null === e) {
-      e = await u.isHolderOfCollection({
-        wallet: s,
-        contractAddress: prod().REGISTRAR_ADDRESS
-      }), e ||= await l.isHolderOfCollection({
+      e = await l.isHolderOfCollection({
         wallet: s,
         contractAddress: prod().OPTIMISM_REGISTRAR_ADDRESS
+      }), e ||= await u.isHolderOfCollection({
+        wallet: s,
+        contractAddress: prod().REGISTRAR_ADDRESS
       });
       try {
         await n.set("getAddressPasses_isHolder:" + s, JSON.stringify(e), {
@@ -613,6 +614,12 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
         console.error(e);
       }
     }
+    if (t.query.checkHolderOnly) return a.json({
+      result: {
+        isHolder: e
+      },
+      source: "v2"
+    });
     let r;
     r = e ? ([ c, i ] = await Promise.all([ u.getNFTs({
       owner: s,

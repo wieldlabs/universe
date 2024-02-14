@@ -5,16 +5,16 @@ const Account = require("../models/Account")["Account"], _AlchemyService = requi
     var t = o.addresses?.[0]?.address, d = new _AlchemyService({
       apiKey: prod().NODE_URL,
       chain: prod().NODE_NETWORK
-    }), a = new _AlchemyService({
+    }), a = await new _AlchemyService({
       apiKey: prod().OPTIMISM_NODE_URL,
       chain: prod().OPTIMISM_NODE_NETWORK
-    }), i = await d.isHolderOfCollection({
-      wallet: t,
-      contractAddress: prod().REGISTRAR_ADDRESS
-    });
-    if (i ||= await a.isHolderOfCollection({
+    }).isHolderOfCollection({
       wallet: t,
       contractAddress: prod().OPTIMISM_REGISTRAR_ADDRESS
+    });
+    if (a ||= await d.isHolderOfCollection({
+      wallet: t,
+      contractAddress: prod().REGISTRAR_ADDRESS
     })) return !0;
     throw new Error("Due to demand, you must own a BEB domain to use this feature. Register one for free at Wield and contribute to the network!");
   } catch (e) {

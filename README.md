@@ -10,7 +10,7 @@ This is an early work that is subject to heavy changes, see our
 [Github Issues](https://github.com/wieldlabs/dimension/issues) if you wish to
 contribute.
 
-**See our developer documents at [`docs.wield.co`](https://docs.wield.co).**
+**See our developer documents at [`docs.far.quest`](https://docs.far.quest).**
 
 ## Self-hosting Your Universe
 
@@ -22,12 +22,6 @@ as `ARG` parameters.
 2. You'll also need to deploy this Dockerfile to a hosting location of your
    preference ([Railway](https://railway.app),
    [Heroku](https://www.heroku.com/), etc).
-3. Once you have a hosted url, you can set this path in the BEBverse
-   [resolver smart contracts](https://github.com/wieldlabs/contracts). For
-   example, `foo.cast` would resolve to your host at
-   `example-load-balancer-1234567890.us-west-2.elb.amazonaws.com`. See our
-   [self-hosting guide](https://docs.wield.co/selfhosting#configuring-the-resolver-contract)
-   for more details!
 
 ## Contribution Guidelines
 
@@ -65,5 +59,5 @@ running instance, and play around with graphql commands at
 
 ## Useful Links
 
-- [Register a Wield Dimension](https://wield.co)
-- [Protocol Documentation](https://docs.wield.co)
+- [Register a .cast domain](https://wield.co)
+- [Developer Documentation](https://docs.far.quest)

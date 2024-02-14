@@ -48,7 +48,7 @@ http.createServer(app));
     }
   })), app.get("/", (e, r) => {
     r.json({
-      message: "Welcome to a Wield Dimensions Host running github.com/wieldlabs/universe, see /graphql for the API!"
+      message: "Welcome to github.com/wieldlabs/universe, see docs.far.quest for the API!"
     });
   }), app.get("/health", async (e, r) => {
     try {
