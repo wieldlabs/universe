@@ -300,6 +300,23 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   type: 1,
   deletedAt: 1,
   external: 1
+}), userDataSchema.index({
+  fid: 1,
+  type: 1,
+  deletedAt: 1
+}), userDataSchema.index({
+  deletedAt: 1,
+  value: 1
+}), userDataSchema.index({
+  type: 1,
+  external: 1,
+  deletedAt: 1,
+  value: 1
+}), userDataSchema.index({
+  fid: 1,
+  external: 1,
+  deletedAt: 1,
+  value: 1
 }), new mongoose.Schema({
   fid: {
     type: String,
@@ -681,14 +698,30 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   }
 }, {
   timestamps: !0
-});
-
-framesSchema.index({
+}), reportsSchema = (framesSchema.index({
   sourceUrl: 1
 }), framesSchema.index({
   hash: 1
 }), framesSchema.index({
   title: 1
+}), new mongoose.Schema({
+  fid: {
+    type: String,
+    required: !0
+  },
+  reason: {
+    type: String
+  },
+  count: {
+    type: Number,
+    default: 0
+  }
+}, {
+  timestamps: !0
+}));
+
+reportsSchema.index({
+  fid: 1
 }), module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
   messagesSchema: messagesSchema,
@@ -706,5 +739,6 @@ framesSchema.index({
   storageSchema: storageSchema,
   appraisalSchema: appraisalSchema,
   listingLogSchema: listingLogSchema,
-  framesSchema: framesSchema
+  framesSchema: framesSchema,
+  reportsSchema: reportsSchema
 };

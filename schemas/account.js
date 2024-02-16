@@ -64,6 +64,10 @@ schema.index({
 }), schema.index({
   username: "text",
   bio: "text"
+}), schema.index({
+  creationOrigin: 1,
+  deleted: 1,
+  "addresses.0": 1
 }), module.exports = {
   schema: schema
 };

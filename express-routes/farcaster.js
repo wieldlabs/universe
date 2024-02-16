@@ -24,7 +24,8 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getLeaderboard,
   getFidMetadataSignature,
   createFrame,
-  getFrame
+  getFrame,
+  createReport
 } = require("../helpers/farcaster"), {
   getInsecureHubRpcClient,
   getSSLHubRpcClient
@@ -946,9 +947,20 @@ async (e, r) => {
       error: e.message
     });
   }
-};
+}, createCastReport = (app.post("/v2/frames", [ heavyLimiter, authContext ], createCastFrame), 
+app.get("/v2/frames", [ limiter ], getCastFrame), async (e, r) => {
+  try {
+    if (!e.context.accountId) throw new Error("Unauthorized");
+    await createReport(e.body.fid), r.json({
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+});
 
-app.post("/v2/frames", [ heavyLimiter, authContext ], createCastFrame), app.get("/v2/frames", [ limiter ], getCastFrame), 
-module.exports = {
+app.post("/v2/reports", [ heavyLimiter, authContext ], createCastReport), module.exports = {
   router: app
 };

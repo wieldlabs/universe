@@ -10,7 +10,7 @@ http.createServer(app));
     introspection: "development" === process.env.NODE_ENV,
     cache: "bounded",
     csrfPrevention: !0,
-    formatError: (e, r) => (Sentry.captureException(r), console.error(r), new Error("Internal server error")),
+    formatError: (e, r) => (Sentry.captureException(r), new Error("Internal server error")),
     plugins: [ responseCachePlugin(), ApolloServerPluginDrainHttpServer({
       httpServer: httpServer
     }) ]

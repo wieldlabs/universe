@@ -15,7 +15,8 @@ const mongoose = require("mongoose"), {
   storageSchema,
   listingLogSchema,
   appraisalSchema,
-  framesSchema
+  framesSchema,
+  reportsSchema
 } = require("../../schemas/farcaster");
 
 class HubSubscriptionsClass {
@@ -199,7 +200,17 @@ class FramesClass {
 
 offerSchema.loadClass(FramesClass);
 
-const Frames = mongoose.models.Frames || mongoose.model("farcaster.Frames", framesSchema), UserDataType = {
+const Frames = mongoose.models.Frames || mongoose.model("farcaster.Frames", framesSchema);
+
+class ReportsClass {
+  static ping() {
+    console.log("model: ReportsClass");
+  }
+}
+
+offerSchema.loadClass(ReportsClass);
+
+const Reports = mongoose.models.Reports || mongoose.model("farcaster.Reports", reportsSchema), UserDataType = {
   USER_DATA_TYPE_NONE: 0,
   USER_DATA_TYPE_PFP: 1,
   USER_DATA_TYPE_DISPLAY: 2,
@@ -246,5 +257,6 @@ module.exports = {
   Storage: Storage,
   ListingLogs: ListingLogs,
   Appraisals: Appraisals,
-  Frames: Frames
+  Frames: Frames,
+  Reports: Reports
 };

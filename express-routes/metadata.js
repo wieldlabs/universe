@@ -62,7 +62,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
       uri: a.uri
     }));
   } catch (t) {
-    return Sentry.captureException(t), console.error(t), e.json({
+    return Sentry.captureException(t), e.json({
       code: "500",
       success: !1,
       message: t.message
