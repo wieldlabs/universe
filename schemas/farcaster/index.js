@@ -216,10 +216,16 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   }
 }, {
   timestamps: !0
-})), verificationsSchema = (signersSchema.index({
+})), claimSchema = (signersSchema.index({
   fid: 1,
   signer: 1
 }), new mongoose.Schema({
+  address: String,
+  ethSignature: String,
+  blockHash: String
+}, {
+  _id: !1
+})), verificationsSchema = new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
     type: Date,
@@ -238,13 +244,16 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     type: String,
     required: !0
   },
+  claimObj: {
+    type: claimSchema
+  },
   external: {
     type: Boolean,
     default: !1
   }
 }, {
   timestamps: !0
-})), userDataSchema = (verificationsSchema.index({
+}), userDataSchema = (verificationsSchema.index({
   fid: 1,
   claim: "text",
   deletedAt: 1
@@ -255,6 +264,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   fid: 1,
   deletedAt: 1
 }), verificationsSchema.index({
+  deletedAt: 1
+}), verificationsSchema.index({
+  "claimObj.address": 1,
   deletedAt: 1
 }), new mongoose.Schema({
   deletedAt: Date,
@@ -314,6 +326,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   value: 1
 }), userDataSchema.index({
   fid: 1,
+  external: 1,
+  deletedAt: 1,
+  value: 1
+}), userDataSchema.index({
   external: 1,
   deletedAt: 1,
   value: 1

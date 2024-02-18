@@ -253,8 +253,7 @@ const postMessage = async ({
   }
   a || (r = '^\\{"address":"' + e.toLowerCase() + '"', r = await Verifications.findOne({
     claim: {
-      $regex: r,
-      $options: "i"
+      $regex: r
     },
     deletedAt: null
   }), a = r ? r.fid : "0");
@@ -340,15 +339,13 @@ const postMessage = async ({
   o = {
     $or: [ {
       value: {
-        $regex: "^" + s,
-        $options: "i"
+        $regex: "^" + s
       },
       type: UserDataType.USER_DATA_TYPE_USERNAME,
       deletedAt: null
     }, {
       value: {
-        $regex: "^" + s,
-        $options: "i"
+        $regex: "^" + s
       },
       type: UserDataType.USER_DATA_TYPE_DISPLAY,
       deletedAt: null
@@ -553,16 +550,20 @@ const postMessage = async ({
     console.error(e);
   }
   if (!s) {
-    r = await Casts.findOne({
+    i = await Casts.findOne({
       hash: {
-        $regex: "^" + e,
-        $options: "i"
+        $regex: "^" + e
       },
       fid: t.fid,
       deletedAt: null
     });
-    if (!r) return null;
-    s = r.hash;
+    if (!i) return null;
+    s = i.hash;
+  }
+  try {
+    await r.set("getFarcasterCastByShortHash:" + e, s);
+  } catch (e) {
+    console.error(e);
   }
   return getFarcasterCastByHash(s, a);
 }, getFarcasterAllCastsInThread = async (e, t) => {

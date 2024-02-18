@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"), contentSchema = require("../content")["schema"], keyValueFieldsSchema = require("../keyValueFields")["schema"], questRequirementSchema = mongoose.Schema({
+const mongoose = require("mongoose"), contentSchema = require("../content")["schema"], keyValueFieldsSchema = require("../keyValueFields")["schema"], questRewardsSchema = require("./questReward")["schema"], questRequirementSchema = mongoose.Schema({
   title: {
     type: String
   },
@@ -8,29 +8,6 @@ const mongoose = require("mongoose"), contentSchema = require("../content")["sch
   },
   data: [ keyValueFieldsSchema ],
   description: contentSchema
-}), questRewardsSchema = mongoose.Schema({
-  title: {
-    type: String
-  },
-  type: {
-    type: String,
-    enum: [ "ASSET_3D", "SCORE", "IMAGE", "NFT" ]
-  },
-  quantity: {
-    type: Number,
-    default: 1
-  },
-  rewardId: {
-    type: mongoose.Schema.Types.ObjectId,
-    index: !0
-  },
-  isSponsored: {
-    type: Boolean,
-    default: !1
-  },
-  category: {
-    type: String
-  }
 }), schema = mongoose.Schema({
   description: contentSchema,
   startsAt: {
@@ -40,7 +17,8 @@ const mongoose = require("mongoose"), contentSchema = require("../content")["sch
     type: Date
   },
   title: {
-    type: String
+    type: String,
+    index: !0
   },
   community: {
     type: mongoose.Schema.Types.ObjectId,
@@ -68,6 +46,5 @@ schema.index({
   community: 1
 }), module.exports = {
   schema: schema,
-  questRequirementSchema: questRequirementSchema,
-  questRewardsSchema: questRewardsSchema
+  questRequirementSchema: questRequirementSchema
 };

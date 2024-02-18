@@ -1,6 +1,6 @@
 {
   "name": "universe",
-  "version": "2.0.6",
+  "version": "2.0.7",
   "main": "README.md",
   "license": "AGPL-3.0",
   "repository": "git@github.com:wieldlabs/universe.git",
@@ -93,6 +93,7 @@
     "p-retry": "4.6.1",
     "prando": "^6.0.1",
     "sanitize-html": "^2.7.0",
+    "satori": "^0.10.13",
     "sharp": "^0.33.2",
     "underscore": "1.13.6",
     "web3-utils": "^1.7.5",

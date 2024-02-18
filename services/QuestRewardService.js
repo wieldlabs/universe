@@ -1,15 +1,15 @@
-const Asset3D = require("../models/assets/Asset3D")["Asset3D"], Image = require("../models/Image")["Image"];
+const Asset3D = require("../models/assets/Asset3D")["Asset3D"], Image = require("../models/Image")["Image"], QuestRandomReward = require("../models/quests/QuestRandomReward")["QuestRandomReward"];
 
 class QuestRewardService {
   async createQuestRewardItem({
     type: e,
     data: a
   }) {
-    let i = null;
+    let r = null;
     try {
       switch (e) {
        case "ASSET_3D":
-        i = await Asset3D.create({
+        r = await Asset3D.create({
           url: a.url,
           format: a.format,
           assetType: a.assetType,
@@ -18,8 +18,14 @@ class QuestRewardService {
         });
         break;
 
+       case "RANDOM":
+        r = await QuestRandomReward.create({
+          rewards: a.rewards
+        });
+        break;
+
        case "IMAGE":
-        i = await Image.create({
+        r = await Image.create({
           src: a.src,
           isVerified: !!a.isVerified,
           verificationOrigin: a.verifyOrigin,
@@ -36,7 +42,7 @@ class QuestRewardService {
 
        case "NFT":
         if (!a.verificationContractAddress || !a.verificationTokenId) throw new Error("NFT requires a verificationContractAddress and a verificationTokenId");
-        i = await Image.create({
+        r = await Image.create({
           src: a.src,
           isVerified: !0,
           verificationOrigin: "NFT",
@@ -54,7 +60,7 @@ class QuestRewardService {
        default:
         return null;
       }
-      return i;
+      return r;
     } catch (e) {
       return null;
     }
@@ -63,21 +69,25 @@ class QuestRewardService {
     rewardId: e,
     type: a
   }) {
-    let i = null;
+    let r = null;
     switch (a) {
      case "ASSET_3D":
-      i = await Asset3D.findById(e);
+      r = await Asset3D.findById(e);
       break;
 
      case "IMAGE":
      case "NFT":
-      i = await Image.findById(e);
+      r = await Image.findById(e);
+      break;
+
+     case "RANDOM":
+      r = await QuestRandomReward.findById(e);
       break;
 
      default:
       return null;
     }
-    return i;
+    return r;
   }
 }
 

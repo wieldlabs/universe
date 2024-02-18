@@ -35,16 +35,16 @@ class QuestService extends QuestRewardService {
     if (!t) return !1;
     var n = new _IndexerRuleService();
     try {
-      var i, s = await IndexerRule.findOne({
+      var s, i = await IndexerRule.findOne({
         ruleOwnerType: 2,
         ruleOwnerId: t
       });
-      return s ? !!(i = await AccountAddress.findOne({
+      return i ? !!(s = await AccountAddress.findOne({
         account: a.account._id || a.accountId
-      })) && n.canClaimRole(s, {
+      })) && n.canClaimRole(i, {
         data: {
           communityId: r,
-          address: i.address
+          address: s.address
         }
       }) : !1;
     } catch (e) {
@@ -61,8 +61,8 @@ class QuestService extends QuestRewardService {
     var {
       contractAddress: t,
       count: n = 1,
-      attributeType: i = null,
-      attributeValue: s = null,
+      attributeType: s = null,
+      attributeValue: i = null,
       chain: u = "eth-mainnet"
     } = a;
     if (!t) return !1;
@@ -78,8 +78,8 @@ class QuestService extends QuestRewardService {
         address: r.account.addresses?.[0]?.address,
         contractAddresses: [ t ],
         count: n,
-        attributeType: i,
-        attributeValue: s
+        attributeType: s,
+        attributeValue: i
       });
     } catch (e) {
       return !1;
@@ -90,8 +90,8 @@ class QuestService extends QuestRewardService {
   }, r) {
     const a = {}, {
       contractAddress: n,
-      count: i = 1,
-      attributeType: s = null,
+      count: s = 1,
+      attributeType: i = null,
       attributeValue: u = null
     } = (t?.data?.forEach(e => {
       e?.key && (a[e.key] = e.value);
@@ -110,12 +110,12 @@ class QuestService extends QuestRewardService {
         }).verifyOwnership({
           address: r.account.addresses?.[0]?.address,
           contractAddresses: [ t ],
-          attributeType: s,
+          attributeType: i,
           attributeValue: u,
           returnCount: !0
         });
       }))).reduce((e, t) => e + t, 0));
-      return i <= o;
+      return s <= o;
     } catch (e) {
       return console.log(e), !1;
     }
@@ -123,24 +123,36 @@ class QuestService extends QuestRewardService {
   async createQuestRewards({
     rewards: e = []
   } = {}) {
-    return e?.length ? await Promise.all(e.map(async e => {
-      var t;
-      return e.rewardId ? {
-        type: e.type,
-        rewardId: e.rewardId,
-        quantity: e.quantity,
-        title: e.title,
-        isSponsored: e.isSponsored
-      } : (t = await this.createQuestRewardItem({
-        type: e.type,
-        data: e.data
-      }), {
-        type: e.type,
-        rewardId: t?._id,
-        quantity: e.quantity,
-        title: e.title,
-        isSponsored: e.isSponsored
-      });
+    return e?.length ? await Promise.all(e.map(async t => {
+      let r = t.rewardId;
+      if (!r) if ("RANDOM" === t.type) {
+        let e = [];
+        t.rewards?.length && (e = await this.createQuestRewards({
+          rewards: t.rewards
+        }));
+        var a = await this.createQuestRewardItem({
+          type: t.type,
+          data: {
+            ...t.data,
+            rewards: e
+          }
+        });
+        r = a?._id;
+      } else {
+        a = await this.createQuestRewardItem({
+          type: t.type,
+          data: t.data
+        });
+        r = a?._id;
+      }
+      return {
+        type: t.type,
+        rewardId: r,
+        quantity: t.quantity,
+        title: t.title,
+        isSponsored: t.isSponsored,
+        percentage: t.percentage
+      };
     })) : [];
   }
   async createQuestRequirements({
@@ -165,8 +177,8 @@ class QuestService extends QuestRewardService {
     schedule: r,
     imageUrl: a,
     requirements: n = [],
-    rewards: i = [],
-    community: s,
+    rewards: s = [],
+    community: i,
     startsAt: u,
     endsAt: c
   } = {}) {
@@ -179,16 +191,16 @@ class QuestService extends QuestRewardService {
       description: t,
       imageUrl: a,
       schedule: r,
-      community: s,
+      community: i,
       startsAt: u,
       endsAt: c
     });
     return e.requirements = await this.createQuestRequirements({
       requirements: n
     }), e.rewards = await this.createQuestRewards({
-      rewards: i
+      rewards: s
     }), await e.save(), await CommunityQuest.findOrCreate({
-      communityId: s,
+      communityId: i,
       questId: e._id
     }), e;
   }

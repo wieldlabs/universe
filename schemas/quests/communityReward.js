@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"), questRewardsSchema = require("./quest")["questRewardsSchema"], schema = mongoose.Schema({
+const mongoose = require("mongoose"), questRewardsSchema = require("./questReward")["schema"], schema = mongoose.Schema({
   isArchived: {
     type: Boolean,
     default: !1

@@ -1,4 +1,4 @@
-const Quest = require("../../models/quests/Quest")["Quest"], CommunityQuest = require("../../models/quests/CommunityQuest")["CommunityQuest"], CommunityReward = require("../../models/quests/CommunityReward")["CommunityReward"], CommunityRewardAccount = require("../../models/quests/CommunityRewardAccount")["CommunityRewardAccount"], CommunityQuestAccount = require("../../models/quests/CommunityQuestAccount")["CommunityQuestAccount"], AccountInventory = require("../../models/AccountInventory")["AccountInventory"], Community = require("../../models/Community")["Community"], _CommunityService = require("../CommunityService")["Service"], CommunityQuestService = require("../CommunityQuestService")["Service"], _CommunityRewardService = require("../CommunityRewardService")["Service"], _CommunityAssetsService = require("../assets/CommunityAssetsService")["Service"], _ScoreService = require("../ScoreService")["Service"], CommunityAssetsService = new _CommunityAssetsService(), ScoreService = new _ScoreService();
+const Quest = require("../../models/quests/Quest")["Quest"], CommunityQuest = require("../../models/quests/CommunityQuest")["CommunityQuest"], CommunityReward = require("../../models/quests/CommunityReward")["CommunityReward"], CommunityRewardAccount = require("../../models/quests/CommunityRewardAccount")["CommunityRewardAccount"], CommunityQuestAccount = require("../../models/quests/CommunityQuestAccount")["CommunityQuestAccount"], AccountInventory = require("../../models/AccountInventory")["AccountInventory"], Community = require("../../models/Community")["Community"], _CommunityService = require("../CommunityService")["Service"], CommunityQuestService = require("../CommunityQuestService")["Service"], _CommunityRewardService = require("../CommunityRewardService")["Service"], _CommunityAssetsService = require("../assets/CommunityAssetsService")["Service"], _ScoreService = require("../ScoreService")["Service"], crypto = require("crypto"), CommunityAssetsService = new _CommunityAssetsService(), ScoreService = new _ScoreService();
 
 class CommunityQuestMutationService extends CommunityQuestService {
   async _canAdminCommunityOrError(e, t, r) {
@@ -15,32 +15,47 @@ class CommunityQuestMutationService extends CommunityQuestService {
     }[e] || t;
   }
   async _claimRewardByType(e, {
-    communityId: t,
-    scoreType: r
-  }, i) {
+    communityId: r,
+    scoreType: i
+  }, a) {
     if ("ASSET_3D" === e.type) await CommunityAssetsService.addQuantityOrCreateAsset(null, {
       assetId: e.rewardId,
       type: e.type,
-      communityId: t,
+      communityId: r,
       maxQuantity: e.quantity
     }); else if ("SCORE" === e.type) {
-      await i.account?.populate?.("addresses");
-      t = i.account?.addresses?.[0]?.address;
-      if (!t) throw new Error("You must be logged in to claim this reward.");
-      r = this._getScoreType(r);
+      await a.account?.populate?.("addresses");
+      var o = a.account?.addresses?.[0]?.address;
+      if (!o) throw new Error("You must be logged in to claim this reward.");
+      var n = this._getScoreType(i);
       await ScoreService.setScore({
-        address: t,
-        scoreType: r,
+        address: o,
+        scoreType: n,
         modifier: e.quantity
       });
     } else if ("IMAGE" === e.type) {
-      if (!i.account) throw new Error("You must be logged in to claim this reward.");
+      if (!a.account) throw new Error("You must be logged in to claim this reward.");
       await AccountInventory.createOrUpdate({
-        accountId: i.account._id,
+        accountId: a.account._id,
         rewardId: e.rewardId,
         rewardType: e.type,
         modifier: e.quantity
       });
+    } else if ("RANDOM" === e.type) {
+      if (!a.account) throw new Error("You must be logged in to claim this reward.");
+      o = (await this.getQuestReward(e)).rewards.filter(e => e.percentage) || [];
+      const u = o.reduce((e, t) => e + t.percentage, 0);
+      let t = 0;
+      n = o.map(e => (t += e.percentage / u * 1e4, {
+        ...e.toJSON(),
+        cumulativePercentage: t
+      }));
+      const m = crypto.randomInt(1, 10001);
+      o = n.find(e => m <= e.cumulativePercentage);
+      return o ? this._claimRewardByType(o, {
+        communityId: r,
+        scoreType: i
+      }, a) : null;
     }
     return e;
   }
@@ -61,26 +76,26 @@ class CommunityQuestMutationService extends CommunityQuestService {
     communityId: t,
     questId: r,
     questData: i
-  }, o) {
-    var a = await CommunityQuest.findOne({
+  }, a) {
+    var o = await CommunityQuest.findOne({
       community: t,
       quest: r
     });
-    if (!a) throw new Error("No Quest found");
-    if (await this.canClaimReward(a, {
+    if (!o) throw new Error("No Quest found");
+    if (await this.canClaimReward(o, {
       communityId: t,
       questId: r,
       questData: i
-    }, o)) return i = await this._claimReward(a, {
+    }, a)) return i = await this._claimReward(o, {
       communityId: t,
       questId: r
-    }, o), await CommunityQuestAccount.createOrUpdate({
-      accountId: o.account._id,
-      communityQuestId: a._id,
+    }, a), await CommunityQuestAccount.createOrUpdate({
+      accountId: a.account._id,
+      communityQuestId: o._id,
       rewardClaimed: !0,
       isNotified: !0
     }), {
-      communityQuest: a,
+      communityQuest: o,
       rewards: i
     };
     throw new Error("Reward cannot be claimed at this time.");
@@ -90,22 +105,22 @@ class CommunityQuestMutationService extends CommunityQuestService {
   }, r) {
     t = await CommunityReward.findById(t);
     if (!t) throw new Error("No Community Reward found");
-    var i = new _CommunityRewardService(), o = await Community.findById(t.community).select("bebdomain"), a = (await r.account?.populate?.("addresses"), 
+    var i = new _CommunityRewardService(), a = await Community.findById(t.community).select("bebdomain"), o = (await r.account?.populate?.("addresses"), 
     r.account?.addresses?.[0]?.address);
     if (await i.canClaimCommunityReward(t, {
-      bebdomain: o?.bebdomain,
-      address: a
+      bebdomain: a?.bebdomain,
+      address: o
     }, r)) return i = await this._claimRewardByType(t.reward, {
       communityId: t.community,
-      scoreType: o?.bebdomain
+      scoreType: a?.bebdomain
     }, r), "EXCHANGE" === t.type && await ScoreService.setScore({
-      address: a,
-      scoreType: o.bebdomain,
+      address: o,
+      scoreType: a.bebdomain,
       modifier: -t.score
-    }), (a = await CommunityRewardAccount.findOrCreate({
+    }), (o = await CommunityRewardAccount.findOrCreate({
       accountId: r.account._id,
       communityRewardId: t._id
-    })).rewardClaimedCount = a.rewardClaimedCount + 1, await a.save(), {
+    })).rewardClaimedCount = o.rewardClaimedCount + 1, await o.save(), {
       reward: i,
       communityReward: t
     };
@@ -115,17 +130,17 @@ class CommunityQuestMutationService extends CommunityQuestService {
     communityId: t,
     questId: r
   }, i) {
-    var o = await CommunityQuest.findOne({
+    var a = await CommunityQuest.findOne({
       community: t,
       quest: r
     });
-    if (!o) throw new Error(`CommunityQuest not found for questId ${r}, communityId ` + t);
-    "CAN_CLAIM_REWARD" === await this.getQuestStatus(o, {
+    if (!a) throw new Error(`CommunityQuest not found for questId ${r}, communityId ` + t);
+    "CAN_CLAIM_REWARD" === await this.getQuestStatus(a, {
       communityId: t,
       questId: r
     }, i) && await CommunityQuestAccount.findOrCreate({
       accountId: i.account._id,
-      communityQuestId: o._id
+      communityQuestId: a._id
     });
   }
 }
