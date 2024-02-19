@@ -81,7 +81,7 @@ const authContext = async (r, e, t) => {
   _hubClient = a;
   try {
     if (r.context && r.context.accountId && r.context.hubClient) return t();
-    var s = new _FarcasterHubService(), n = await requireAuth(r.headers.authorization?.slice(7) || "");
+    var s = new _FarcasterHubService(), n = await requireAuth(r.headers.authorization || "");
     if (!n.payload.id) throw new Error("jwt must be provided");
     var o = await Account.findById(n.payload.id);
     if (!o) throw new Error(`Account id ${n.payload.id} not found`);

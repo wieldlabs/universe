@@ -250,44 +250,51 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     console.error(e);
   }
 }, checkCanSpin = async ({
-  address: e,
-  fid: t,
-  frameActionBody: r,
-  questId: a,
+  address: t,
+  fid: r,
+  frameActionBody: a,
+  questId: e,
   verifiedFrameData: n = !1,
   isExternal: o
 } = {}) => {
-  var i = getMemcachedClient(), o = o ? e : t;
+  var i = getMemcachedClient(), o = o ? t : r;
   let s = 0, c = 0;
   try {
-    var p = await i.get(`API:frame:checkCanSpin:${e}:` + a);
+    var p = await i.get(`API:frame:checkCanSpin:${t}:` + e);
     p && (s = p.value, c = p.value);
   } catch (e) {
     console.error(e);
   }
-  if (s || (t = (await getAddressPasses(e, !0))["isHolder"], s = t ? 6 : n ? 1 : 0, 
-  p = "0x" + Buffer.from(r?.castId?.hash).toString("hex"), [ t, n, r, p ] = await Promise.all([ Reactions.exists({
-    targetHash: p,
-    deletedAt: null,
-    fid: o,
-    reactionType: 1
-  }), Reactions.exists({
-    targetHash: p,
-    deletedAt: null,
-    reactionType: 2,
-    fid: o
-  }), Links.exists({
-    fid: o,
-    targetFid: "274",
-    type: "follow",
-    deletedAt: null
-  }), Links.exists({
-    fid: o,
-    targetFid: "12741",
-    type: "follow",
-    deletedAt: null
-  }) ]), s = (s = s + (t ? 1 : 0) + (n ? 1 : 0)) + (r ? 1 : 0) + (p ? 1 : 0)), s !== c) try {
-    await i.set(`API:frame:checkCanSpin:${e}:` + a, s, {
+  if (!s) {
+    r = (await getAddressPasses(t, !0))["isHolder"];
+    s = r ? 6 : n ? 1 : 0;
+    let e;
+    a?.castId?.hash && (e = "0x" + Buffer.from(a?.castId?.hash).toString("hex"));
+    var [ p, r, n, a ] = await Promise.all([ Reactions.exists({
+      targetHash: e,
+      deletedAt: null,
+      fid: o,
+      reactionType: 1
+    }), Reactions.exists({
+      targetHash: e,
+      deletedAt: null,
+      reactionType: 2,
+      fid: o
+    }), Links.exists({
+      fid: o,
+      targetFid: "274",
+      type: "follow",
+      deletedAt: null
+    }), Links.exists({
+      fid: o,
+      targetFid: "12741",
+      type: "follow",
+      deletedAt: null
+    }) ]);
+    s = (s = s + (p ? 1 : 0) + (r ? 1 : 0)) + (n ? 1 : 0) + (a ? 1 : 0);
+  }
+  if (s !== c) try {
+    await i.set(`API:frame:checkCanSpin:${t}:` + e, s, {
       lifetime: 15
     });
   } catch (e) {
@@ -295,8 +302,8 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   }
   let l = 0;
   try {
-    var m = await i.get(`API:frame:checkCanSpin:alreadySpinned:${e}:` + a);
-    m ? l = m.value : await i.set(`API:frame:checkCanSpin:alreadySpinned:${e}:` + a, 0, {
+    var m = await i.get(`API:frame:checkCanSpin:alreadySpinned:${t}:` + e);
+    m ? l = m.value : await i.set(`API:frame:checkCanSpin:alreadySpinned:${t}:` + e, 0, {
       lifetime: 86400
     });
   } catch (e) {
@@ -447,6 +454,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
 				<meta property="fc:frame" content="vNext" />
 				<meta property="fc:frame:image" content=${p} />
         <meta property="fc:frame:post_url" content=${l} />
+        <meta property="fc:frame:image:aspect_ratio" content="1:1" />
   `;
   m && (u += m), u += `        
       </head>

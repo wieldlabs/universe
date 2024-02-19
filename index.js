@@ -26,7 +26,7 @@ http.createServer(app));
         }
       };
       try {
-        var t = await requireAuth(e.headers.authorization?.slice(7) || "");
+        var t = await requireAuth(e.headers.authorization || "");
         return {
           ...r,
           accountId: t.payload.id,

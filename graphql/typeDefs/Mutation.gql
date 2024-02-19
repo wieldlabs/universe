@@ -159,6 +159,14 @@ type CommunityRoomMutationResponse implements MutationResponse {
   message: String!
   peers: [Peer]
 }
+type CommunityQuestWithRewardsMutationResponse implements MutationResponse {
+  code: String!
+  success: Boolean!
+  message: String!
+  communityQuest: CommunityQuest
+  rewards: [QuestReward]
+}
+
 type CommunityQuestWithAssetsMutationResponse implements MutationResponse {
   code: String!
   success: Boolean!
@@ -421,7 +429,7 @@ type Mutation {
     communityId: ID!
     address: String!
     questData: [QuestInput]
-  ): CommunityQuestWithAssetsMutationResponse # anyone can claim reward
+  ): CommunityQuestWithRewardsMutationResponse # anyone can claim reward
   claimCommunityRewardByAddress(
     communityRewardId: ID!
     address: String!

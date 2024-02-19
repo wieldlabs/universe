@@ -20,17 +20,17 @@ async function getAddressPasses(e, t) {
   var a = getMemcachedClient();
   let r = null, s = [];
   try {
-    var n = "getAddressPasses:" + e, i = "getAddressPasses_isHolder:" + e, d = await a.get(n), o = await a.get(i), {
+    var n = "getAddressPasses:" + e, d = "getAddressPasses_isHolder:" + e, i = await a.get(n), o = await a.get(d), {
       AlchemyService: c,
       OptimismAlchemyService: m
     } = setupAlchemyServices();
-    if (d ? (s = JSON.parse(d.value), r = !0) : o ? r = JSON.parse(o.value) : (r = await checkIsHolderWithFallback(c, m, e), 
-    await a.set(i, JSON.stringify(r), {
+    if (i ? (s = JSON.parse(i.value), r = !0) : o ? r = JSON.parse(o.value) : (r = await checkIsHolderWithFallback(c, m, e), 
+    await a.set(d, JSON.stringify(r), {
       lifetime: r ? 86400 : 10
     })), t) return {
       isHolder: r
     };
-    r && !d && (s = await fetchAndProcessNFTs(c, m, e), await a.set(n, JSON.stringify(s), {
+    r && !i && (s = await fetchAndProcessNFTs(c, m, e), await a.set(n, JSON.stringify(s), {
       lifetime: 60
     }));
   } catch (e) {
@@ -83,6 +83,14 @@ async function fetchAndProcessNFTs(e, t, a) {
 const frameContext = async (t, e, a) => {
   if (t.context && t.context.frameData) return a();
   if (!t.body?.trustedData && !t.body?.untrustedData) return a();
+  if (!t.body.trustedData) return t.context = {
+    ...t.context || {},
+    frameData: t.body.untrustedData,
+    untrustedData: t.body.untrustedData,
+    verifiedFrameData: !1,
+    isExternal: !0,
+    connectedAddress: t.body?.untrustedData?.fid
+  }, a();
   try {
     var r, s = Message.decode(Buffer.from(t.body.trustedData.messageBytes, "hex")), n = {
       ...t.context || {},
@@ -102,8 +110,9 @@ const frameContext = async (t, e, a) => {
       isExternal: !0,
       connectedAddress: t.body?.untrustedData?.fid
     };
+  } finally {
+    a();
   }
-  a();
 };
 
 function hexToBytes(t) {
@@ -114,15 +123,15 @@ function hexToBytes(t) {
 
 function extractAndReplaceMentions(e, s = {}) {
   let n = "";
-  const i = [], d = [];
+  const d = [], i = [];
   return e.split(/(\s|\n)/).forEach((e, t) => {
     var a, r;
     e.startsWith("@") && (a = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)[1]) in s ? (r = Buffer.from(n).length, 
-    i.push(s[a]), d.push(r), n += e.replace("@" + a, "")) : n += e;
+    d.push(s[a]), i.push(r), n += e.replace("@" + a, "")) : n += e;
   }), {
     text: n,
-    mentions: i,
-    mentionsPositions: d
+    mentions: d,
+    mentionsPositions: i
   };
 }
 
@@ -135,53 +144,53 @@ const makeMessage = async ({
 }) => {
   if (!e) throw new Error("No private key provided");
   var n = new NobleEd25519Signer(Buffer.from(e, "hex"));
-  let i;
+  let d;
   try {
     switch (t) {
      case 1:
-      i = await makeCastAddRpc(a, {
+      d = await makeCastAddRpc(a, {
         fid: parseInt(r),
         network: 1
       }, n);
       break;
 
      case 2:
-      i = await makeCastRemoveRpc(a, {
+      d = await makeCastRemoveRpc(a, {
         fid: parseInt(r),
         network: 1
       }, n);
       break;
 
      case 3:
-      i = await makeReactionAddRpc(a, {
+      d = await makeReactionAddRpc(a, {
         fid: parseInt(r),
         network: 1
       }, n);
       break;
 
      case 4:
-      i = await makeReactionRemoveRpc(a, {
+      d = await makeReactionRemoveRpc(a, {
         fid: parseInt(r),
         network: 1
       }, n);
       break;
 
      case 5:
-      i = await makeLinkAddRpc(a, {
+      d = await makeLinkAddRpc(a, {
         fid: parseInt(r),
         network: 1
       }, n);
       break;
 
      case 6:
-      i = await makeLinkRemoveRpc(a, {
+      d = await makeLinkRemoveRpc(a, {
         fid: parseInt(r),
         network: 1
       }, n);
       break;
 
      case 11:
-      i = await makeUserDataAddRpc(a, {
+      d = await makeUserDataAddRpc(a, {
         fid: parseInt(r),
         network: 1
       }, n);
@@ -193,15 +202,15 @@ const makeMessage = async ({
   } catch (e) {
     throw console.error(e), new Error("Unable to create message: " + e.message);
   }
-  if (!i) throw new Error("Invalid Farcaster data");
-  if (i.value) return e = i.value, Message.toJSON({
+  if (!d) throw new Error("Invalid Farcaster data");
+  if (d.value) return e = d.value, Message.toJSON({
     ...e,
     data: {
       ...e.data,
       ...s
     }
   });
-  throw i.error || new Error("Invalid Farcaster data");
+  throw d.error || new Error("Invalid Farcaster data");
 }, makeRequest = async (e, t, a, r, s = {}, n = {}) => {
   e = await makeMessage({
     privateKey: e,
@@ -210,11 +219,11 @@ const makeMessage = async ({
     fid: r,
     overrides: s
   });
-  let i = "0x" === r?.slice(0, 2);
+  let d = "0x" === r?.slice(0, 2);
   t = ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), 
-  i = i || Object.keys(n).some(t => "object" == typeof n[t] ? Object.keys(n[t]).some(e => "0x" === n[t][e]?.slice(0, 2)) : "0x" === n[t]?.slice?.(0, 2)), 
+  d = d || Object.keys(n).some(t => "object" == typeof n[t] ? Object.keys(n[t]).some(e => "0x" === n[t][e]?.slice(0, 2)) : "0x" === n[t]?.slice?.(0, 2)), 
   a = await postMessage({
-    isExternal: i || r.startsWith("0x") || !1,
+    isExternal: d || r.startsWith("0x") || !1,
     externalFid: r,
     messageJSON: e,
     hubClient: t,
@@ -231,8 +240,8 @@ const makeMessage = async ({
   mentionsUsernames: a = [],
   embeds: s,
   parentHash: n,
-  parentFid: i,
-  parentUrl: d,
+  parentFid: d,
+  parentUrl: i,
   fid: o
 }) => {
   t = {
@@ -241,10 +250,10 @@ const makeMessage = async ({
   }, a = {};
   n && (t.parentCastId = {
     hash: hexToBytes(n.slice(2)),
-    fid: parseInt(i)
+    fid: parseInt(d)
   }, a.parentCastId = {
-    fid: i
-  }), d && (t.parentUrl = d), a.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e));
+    fid: d
+  }), i && (t.parentUrl = i), a.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e));
   try {
     return await makeRequest(e, 1, t, o, {}, a);
   } catch (e) {

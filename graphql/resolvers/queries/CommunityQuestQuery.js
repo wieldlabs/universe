@@ -41,38 +41,32 @@ const getGraphQLRateLimiter = require("graphql-rate-limit")["getGraphQLRateLimit
       i = `resolvers:CommunityQuestQuery:checkIfCommunityQuestClaimedByAddress:${t.communityId}:${t.address}:` + t.questId, 
       e = getMemcachedClient();
       try {
-        var o = await e.get(i);
-        if (o) return "true" === o.value;
+        var u = await e.get(i);
+        if (u) return "true" === u.value;
       } catch (e) {
         console.error(e);
       }
-      o = await Account.findByAddressAndChainId({
+      u = await Account.findByAddressAndChainId({
         address: t.address,
         chainId: 1
       });
-      if (!o) return !1;
-      var u = await CommunityQuest.findOne({
+      if (!u) return !1;
+      var o = await CommunityQuest.findOne({
         community: t.communityId,
         quest: t.questId
-      }), u = await new CommunityQuestService().checkIfCommunityQuestClaimedByAddress(u, {
+      }), o = await new CommunityQuestService().checkIfCommunityQuestClaimedByAddress(o, {
         communityId: t.communityId,
         questId: t.questId
       }, {
         ...r,
-        account: o
+        account: u
       });
-      if (u) try {
+      if (o) try {
         await e.set(i, "true");
       } catch (e) {
         console.error(e);
-      } else try {
-        await e.set(i, "false", {
-          lifetime: 30
-        });
-      } catch (e) {
-        console.error(e);
       }
-      return u;
+      return o;
     },
     getCommunityQuestStatusByAddress: async (e, t, r, i) => {
       e = await rateLimiter({
@@ -88,32 +82,32 @@ const getGraphQLRateLimiter = require("graphql-rate-limit")["getGraphQLRateLimit
       i = `resolvers:CommunityQuestQuery:getCommunityQuestStatusByAddress:${t.communityId}:${t.address}:` + t.questId, 
       e = getMemcachedClient();
       try {
-        var o = await e.get(i);
-        if (o) return o.value;
+        var u = await e.get(i);
+        if (u) return u.value;
       } catch (e) {
         console.error(e);
       }
-      var o = await Account.findOrCreateByAddressAndChainId({
+      var u = await Account.findOrCreateByAddressAndChainId({
         address: t.address,
         chainId: 1
-      }), u = await CommunityQuest.findOne({
+      }), o = await CommunityQuest.findOne({
         community: t.communityId,
         quest: t.questId
-      }), u = await new CommunityQuestService().getQuestStatus(u, {
+      }), o = await new CommunityQuestService().getQuestStatus(o, {
         communityId: t.communityId,
         questId: t.questId
       }, {
         ...r,
-        account: o
+        account: u
       });
       try {
-        await e.set(i, u, {
+        await e.set(i, o, {
           lifetime: 30
         });
       } catch (e) {
         console.error(e);
       }
-      return u;
+      return o;
     },
     getCommunityQuest: async (e, t, r, i) => {
       i = await rateLimiter({

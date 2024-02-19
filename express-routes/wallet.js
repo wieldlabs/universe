@@ -53,7 +53,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
 }), authContext = async (r, e, t) => {
   try {
     if (r.context && r.context.accountId) return t();
-    var a = await requireAuth(r.headers.authorization?.slice(7) || "");
+    var a = await requireAuth(r.headers.authorization || "");
     if (!a.payload.id) throw new Error("jwt must be provided");
     var n = await Account.findById(a.payload.id);
     if (!n) throw new Error(`Account id ${a.payload.id} not found`);
