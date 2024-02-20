@@ -15,6 +15,8 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   timestamps: !0
 });
 
-module.exports = {
+schema.index({
+  createdAt: 1
+}), module.exports = {
   schema: schema
 };

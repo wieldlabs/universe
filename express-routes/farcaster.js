@@ -106,7 +106,9 @@ const authContext = async (r, e, t) => {
     };
   }
   t();
-}, v2PostMessage = (app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
+};
+
+app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   try {
     var t = parseInt(e.query.limit || 20), a = e.query.cursor || null, s = "true" === e.query.explore, [ n, o ] = await getFarcasterFeed({
       limit: t,
@@ -473,24 +475,30 @@ const authContext = async (r, e, t) => {
   }
 }), app.get("/v2/notifications", [ authContext, limiter ], async (e, r) => {
   try {
-    var t = parseInt(e.query.limit || 100), a = e.query.cursor || null, [ s, n ] = await getFarcasterNotifications({
+    var t, a, s, n;
+    return e.context.accountId ? (t = parseInt(e.query.limit || 100), a = e.query.cursor || null, 
+    [ s, n ] = await getFarcasterNotifications({
       limit: t,
       cursor: a,
       context: e.context
-    });
-    return r.json({
+    }), r.json({
       result: {
         notifications: s,
         next: n
       },
       source: "v2"
+    })) : r.status(401).json({
+      error: "Unauthorized"
     });
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({
       error: "Internal Server Error"
     });
   }
-}), async (e, t) => {
+}), app.post("/v2/message", [ heavyLimiter, authContext ], async (e, t) => {
+  if (!e.context.accountId) return t.status(401).json({
+    error: "Unauthorized"
+  });
   var r = e.context.fid;
   try {
     var a = await postMessage({
@@ -512,7 +520,7 @@ const authContext = async (r, e, t) => {
       error: r
     });
   }
-}), v2SignedKeyRequest = async (e, r) => {
+}), app.get("/v2/signed-key-requests", limiter, async (e, r) => {
   try {
     var t = "0x" + e.query.key, a = {
       name: "Farcaster SignedKeyRequestValidator",
@@ -549,8 +557,7 @@ const authContext = async (r, e, t) => {
       error: "Internal Server Error"
     });
   }
-}, completeMarketplaceV1Listing = (app.post("/v2/message", [ heavyLimiter, authContext ], v2PostMessage), 
-app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/search-user-by-match", limiter, async (e, r) => {
+}), app.get("/v2/search-user-by-match", limiter, async (e, r) => {
   try {
     var t, a = e.query.match, s = Math.min(parseInt(e.query.limit || 10), 50);
     return a ? (t = await searchFarcasterUserByMatch(a, s), r.json({
@@ -657,7 +664,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       data: e
     }
   });
-}), async (e, r) => {
+}), app.post("/v2/marketplace/listings/complete", [ heavyLimiter ], async (e, r) => {
   try {
     var t = await new _MarketplaceService().list(e.body);
     r.json({
@@ -671,77 +678,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}), buyMarketplaceV1Listing = async (e, r) => {
-  try {
-    var t = await new _MarketplaceService().buy(e.body);
-    return r.json({
-      success: !0,
-      result: {
-        listing: t
-      }
-    });
-  } catch (e) {
-    console.error(e), r.status(500).json({
-      error: e.message
-    });
-  }
-}, cancelMarketplaceV1Listing = async (e, r) => {
-  try {
-    var t = await new _MarketplaceService().cancelListing(e.body);
-    return r.json({
-      success: !0,
-      result: {
-        listing: t
-      }
-    });
-  } catch (e) {
-    console.error(e), r.status(500).json({
-      error: e.message
-    });
-  }
-}, completeMarketplaceV1Offer = async (e, r) => {
-  try {
-    var t = await new _MarketplaceService().offer(e.body);
-    r.json({
-      result: {
-        offer: t
-      },
-      success: !0
-    });
-  } catch (e) {
-    console.error(e), r.status(500).json({
-      error: e.message
-    });
-  }
-}, cancelMarketplaceV1Offer = async (e, r) => {
-  try {
-    var t = await new _MarketplaceService().cancelOffer(e.body);
-    r.json({
-      result: {
-        offer: t
-      },
-      success: !0
-    });
-  } catch (e) {
-    console.error(e), r.status(500).json({
-      error: e.message
-    });
-  }
-}, approveMarketplaceV1Offer = async (e, r) => {
-  try {
-    var t = await new _MarketplaceService().approveOffer(e.body);
-    r.json({
-      result: {
-        offer: t
-      },
-      success: !0
-    });
-  } catch (e) {
-    console.error(e), r.status(500).json({
-      error: e.message
-    });
-  }
-}, getMarketplaceV1Listings = async (e, r) => {
+}), app.get("/v2/marketplace/listings", [ limiter ], async (e, r) => {
   try {
     var t = new _MarketplaceService(), [ a, s ] = (e.query.limit = Math.min(e.query.limit || 10, 25), 
     await t.getListings({
@@ -757,18 +694,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, getMarketplaceV1Listing = async (e, r) => {
-  try {
-    var t = await new _MarketplaceService().getListing(e.query);
-    return r.json({
-      listing: t
-    });
-  } catch (e) {
-    console.error(e), r.status(500).json({
-      error: e.message
-    });
-  }
-}, getMarketplaceV1Stats = async (e, r) => {
+}), app.get("/v2/marketplace/stats", [ limiter ], async (e, r) => {
   try {
     var {
       stats: t,
@@ -783,7 +709,18 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, getMarketplaceV1Activities = async (e, r) => {
+}), app.get("/v2/marketplace/listing", [ limiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().getListing(e.query);
+    return r.json({
+      listing: t
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.get("/v2/marketplace/activities", [ limiter ], async (e, r) => {
   try {
     var [ t, a ] = await new _MarketplaceService().getActivities(e.query);
     return r.json({
@@ -797,7 +734,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, getMarketplaceV1Offers = async (e, r) => {
+}), app.get("/v2/marketplace/offers", [ limiter ], async (e, r) => {
   try {
     var t = await new _MarketplaceService().getOffers(e.query);
     return r.json({
@@ -810,7 +747,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, getMarketplaceV1Offer = async (e, r) => {
+}), app.get("/v2/marketplace/offer", [ limiter ], async (e, r) => {
   try {
     var t = await new _MarketplaceService().getOffer(e.query);
     return r.json({
@@ -823,7 +760,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, getMarketplaceV1BestOffer = async (e, r) => {
+}), app.get("/v2/marketplace/best-offer", [ limiter ], async (e, r) => {
   try {
     var t = await new _MarketplaceService().getBestOffer(e.query);
     return r.json({
@@ -836,7 +773,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, getMarketplaceV1Appraisal = async (e, r) => {
+}), app.get("/v2/marketplace/appraisal", [ limiter ], async (e, r) => {
   try {
     var t = await new _MarketplaceService().getAppraisal(e.query);
     return r.json({
@@ -849,7 +786,7 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, submitMarketplaceV1Appraisal = async (e, r) => {
+}), app.post("/v2/marketplace/appraisal/submit", [ heavyLimiter ], async (e, r) => {
   try {
     var t = await new _MarketplaceService().appraise(e.body);
     r.json({
@@ -863,18 +800,77 @@ app.get("/v2/signed-key-requests", limiter, v2SignedKeyRequest), app.get("/v2/se
       error: e.message
     });
   }
-}, getMetadataSignature = (app.post("/v2/marketplace/listings/complete", [ heavyLimiter ], completeMarketplaceV1Listing), 
-app.get("/v2/marketplace/listings", [ limiter ], getMarketplaceV1Listings), app.get("/v2/marketplace/stats", [ limiter ], getMarketplaceV1Stats), 
-app.get("/v2/marketplace/listing", [ limiter ], getMarketplaceV1Listing), app.get("/v2/marketplace/activities", [ limiter ], getMarketplaceV1Activities), 
-app.get("/v2/marketplace/offers", [ limiter ], getMarketplaceV1Offers), app.get("/v2/marketplace/offer", [ limiter ], getMarketplaceV1Offer), 
-app.get("/v2/marketplace/best-offer", [ limiter ], getMarketplaceV1BestOffer), app.get("/v2/marketplace/appraisal", [ limiter ], getMarketplaceV1Appraisal), 
-app.post("/v2/marketplace/appraisal/submit", [ heavyLimiter ], submitMarketplaceV1Appraisal), 
-app.post("/v2/marketplace/listings/buy", [ heavyLimiter ], buyMarketplaceV1Listing), 
-app.post("/v2/marketplace/listings/cancel", [ heavyLimiter ], cancelMarketplaceV1Listing), 
-app.post("/v2/marketplace/offers/complete", [ heavyLimiter ], completeMarketplaceV1Offer), 
-app.post("/v2/marketplace/offers/cancel", [ heavyLimiter ], cancelMarketplaceV1Offer), 
-app.post("/v2/marketplace/offers/accept", [ heavyLimiter ], approveMarketplaceV1Offer), 
-async (e, r) => {
+}), app.post("/v2/marketplace/listings/buy", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().buy(e.body);
+    return r.json({
+      success: !0,
+      result: {
+        listing: t
+      }
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/listings/cancel", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().cancelListing(e.body);
+    return r.json({
+      success: !0,
+      result: {
+        listing: t
+      }
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/offers/complete", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().offer(e.body);
+    r.json({
+      result: {
+        offer: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/offers/cancel", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().cancelOffer(e.body);
+    r.json({
+      result: {
+        offer: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/offers/accept", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().approveOffer(e.body);
+    r.json({
+      result: {
+        offer: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.get("/v2/metadata/signature", [ heavyLimiter ], async (e, r) => {
   try {
     var t, {
       publicKey: a,
@@ -895,8 +891,7 @@ async (e, r) => {
       error: e.message
     });
   }
-}), getSigners = (app.get("/v2/metadata/signature", [ heavyLimiter ], getMetadataSignature), 
-async (e, r) => {
+}), app.get("/v2/signers", [ heavyLimiter ], async (e, r) => {
   try {
     var t, {
       fid: a,
@@ -917,7 +912,7 @@ async (e, r) => {
       error: e.message
     });
   }
-}), createCastFrame = (app.get("/v2/signers", [ heavyLimiter ], getSigners), async (e, r) => {
+}), app.post("/v2/frames", [ heavyLimiter, authContext ], async (e, r) => {
   try {
     if (!e.context.accountId) throw new Error("Unauthorized");
     var t = await createFrame({
@@ -934,7 +929,7 @@ async (e, r) => {
       error: e.message
     });
   }
-}), getCastFrame = async (e, r) => {
+}), app.get("/v2/frames", [ limiter ], async (e, r) => {
   try {
     var t = await getFrame(e.query.hash);
     r.json({
@@ -947,8 +942,7 @@ async (e, r) => {
       error: e.message
     });
   }
-}, createCastReport = (app.post("/v2/frames", [ heavyLimiter, authContext ], createCastFrame), 
-app.get("/v2/frames", [ limiter ], getCastFrame), async (e, r) => {
+}), app.post("/v2/reports", [ heavyLimiter, authContext ], async (e, r) => {
   try {
     if (!e.context.accountId) throw new Error("Unauthorized");
     await createReport(e.body.fid), r.json({
@@ -959,8 +953,6 @@ app.get("/v2/frames", [ limiter ], getCastFrame), async (e, r) => {
       error: e.message
     });
   }
-});
-
-app.post("/v2/reports", [ heavyLimiter, authContext ], createCastReport), module.exports = {
+}), module.exports = {
   router: app
 };

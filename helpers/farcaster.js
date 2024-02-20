@@ -581,7 +581,7 @@ const postMessage = async ({
       deletedAt: null
     }).sort({
       timestamp: -1
-    }).limit(500);
+    }).limit(250);
     try {
       await a.set("getFarcasterAllCastsInThread:" + e, JSON.stringify(r));
     } catch (e) {

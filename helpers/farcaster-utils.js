@@ -12,7 +12,8 @@ const {
   getSSLHubRpcClient
 } = require("@farcaster/hub-nodejs"), getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], prod = require("../helpers/registrar")["prod"], _AlchemyService = require("../services/AlchemyService")["Service"], {
   postMessage,
-  getConnectedAddressForFid
+  getConnectedAddressForFid,
+  getCustodyAddressByFid
 } = require("./farcaster"), Sentry = require("@sentry/node");
 
 async function getAddressPasses(e, t) {
@@ -92,15 +93,15 @@ const frameContext = async (t, e, a) => {
     connectedAddress: t.body?.untrustedData?.fid
   }, a();
   try {
-    var r, s = Message.decode(Buffer.from(t.body.trustedData.messageBytes, "hex")), n = {
+    var r, s, n = Message.decode(Buffer.from(t.body.trustedData.messageBytes, "hex")), d = {
       ...t.context || {},
-      frameData: s.data,
+      frameData: n.data,
       untrustedData: t.body.untrustedData,
       verifiedFrameData: !0
     };
-    0 !== s?.data?.fid ? (r = await getConnectedAddressForFid(s.data.fid), n.isExternal = !1, 
-    n.connectedAddress = r) : (n.isExternal = !0, n.connectedAddress = t.body?.untrustedData?.fid), 
-    t.context = n;
+    0 !== n?.data?.fid ? (r = await getConnectedAddressForFid(n.data.fid), d.isExternal = !1, 
+    (d.connectedAddress = r) || (s = await getCustodyAddressByFid(n.data.fid), d.connectedAddress = s)) : (d.isExternal = !0, 
+    d.connectedAddress = t.body?.untrustedData?.fid), t.context = d;
   } catch (e) {
     console.error(e), Sentry.captureException(e), t.context = {
       ...t.context || {},

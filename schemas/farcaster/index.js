@@ -266,6 +266,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }), verificationsSchema.index({
   deletedAt: 1
 }), verificationsSchema.index({
+  claimObj: 1,
+  deletedAt: 1
+}), verificationsSchema.index({
   "claimObj.address": 1,
   deletedAt: 1
 }), new mongoose.Schema({

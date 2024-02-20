@@ -1,27 +1,27 @@
 const jwt = require("jsonwebtoken"), getConfig = require("./jwt")["getConfig"], Account = require("../models/Account")["Account"], requireAuth = e => {
-  if (e && e.includes("Bearer ")) return new Promise((t, o) => {
+  if (e && e.includes("Bearer ")) return new Promise((t, u) => {
     jwt.verify(e.slice(7), getConfig().secret, {
       ignoreExpiration: !0
     }, function(e, r) {
-      return e ? o(e) : t(r);
+      return e ? u(e) : t(r);
     });
   });
-  throw new Error("Bearer token not correctly provided");
+  throw new Error("jwt must be provided");
 }, unauthorizedResponse = {
   code: "403",
   success: !1,
   message: "Unauthorized"
 }, signedInAccountIdOrNull = (e = {}) => e.accountId || e.account?._id || null, unauthorizedErrorOrAccount = async (e, r, t) => {
-  var o = t["accountId"];
-  return o ? (o = await Account.findById(o), {
+  var u = t["accountId"];
+  return u ? (u = await Account.findById(u), {
     code: "200",
     success: !0,
-    account: t.account = o
+    account: t.account = u
   }) : unauthorizedResponse;
-}, isAuthorizedToAccessResource = (e, r, t, o) => {
+}, isAuthorizedToAccessResource = (e, r, t, u) => {
   var n = t.accountId || t.account?._id;
   if (!n) return !1;
-  switch (o) {
+  switch (u) {
    case "account":
     if (e?._id?.toString() === n.toString()) break;
     return !1;
