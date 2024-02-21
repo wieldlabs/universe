@@ -6,10 +6,6 @@ Universes are open-source hosts for
 [Wield, making crypto exploration fun](https://wield.co), used for apps such as
 [far.quest](https://far.quest) and [Cast](https://far.quest/cast).
 
-This is an early work that is subject to heavy changes, see our
-[Github Issues](https://github.com/wieldlabs/dimension/issues) if you wish to
-contribute.
-
 **See our developer documents at [`docs.far.quest`](https://docs.far.quest).**
 
 ## Self-hosting Your Universe
@@ -23,18 +19,7 @@ as `ARG` parameters.
    preference ([Railway](https://railway.app),
    [Heroku](https://www.heroku.com/), etc).
 
-## Contribution Guidelines
-
-The **wieldlabs/universe** repo follows the
-[conventional commits guidelines](https://www.conventionalcommits.org/en/v1.0.0/#summary),
-please be sure to respect them when committing.
-
-When opening a Pull Request and you are not already a core contributor to
-[@wieldlabs](https://github.com/wieldlabs), be sure to explain your pull request
-in greater detail so there's less churn when reviewing and we can get your
-changes landed ASAP, thank you!
-
-## Developing in the wieldlabs/universe repo
+## Running the wieldlabs/universe repo
 
 Welcome to the setup guide for Universe! To start, you'll need
 [node.js](https://github.com/nvm-sh/nvm),

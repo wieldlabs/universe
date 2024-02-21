@@ -158,7 +158,8 @@ const makeMessage = async ({
      case 2:
       d = await makeCastRemoveRpc(a, {
         fid: parseInt(r),
-        network: 1
+        network: 1,
+        timestamp: 1
       }, n);
       break;
 
