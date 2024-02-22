@@ -3,7 +3,7 @@
 <img src="./.misc/header.png" width="300" />
 
 Universes are open-source hosts for
-[Wield, making crypto exploration fun](https://wield.co), used for apps such as
+[Wield, making crypto exploration fun](https://wield.xyz), used for apps such as
 [far.quest](https://far.quest) and [Cast](https://far.quest/cast).
 
 **See our developer documents at [`docs.far.quest`](https://docs.far.quest).**
@@ -44,5 +44,5 @@ running instance, and play around with graphql commands at
 
 ## Useful Links
 
-- [Register a .cast domain](https://wield.co)
+- [Register a .cast domain](https://wield.xyz)
 - [Developer Documentation](https://docs.far.quest)

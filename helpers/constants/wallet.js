@@ -7,7 +7,7 @@ const constants = require("../../services/constants/aa"), prod = () => ({
   FACTORY_ABI: constants.FactoryContractJson.abi
 }), dev = () => ({
   API_KEY: process.env.OPT_GOERLI_API_KEY,
-  DEFAULT_URI: "https://protocol.wield.co/graphql",
+  DEFAULT_URI: "https://protocol.wield.xyz/graphql",
   NODE_NETWORK: "opt-goerli",
   CHAIN_ID: 420,
   FACTORY_CONTRACT_ADDRESS: constants.factoryContractAddress,

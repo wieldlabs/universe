@@ -27,7 +27,7 @@ const mongoose = require("mongoose"), socialLinksSchema = require("./socialLinks
   host: {
     type: String,
     index: !0,
-    default: "https://protocol.wield.co/graphql"
+    default: "https://protocol.wield.xyz/graphql"
   },
   tokenId: {
     type: String,

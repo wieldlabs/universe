@@ -3,7 +3,7 @@ const dev = {
   URL_PREFIX: "http://",
   URL_SUFFIX: ":3000"
 }, prod = {
-  COOKIE_DOMAIN: ".wield.co",
+  COOKIE_DOMAIN: ".wield.xyz",
   URL_PREFIX: "https://",
   URL_SUFFIX: ""
 }, config = "production" === process.env.NODE_ENV ? prod : dev, makeSubdomainLinks = ({

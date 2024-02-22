@@ -31,7 +31,7 @@ class AccountRecovererService {
         rpName: "Wield"
       }), c = {
         challenge: r,
-        origin: "production" === process.env.NODE_ENV ? "https://wield.co" : "http://localhost:5678",
+        origin: "production" === process.env.NODE_ENV ? "https://wield.xyz" : "http://localhost:5678",
         factor: "either"
       };
       return {

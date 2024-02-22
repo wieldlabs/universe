@@ -4,7 +4,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), Quest
 } = require("../models/farcaster"), CommunityQuest = require("../models/quests/CommunityQuest")["CommunityQuest"], _QuestService = require("../services/QuestService")["Service"], _CacheService = require("../services/cache/CacheService")["Service"], _CommunityQuestMutationService = require("../services/mutationServices/CommunityQuestMutationService")["Service"], sharp = require("sharp"), config = require("../helpers/constants/config")["config"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], satori = require("satori").default, fs = require("fs").promises, path = require("path"), {
   frameContext,
   getAddressPasses
-} = require("../helpers/farcaster-utils"), abcToIndex = {
+} = require("../helpers/farcaster-utils"), fetch = require("node-fetch"), abcToIndex = {
   1: "A",
   2: "B",
   3: "C",
@@ -57,15 +57,22 @@ async function getJpgFromSvg(e) {
 const generateSchoolImageMiddleware = async (t, e, r) => {
   var {
     id: a,
-    type: n,
+    type: n = "png",
     isCorrectAnswer: o
   } = t.query;
   if (t.query.reward) return r();
   try {
-    var i = await Quest.findById(a), s = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), c = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), p = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ l, d, f ] = await Promise.all([ fs.readFile(s), fs.readFile(c), fs.readFile(p) ]), m = (t.quest = i).requirements?.[0]?.data || [], u = m.find(e => "question" === e.key)?.value, g = m.find(e => "answers" === e.key)?.value.split(";"), y = "false" !== o, h = [ {
+    var i = getMemcachedClient(), s = `API:frame:generateSchoolImageMiddleware:${a}:${n}:` + o;
+    try {
+      var c = await i.get(s);
+      if (c) return t.imageContent = c.value, t.imageType = n, r();
+    } catch (e) {
+      console.error(e);
+    }
+    var l = await Quest.findById(a), p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), d = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ f, g, u ] = await Promise.all([ fs.readFile(p), fs.readFile(m), fs.readFile(d) ]), y = (t.quest = l).requirements?.[0]?.data || [], h = y.find(e => "question" === e.key)?.value, w = y.find(e => "answers" === e.key)?.value.split(";"), v = "false" !== o, S = [ {
       type: "text",
       props: {
-        children: u,
+        children: h,
         style: {
           marginLeft: 16,
           marginRight: 16,
@@ -76,7 +83,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           fontFamily: "Inter"
         }
       }
-    }, g.map((e, t) => ({
+    }, w.map((e, t) => ({
       type: "text",
       props: {
         children: abcToIndex[t + 1] + ". " + e,
@@ -90,7 +97,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           textAlign: "center"
         }
       }
-    })) ], w = (y || h.push({
+    })) ], I = (v || S.push({
       type: "text",
       props: {
         children: "Try again",
@@ -107,7 +114,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }), await satori({
       type: "div",
       props: {
-        children: h,
+        children: S,
         style: {
           display: "flex",
           flexDirection: "column",
@@ -123,32 +130,39 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       height: 800,
       fonts: [ {
         name: "Inter",
-        data: l,
+        data: f,
         weight: 400,
         style: "normal"
       }, {
         name: "Inter",
-        data: d,
+        data: g,
         weight: 800,
         style: "extrabold"
       }, {
         name: "Silkscreen",
-        data: f,
+        data: u,
         weight: 400,
         style: "normal"
       } ]
     }));
     if ("png" === n) try {
-      var v = await getPngFromSvg(w);
-      t.imageContent = v, t.imageType = "png";
+      var C = await getPngFromSvg(I);
+      t.imageContent = C, t.imageType = "png";
     } catch (e) {
-      console.error(e), t.imageContent = w, t.imageType = "svg";
+      console.error(e), t.imageContent = I, t.imageType = "svg";
     } else if ("jpg" === n) try {
-      var S = await getJpgFromSvg(w);
-      t.imageContent = S, t.imageType = "jpg";
+      var R = await getJpgFromSvg(I);
+      t.imageContent = R, t.imageType = "jpg";
     } catch (e) {
-      console.error(e), t.imageContent = w, t.imageType = "svg";
-    } else t.imageContent = w, t.imageType = "svg";
+      console.error(e), t.imageContent = I, t.imageType = "svg";
+    } else t.imageContent = I, t.imageType = "svg";
+    try {
+      await i.set(s, t.imageContent, {
+        lifetime: 86400
+      });
+    } catch (e) {
+      console.error(e);
+    }
     r();
   } catch (e) {
     Sentry.captureException(e), console.error(e), t.error = e, r();
@@ -156,14 +170,21 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
 }, generateRewardImageMiddleware = async (t, e, r) => {
   var {
     reward: a,
-    type: n = "jpg"
+    type: n = "png"
   } = t.query;
   if (!a) return r();
   try {
-    var o = JSON.parse(a), i = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), s = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), c = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , p ] = await Promise.all([ fs.readFile(i), fs.readFile(s), fs.readFile(c) ]), l = await new _QuestService().getQuestReward(o), d = getRewardImage(o, l), f = getRewardRarity(o, l), m = o?.quantity || 0, u = o?.title || "Reward", g = [ {
+    var o = JSON.parse(a), i = getMemcachedClient(), s = `API:frame:generateRewardImageMiddleware:${o._id}:` + n;
+    try {
+      var c = await i.get(s);
+      if (c) return t.imageContent = c.value, t.imageType = n, r();
+    } catch (e) {
+      console.error(e);
+    }
+    var l = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), m = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , d ] = await Promise.all([ fs.readFile(l), fs.readFile(p), fs.readFile(m) ]), f = await new _QuestService().getQuestReward(o), g = getRewardImage(o, f), u = getRewardRarity(o, f), y = o?.quantity || 0, h = o?.title || "Reward", w = [ {
       type: "img",
       props: {
-        src: d,
+        src: await convertImageToBase64(g, "image/png"),
         style: {
           width: 100,
           height: 100
@@ -172,12 +193,12 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }, {
       type: "text",
       props: {
-        children: f,
+        children: u,
         style: {
           marginLeft: 16,
           marginRight: 16,
           textAlign: "center",
-          color: getTextColorByRarity(f),
+          color: getTextColorByRarity(u),
           fontSize: 16,
           fontWeight: 400,
           fontFamily: "Silkscreen"
@@ -186,7 +207,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }, {
       type: "text",
       props: {
-        children: u + " x " + m,
+        children: h + " x " + y,
         style: {
           marginLeft: 16,
           marginRight: 16,
@@ -197,10 +218,10 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           fontFamily: "Silkscreen"
         }
       }
-    } ], y = await satori({
+    } ], v = await satori({
       type: "div",
       props: {
-        children: g,
+        children: w,
         style: {
           display: "flex",
           flexDirection: "column",
@@ -217,22 +238,29 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       height: 400,
       fonts: [ {
         name: "Silkscreen",
-        data: p,
+        data: d,
         weight: 400,
         style: "normal"
       } ]
     });
     if ("png" === n) try {
-      var h = await getPngFromSvg(y);
-      t.imageContent = h, t.imageType = "png";
+      var S = await getPngFromSvg(v);
+      t.imageContent = S, t.imageType = "png";
     } catch (e) {
-      console.error(e), t.imageContent = y, t.imageType = "svg";
+      console.error(e), t.imageContent = v, t.imageType = "svg";
     } else if ("jpg" === n) try {
-      var w = await getJpgFromSvg(y);
-      t.imageContent = w, t.imageType = "jpg";
+      var I = await getJpgFromSvg(v);
+      t.imageContent = I, t.imageType = "jpg";
     } catch (e) {
-      console.error(e), t.imageContent = y, t.imageType = "svg";
-    } else t.imageContent = y, t.imageType = "svg";
+      console.error(e), t.imageContent = v, t.imageType = "svg";
+    } else t.imageContent = v, t.imageType = "svg";
+    try {
+      await i.set(s, t.imageContent, {
+        lifetime: 86400
+      });
+    } catch (e) {
+      console.error(e);
+    }
     r();
   } catch (e) {
     Sentry.captureException(e), console.error(e), t.error = e, r();
@@ -268,8 +296,8 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   var i = getMemcachedClient(), o = o ? t : r;
   let s = 0, c = 0;
   try {
-    var p = await i.get(`API:frame:checkCanSpin:${t}:` + e);
-    p && (s = p.value, c = p.value);
+    var l = await i.get(`API:frame:checkCanSpin:${t}:` + e);
+    l && (s = l.value, c = l.value);
   } catch (e) {
     console.error(e);
   }
@@ -277,7 +305,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     s = t && (r = (await getAddressPasses(t, !0))["isHolder"], r) ? 6 : n ? 1 : 0;
     let e;
     a?.castId?.hash && (e = "0x" + Buffer.from(a?.castId?.hash).toString("hex"));
-    var [ p, r, n, a ] = await Promise.all([ Reactions.exists({
+    var [ l, r, n, a ] = await Promise.all([ Reactions.exists({
       targetHash: e,
       deletedAt: null,
       fid: o,
@@ -298,7 +326,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       type: "follow",
       deletedAt: null
     }) ]);
-    s = (s = s + (p ? 1 : 0) + (r ? 1 : 0)) + (n ? 1 : 0) + (a ? 1 : 0);
+    s = (s = s + (l ? 1 : 0) + (r ? 1 : 0)) + (n ? 1 : 0) + (a ? 1 : 0);
   }
   if (s !== c) try {
     await i.set(`API:frame:checkCanSpin:${t}:` + e, s, {
@@ -307,13 +335,13 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   } catch (e) {
     console.error(e);
   }
-  let l = 0;
+  let p = 0;
   try {
-    var d = await getSpinCount({
+    var m = await getSpinCount({
       address: t,
       questId: e
     });
-    null !== d ? l = d : await incrSpinCount({
+    null !== m ? p = m : await incrSpinCount({
       address: t,
       questId: e,
       overrideValue: 0
@@ -321,7 +349,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   } catch (e) {
     console.error(e);
   }
-  return [ 0 < s - l, s - l ];
+  return [ 0 < s - p, s - p ];
 }, getRandomReward = async ({
   communityId: e,
   questId: t,
@@ -382,11 +410,11 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     community: n,
     title: r
   }), r = o.requirements?.[0]?.data || [], i = r.find(e => "answers" === e.key)?.value.split(";"), s = r?.find(e => "correctAnswer" === e.key)?.value, c = i?.map((e, t) => `<meta property="fc:frame:button:${t + 1}" content="${abcToIndex[t + 1]}" />`);
-  let p, l, d;
+  let l, p, m;
   switch (a) {
    case STEPS.START:
-    p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=jpg", l = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
-    d = c.join("\n");
+    l = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png", p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
+    m = c.join("\n");
     break;
 
    case STEPS.ANSWERED:
@@ -395,51 +423,51 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
       try {
         e = parseInt(t.body?.untrustedData?.buttonIndex);
       } catch (e) {}
-      var f = e - 1 == s;
-      d = f ? (p = config().FARQUEST_URI + "/og/farschool4.gif", l = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", 
+      var d = e - 1 == s;
+      m = d ? (l = config().FARQUEST_URI + "/og/farschool4.gif", p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", 
       `
          <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="✅ spin now!" />
-      `) : (p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=jpg&isCorrectAnswer=false", 
-      l = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", c.join("\n"));
+      `) : (l = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&isCorrectAnswer=false", 
+      p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", c.join("\n"));
       break;
     }
 
    case STEPS.SPIN:
-    var [ f, m ] = await checkCanSpin({
+    var [ d, f ] = await checkCanSpin({
       address: t.context.connectedAddress,
       fid: t.context.frameData.fid,
       frameActionBody: t.context.frameData.frameActionBody,
       questId: o._id,
       verifiedFrameData: t.context.verifiedFrameData,
       isExternal: t.context.isExternal
-    }), u = await Account.findOrCreateByAddressAndChainId({
+    }), g = await Account.findOrCreateByAddressAndChainId({
       address: t.context.connectedAddress,
       chainId: 1
     });
-    d = f ? (l = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", 
-    f = await getRandomReward({
+    m = d ? (p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", 
+    d = await getRandomReward({
       communityId: n,
       questId: o._id,
-      account: u
+      account: g
     }), await incrSpinCount({
       address: t.context.connectedAddress,
       questId: o._id
-    }), p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=jpg&reward=" + encodeURIComponent(JSON.stringify(f)), 
-    u = `Just got ${f?.title} on @farquest, get your free daily spins before they expire on https://far.quest/school 🎩🎩🎩 `, 
-    f = `Just got ${f?.title} on FarQuest by @wieldlabs, get your free daily spins before they expire on https://far.quest/school and learn about Farcaster today 🎩🎩🎩 `, 
-    u = `https://warpcast.com/~/compose?text=${encodeURIComponent(u)}&embeds[]=https://far.quest/school&rand=` + Math.random().toString()?.slice(0, 7), 
+    }), l = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&reward=" + encodeURIComponent(JSON.stringify(d)), 
+    g = `Just got ${d?.title} on @farquest, get your free daily spins before they expire on https://far.quest/school 🎩🎩🎩 `, 
+    d = `Just got ${d?.title} on FarQuest by @wieldlabs, get your free daily spins before they expire on https://far.quest/school and learn about Farcaster today 🎩🎩🎩 `, 
+    g = `https://warpcast.com/~/compose?text=${encodeURIComponent(g)}&embeds[]=https://far.quest/school&rand=` + Math.random().toString()?.slice(0, 7), 
     `
                 <meta property="fc:frame:button:1" content="Share on X" />
         <meta property="fc:frame:button:1:action" content="link" />
-        <meta property="fc:frame:button:1:target" content="${"https://twitter.com/intent/tweet?text=" + encodeURIComponent(f)}" />
+        <meta property="fc:frame:button:1:target" content="${"https://twitter.com/intent/tweet?text=" + encodeURIComponent(d)}" />
                 <meta property="fc:frame:button:2" content="Share on 🟪" />
         <meta property="fc:frame:button:2:action" content="link" />
-        <meta property="fc:frame:button:2:target" content="${u}" />
+        <meta property="fc:frame:button:2:target" content="${g}" />
 
          <meta property="fc:frame:button:3:action" content="post" />
-        <meta property="fc:frame:button:3" content="${`Spin again (${m ? m - 1 : 0} left)`}" />
-      `) : (p = config().FARQUEST_URI + "/og/farschool4-spins.gif", l = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", 
+        <meta property="fc:frame:button:3" content="${`Spin again (${f ? f - 1 : 0} left)`}" />
+      `) : (l = config().FARQUEST_URI + "/og/farschool4-spins.gif", p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", 
     `
         <meta property="fc:frame:button:1" content="Mint .cast" />
         <meta property="fc:frame:button:1:action" content="link" />
@@ -450,29 +478,29 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     break;
 
    case STEPS.REWARD:
-    p = config().FARQUEST_URI + "/og/farschool4.gif", l = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", 
-    d = `
+    l = config().FARQUEST_URI + "/og/farschool4.gif", p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", 
+    m = `
          <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="✅ spin now!" />
       `;
     break;
 
    default:
-    p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=jpg", l = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
-    d = c.join("\n");
+    l = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png", p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
+    m = c.join("\n");
   }
-  let g = `
+  let u = `
       <!DOCTYPE html>
     <html>
       <head>
 				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content=${p} />
-        <meta property="fc:frame:post_url" content=${l} />
+				<meta property="fc:frame:image" content=${l} />
+        <meta property="fc:frame:post_url" content=${p} />
         <meta property="fc:frame:image:aspect_ratio" content="1:1" />
   `;
-  d && (g += d), g += `        
+  m && (u += m), u += `        
       </head>
-    </html>`, e.setHeader("Content-Type", "text/html"), e.send(g);
+    </html>`, e.setHeader("Content-Type", "text/html"), e.send(u);
 }), module.exports = {
   router: app
 };
