@@ -9,12 +9,13 @@ const {
   makeLinkRemove: makeLinkRemoveRpc,
   makeUserDataAdd: makeUserDataAddRpc,
   getInsecureHubRpcClient,
-  getSSLHubRpcClient
+  getSSLHubRpcClient,
+  toFarcasterTime
 } = require("@farcaster/hub-nodejs"), getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], prod = require("../helpers/registrar")["prod"], _AlchemyService = require("../services/AlchemyService")["Service"], {
   postMessage,
   getConnectedAddressForFid,
   getCustodyAddressByFid
-} = require("./farcaster"), Sentry = require("@sentry/node");
+} = require("./farcaster"), Sentry = require("@sentry/node"), times = require("lodash")["times"];
 
 async function getAddressPasses(e, t) {
   if (!e || e.length < 10) throw new Error("address is invalid");
@@ -156,10 +157,11 @@ const makeMessage = async ({
       break;
 
      case 2:
+      var i = Date.now() - 314496e5, o = toFarcasterTime(i).value;
       d = await makeCastRemoveRpc(a, {
         fid: parseInt(r),
         network: 1,
-        timestamp: 1
+        timestamp: o
       }, n);
       break;
 

@@ -221,8 +221,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   signer: 1
 }), new mongoose.Schema({
   address: String,
+  claimSignature: String,
   ethSignature: String,
-  blockHash: String
+  blockHash: String,
+  protocol: Number
 }, {
   _id: !1
 })), verificationsSchema = new mongoose.Schema({

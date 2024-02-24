@@ -320,7 +320,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/user-by-connected-address", [ limiter ], async (e, r) => {
   try {
-    var t, a = (e.query.address || "").toLowerCase();
+    var t, a = e.query.address || "";
     return !a || a.length < 10 ? r.status(400).json({
       error: "address is invalid"
     }) : (t = await getFarcasterUserByConnectedAddress(a), r.json({
