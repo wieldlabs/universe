@@ -255,7 +255,11 @@ const postMessage = async ({
   if (!a) {
     r = "0x" === t.slice(0, 2);
     let e = t.toLowerCase();
-    r || (e = "0x" + Buffer.from(bs58.decode(t)).toString("hex"));
+    if (!r) try {
+      e = "0x" + Buffer.from(bs58.decode(t)).toString("hex");
+    } catch (e) {
+      console.error("Error decoding solana address, fallback to hex", e);
+    }
     r = await Verifications.findOne({
       "claimObj.address": e,
       deletedAt: null
@@ -311,9 +315,15 @@ const postMessage = async ({
   a = (await Verifications.find({
     fid: e,
     deletedAt: null
-  })).map(e => {
-    e = e.claimObj || JSON.parse(e.claim);
-    return 1 !== e.protocol ? [ "ethereum", e.address.toLowerCase() ] : [ "solana", bs58.encode(Buffer.from(e.address.slice(2), "hex")).toString() ];
+  })).map(t => {
+    t = t.claimObj || JSON.parse(t.claim);
+    if (1 === t.protocol) try {
+      return [ "solana", bs58.encode(Buffer.from(t.address.slice(2), "hex")).toString() ];
+    } catch (e) {
+      return console.error("Error encoding solana address, fallback to hex", e), 
+      [ "solana", t.address.toLowerCase() ];
+    }
+    return [ "ethereum", t.address.toLowerCase() ];
   });
   const r = {
     ethereum: new Set(),
