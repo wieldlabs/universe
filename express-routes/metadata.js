@@ -101,7 +101,7 @@ app.get("/uri/:uri", lightLimiter, async (r, a) => {
     p.select(".container").html()), y = "data:image/svg+xml;base64," + Buffer.from(h).toString("base64"), w = (process.env.NODE_ENV, 
     {
       name: q + ".cast",
-      description: `Check the status of ${q}.cast on Wield, and try far.quest 👁️`,
+      description: q.startsWith("op_") ? "Check out far.quest and far.quest/cast 👁️" : `Check the status of ${q}.cast on wield.xyz, and check out far.quest and far.quest/cast 👁️`,
       image: y,
       attributes: [ {
         trait_type: "Length",

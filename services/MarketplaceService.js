@@ -214,7 +214,7 @@ class MarketplaceService {
       console.error(e);
     }
     if (!t) {
-      t = await Fids.countDocuments();
+      t = await Fids.count();
       try {
         await e.set("MarketplaceService:latestFid", t);
       } catch (e) {

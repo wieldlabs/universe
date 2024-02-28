@@ -2,8 +2,8 @@
 
 <img src="./.misc/header.png" width="300" />
 
-Universes are open-source hosts for
-[Wield, making crypto exploration fun](https://wield.xyz), used for apps such as
+Universes are open-source hosts built by the team behind
+[Wield Labs](https://wield.xyz), used for apps such as
 [far.quest](https://far.quest) and [Cast](https://far.quest/cast).
 
 **See our developer documents at [`docs.far.quest`](https://docs.far.quest).**

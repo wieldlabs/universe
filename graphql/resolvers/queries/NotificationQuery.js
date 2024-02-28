@@ -34,7 +34,7 @@ const Notification = require("../../../models/Notification")["Notification"], ge
       });
       if (e) throw new Error(e);
       e = await unauthorizedErrorOrAccount(t, i, r);
-      return e.account ? Notification.countDocuments({
+      return e.account ? Notification.count({
         receiver: e.account._id,
         initiator: {
           $ne: e.account._id

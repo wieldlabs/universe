@@ -6,7 +6,7 @@ module.exports = {
   getMemcachedClient: () => client = client || new MemcacheClient({
     server: {
       server: process.env.MEMCACHED_URL || "localhost:11211",
-      maxConnections: 10
+      maxConnections: 25
     }
   }),
   getHash: e => crypto.createHash("sha256").update(e).digest("hex")

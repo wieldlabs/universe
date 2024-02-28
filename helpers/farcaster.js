@@ -145,7 +145,7 @@ const postMessage = async ({
     external: !1,
     custodyAddress: i?.custodyAddress,
     connectedAddress: n,
-    connectedAddresses: o
+    allConnectedAddresses: o
   };
   let l = i?.timestamp;
   var d = {};
@@ -526,14 +526,14 @@ const postMessage = async ({
     hash: t,
     deletedAt: null
   }))) return null;
-  var [ i, n, o, e, c, l ] = await Promise.all([ Casts.countDocuments({
+  var [ i, n, o, e, c, l ] = await Promise.all([ Casts.count({
     parentHash: s.hash,
     deletedAt: null
-  }), Reactions.countDistinct({
+  }), Reactions.count({
     targetHash: s.hash,
     reactionType: ReactionType.REACTION_TYPE_LIKE,
     deletedAt: null
-  }), Reactions.countDistinct({
+  }), Reactions.count({
     targetHash: s.hash,
     reactionType: ReactionType.REACTION_TYPE_RECAST,
     deletedAt: null
@@ -655,7 +655,7 @@ const postMessage = async ({
   explore: i = !1,
   filters: n = {}
 }) => {
-  var [ o, c ] = r ? r.split("-") : [ null, null ], l = getMemcachedClient(), d = {
+  var [ o, c ] = r ? r.split("-") : [ null, null ], l = getMemcachedClient(), o = {
     timestamp: {
       $lt: o || Date.now()
     },
@@ -664,65 +664,36 @@ const postMessage = async ({
     },
     deletedAt: null
   };
-  n?.noReplies ? d.parentHash = null : n?.repliesOnly && (d.parentHash = {
+  n?.noReplies ? o.parentHash = null : n?.repliesOnly && (o.parentHash = {
     $ne: null
-  }), e ? d.fid = e : t && (d.parentUrl = t, i) && (d.globalScore = {
+  }), e ? o.fid = e : t && (o.parentUrl = t, i) && (o.globalScore = {
     $gt: GLOBAL_SCORE_THRESHOLD_CHANNEL
   });
-  let g;
+  let d;
   if (r) try {
-    var u = await l.get(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + i);
-    u && (g = JSON.parse(u.value).map(e => new Casts(e)));
+    var g = await l.get(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + i);
+    g && (d = JSON.parse(g.value).map(e => new Casts(e)));
   } catch (e) {
     console.error(e);
   }
-  if (n?.type && (u = {
-    timestamp: {
-      $lt: o ? new Date(o) : new Date()
-    },
-    type: n.type,
-    deletedAt: null
-  }, c && (u._id = {
-    $lt: mongoose.Types.ObjectI(c)
-  }), o = await Casts.aggregate([ {
-    $match: u
-  }, {
-    $group: {
-      _id: "$embeds",
-      allData: {
-        $first: "$$ROOT"
-      }
-    }
-  }, {
-    $project: {
-      _id: 0,
-      uniqueEmbed: "$_id",
-      castData: "$allData"
-    }
-  }, {
-    $sort: {
-      "castData.timestamp": -1
-    }
-  }, {
-    $limit: a
-  } ]), g = o.map(e => new Casts(e.castData))), !g && (g = await Casts.find(d).sort({
+  if (!d && (d = await Casts.find(o).sort({
     timestamp: -1
   }).limit(a), r)) try {
-    await l.set(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + i, JSON.stringify(g));
+    await l.set(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + i, JSON.stringify(d));
   } catch (e) {
     console.error(e);
   }
-  n = g.map(e => getFarcasterCastByHash(e.hash, s)), c = (await Promise.all(n)).filter(e => e), 
-  u = c.map(e => {
+  c = d.map(e => getFarcasterCastByHash(e.hash, s)), n = (await Promise.all(c)).filter(e => e), 
+  g = n.map(e => {
     return e.parentHash ? getFarcasterCastByHash(e.parentHash, s) : e;
   });
-  const f = await Promise.all(u);
-  let y = null;
-  return [ c.map((e, t) => e.parentHash && f[t] ? {
-    ...f[t],
+  const u = await Promise.all(g);
+  let f = null;
+  return [ n.map((e, t) => e.parentHash && u[t] ? {
+    ...u[t],
     childCast: e,
     childrenCasts: [ e ]
-  } : e), y = g.length === a ? g[g.length - 1].timestamp.getTime() + "-" + g[g.length - 1].id : y ];
+  } : e), f = d.length === a ? d[d.length - 1].timestamp.getTime() + "-" + d[d.length - 1].id : f ];
 }, getFarcasterFollowingCount = async e => {
   var t = getMemcachedClient();
   try {
@@ -731,7 +702,7 @@ const postMessage = async ({
   } catch (e) {
     console.error(e);
   }
-  a = await Links.countDocuments({
+  a = await Links.count({
     fid: e,
     type: "follow",
     deletedAt: null
@@ -779,7 +750,7 @@ const postMessage = async ({
   } catch (e) {
     console.error(e);
   }
-  a = await Links.countDocuments({
+  a = await Links.count({
     targetFid: e,
     type: "follow",
     deletedAt: null
@@ -961,7 +932,7 @@ const postMessage = async ({
   } catch (e) {
     console.error(e);
   }
-  r = await Notifications.countDocuments({
+  r = await Notifications.count({
     toFid: t.fid,
     timestamp: {
       $gt: e
@@ -1119,20 +1090,25 @@ const postMessage = async ({
   var t = {
     frameButton1: {
       text: e["fc:frame:button:1"],
-      action: e["fc:frame:button:1:action"]
+      action: e["fc:frame:button:1:action"],
+      target: e["fc:frame:button:1:target"]
     },
     frameButton2: {
       text: e["fc:frame:button:2"],
-      action: e["fc:frame:button:2:action"]
+      action: e["fc:frame:button:2:action"],
+      target: e["fc:frame:button:2:target"]
     },
     frameButton3: {
       text: e["fc:frame:button:3"],
-      action: e["fc:frame:button:3:action"]
+      action: e["fc:frame:button:3:action"],
+      target: e["fc:frame:button:3:target"]
     },
     frameButton4: {
       text: e["fc:frame:button:4"],
-      action: e["fc:frame:button:4:action"]
+      action: e["fc:frame:button:4:action"],
+      target: e["fc:frame:button:4:target"]
     },
+    frameInputText: e["fc:frame:input:text"],
     frameImageUrl: e["fc:frame:image"],
     framePostUrl: e["fc:frame:post_url"],
     image: e.image,
@@ -1154,6 +1130,29 @@ const postMessage = async ({
   return await Frames.findOne({
     hash: e
   });
+}, getFrames = async ({
+  limit: e,
+  cursor: t
+}) => {
+  var [ a, r ] = t ? t.split("-") : [ null, null ], s = getMemcachedClient(), a = {
+    createdAt: {
+      $lt: a || Date.now()
+    },
+    id: {
+      $lt: r || Number.MAX_SAFE_INTEGER
+    }
+  };
+  let i;
+  if (!i && (i = await Frames.find(a).sort({
+    createdAt: -1
+  }).limit(e), t)) try {
+    await s.set(`getFrames:${e}:` + t, JSON.stringify(i));
+  } catch (e) {
+    console.error(e);
+  }
+  let n = null;
+  return i.length === e && (n = i[i.length - 1].createdAt.getTime() + "-" + i[i.length - 1].id), 
+  [ i, n ];
 }, createReport = async e => {
   var t;
   if (e) return t = (await Reports.findOne({
@@ -1199,5 +1198,6 @@ module.exports = {
   getFidMetadataSignature: getFidMetadataSignature,
   createFrame: createFrame,
   getFrame: getFrame,
+  getFrames: getFrames,
   createReport: createReport
 };

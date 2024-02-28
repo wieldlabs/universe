@@ -685,6 +685,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   text: {
     type: String
   },
+  target: {
+    type: String
+  },
   action: {
     type: String
   }
@@ -715,6 +718,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     type: String
   },
   hash: {
+    type: String
+  },
+  frameInputText: {
     type: String
   }
 }, {

@@ -25,7 +25,8 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getFidMetadataSignature,
   createFrame,
   getFrame,
-  createReport
+  createReport,
+  getFrames
 } = require("../helpers/farcaster"), {
   getInsecureHubRpcClient,
   getSSLHubRpcClient
@@ -931,7 +932,25 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/frames", [ limiter ], async (e, r) => {
   try {
-    var t = await getFrame(e.query.hash);
+    var t = Math.min(e.query.limit || 10, 100), a = e.query.cursor || null, [ s, n ] = await getFrames({
+      limit: t,
+      cursor: a
+    });
+    return r.json({
+      result: {
+        frames: s
+      },
+      next: n,
+      source: "v2"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/frames/:hash", [ limiter ], async (e, r) => {
+  try {
+    var t = await getFrame(e.params.hash);
     r.json({
       result: {
         frame: t
