@@ -21,7 +21,7 @@ as `ARG` parameters.
 
 ## Running the wieldlabs/superhub repo
 
-Welcome to the setup guide for Universe! To start, you'll need
+Welcome to the setup guide for Superhub! To start, you'll need
 [node.js](https://github.com/nvm-sh/nvm),
 [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable), and
 [mongodb](https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-os-x/)

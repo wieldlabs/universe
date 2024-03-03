@@ -48,7 +48,7 @@ http.createServer(app));
     }
   })), app.get("/", (e, r) => {
     r.json({
-      message: "Welcome to github.com/wieldlabs/universe, see docs.far.quest for the API!"
+      message: "Welcome to github.com/wieldlabs/superhub, see docs.far.quest for the API!"
     });
   }), app.get("/health", async (e, r) => {
     try {
@@ -64,11 +64,11 @@ http.createServer(app));
   app.use("/utils", utilsRouter), app.use("/referral", referralRouter), app.use("/farcaster", farcasterRouter), 
   app.use("/wallet", walletRouter), app.use("/apikey", apiKeyRouter), app.use("/auth", authRouter), 
   app.use("/account", accountRouter), app.use("/webhook", webhookRouter), app.use("/frame", frameRouter), 
-  require("yargs").command("$0", "Start your Universe", e => {
+  require("yargs").command("$0", "Start your Superhub", e => {
     e.option("self-hosted", {
       type: "boolean",
       default: !1,
-      description: "Run Universe in self-hosted mode"
+      description: "Run Superhub in self-hosted mode"
     }), e.option("env", {
       type: "string",
       default: ".env",
@@ -83,7 +83,7 @@ http.createServer(app));
       tracesSampleRate: 1
     });
     let r = [ "JWT_SECRET", "MONGO_URL", "NODE_ENV" ];
-    "self-hosted" === process.env.MODE ? console.log("Universe is running in self-hosted mode! 😎") : (console.log("Universe is running in default mode! 👀"), 
+    "self-hosted" === process.env.MODE ? console.log("Superhub is running in self-hosted mode! 😎") : (console.log("Superhub is running in default mode! 👀"), 
     r = r.concat([ "IMGUR_CLIENT_ID", "MAGIC_LINK_SECRET", "IMGUR_CLIENT_ID", "EXPO_ACCESS_TOKEN", "BEB_FARCASTER_APP_TOKEN", "SENTRY_DSN", "HOMESTEAD_NODE_URL" ])), 
     0 < r.filter(e => {
       if (!process.env[e]) return console.error(e + " is not set. Please set it (e.g. .env file)!"), 
@@ -91,6 +91,6 @@ http.createServer(app));
     }).length && (console.error("Exiting..."), process.exit(1)), "change-this" === process.env.JWT_SECRET && (console.error("Please change your JWT_SECRET from the default! (e.g. .env file)"), 
     process.exit(1)), await connectDB(), await new Promise(e => httpServer.listen({
       port: port
-    }, e)), console.log(`🚀 Universe is running at http://localhost:${port}/graphql`);
+    }, e)), console.log(`🚀 Superhub is running at http://localhost:${port}/graphql`);
   }).argv;
 })();

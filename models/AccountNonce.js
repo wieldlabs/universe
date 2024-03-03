@@ -5,11 +5,11 @@ class AccountNonceClass {
     console.log("model: AccountNonceClass");
   }
   async getMessageToSign() {
-    return `@wieldlabs/universe wants you to sign in with your Ethereum account, secured with a signed message:
+    return `@wieldlabs/superhub wants you to sign in with your Ethereum account, secured with a signed message:
  ${this.nonce.length} ` + this.nonce;
   }
   async decodeAddressBySignature(e) {
-    var n = `@wieldlabs/universe wants you to sign in with your Ethereum account, secured with a signed message:
+    var n = `@wieldlabs/superhub wants you to sign in with your Ethereum account, secured with a signed message:
  ${this.nonce.length} ` + this.nonce, n = bufferToHex(Buffer.from(n, "utf8"));
     return recoverPersonalSignature({
       data: n,
