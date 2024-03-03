@@ -1,14 +1,14 @@
-# Wield Universe
+# Wield Labs Superhub
 
 <img src="./.misc/header.png" width="300" />
 
-Universes are open-source hosts built by the team behind
+Superhubs are open-source hosts built by the team behind
 [Wield Labs](https://wield.xyz), used for apps such as
 [far.quest](https://far.quest) and [Cast](https://far.quest/cast).
 
 **See our developer documents at [`docs.far.quest`](https://docs.far.quest).**
 
-## Self-hosting Your Universe
+## Self-hosting Your Superhub
 
 We've provided a starter `Dockerfile` for you, with `MONGO_URL` and `JWT_SECRET`
 as `ARG` parameters.
@@ -19,7 +19,7 @@ as `ARG` parameters.
    preference ([Railway](https://railway.app),
    [Heroku](https://www.heroku.com/), etc).
 
-## Running the wieldlabs/universe repo
+## Running the wieldlabs/superhub repo
 
 Welcome to the setup guide for Universe! To start, you'll need
 [node.js](https://github.com/nvm-sh/nvm),

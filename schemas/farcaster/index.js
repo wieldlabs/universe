@@ -59,9 +59,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   timestamps: !0
 })), castsSchema = (messagesSchema.index({
   unindexed: 1
-}), messagesSchema.index({
-  external: 1,
-  unindexed: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -145,6 +142,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   deletedAt: 1,
   timestamp: -1,
   globalScore: 1
+}), castsSchema.index({
+  threadHash: 1,
+  deletedAt: 1,
+  timestamp: -1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -731,6 +732,8 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   hash: 1
 }), framesSchema.index({
   title: 1
+}), framesSchema.index({
+  createdAt: 1
 }), new mongoose.Schema({
   fid: {
     type: String,
