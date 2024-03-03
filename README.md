@@ -1,4 +1,4 @@
-# Wield Labs Superhub
+# far.quest Superhub
 
 <img src="./.misc/header.png" width="300" />
 
