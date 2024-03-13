@@ -61,14 +61,14 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   console.error(n), Sentry.captureMessage(n), 0);
 }, limiter = rateLimit({
   windowMs: 3e3,
-  max: getLimit(2.5),
+  max: getLimit(10),
   message: "Too many requests or invalid API key! See docs.far.quest for more info.",
   validate: {
     limit: !1
   }
 }), heavyLimiter = rateLimit({
   windowMs: 2e3,
-  max: getLimit(.3),
+  max: getLimit(1),
   message: "Too many requests or invalid API key! See docs.far.quest for more info.",
   validate: {
     limit: !1
