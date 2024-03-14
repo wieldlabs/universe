@@ -140,6 +140,31 @@ class CacheService extends NormalizeCacheService {
       expiresAt: t
     }), i;
   }
+  async find(a) {
+    const {
+      key: e,
+      params: r,
+      sort: t,
+      limit: i,
+      ...s
+    } = a;
+    a = this.normalize({
+      key: e,
+      params: r
+    });
+    try {
+      let e = KeyValueCache.find({
+        key: a,
+        ...s
+      });
+      t && (e = e.sort(t));
+      var l = await (e = i ? e.limit(i) : e);
+      if (l) return l.map(e => JSON.parse(e.value).value);
+    } catch (e) {
+      console.error("Error finding record with key: " + a, e);
+    }
+    return null;
+  }
 }
 
 module.exports = {

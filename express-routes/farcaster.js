@@ -354,6 +354,27 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Internal Server Error"
     });
   }
+}), app.get("/v2/users", [ limiter, authContext ], async (r, t) => {
+  try {
+    var e, a = r.query.fids, s = a && a.split(",");
+    return a && s ? 100 < s.length ? t.status(400).json({
+      error: "fids is invalid"
+    }) : (e = await Promise.all(s.map(e => getFarcasterUserAndLinksByFid({
+      fid: e,
+      context: r.context
+    }))), t.json({
+      result: {
+        users: e
+      },
+      source: "v2"
+    })) : t.status(400).json({
+      error: "fids is invalid"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), t.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
 }), app.get("/v2/user-by-username", [ limiter, authContext ], async (e, r) => {
   try {
     var t, a = e.query.username;
@@ -970,6 +991,58 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   } catch (e) {
     console.error(e), r.status(500).json({
       error: e.message
+    });
+  }
+}), app.get("/v2/trends", [ limiter ], async (e, r) => {
+  const s = new _CacheService();
+  try {
+    var t = await s.get({
+      key: "CastTrendingTokens"
+    }), a = t || {};
+    const o = new Date(Date.now() - 36e5);
+    var n = (await Promise.all(Object.entries(a).map(async ([ e, r ]) => {
+      var t = (await s.find({
+        key: "TrendingHistory",
+        params: {
+          token: e
+        },
+        createdAt: {
+          $lt: o
+        },
+        sort: {
+          createdAt: -1
+        },
+        limit: 1
+      }))[0], a = t && t.count ? t.count : r;
+      return {
+        token: e,
+        percentageDifference: 0 === a ? 0 : (r - a) / a * 100,
+        count: r,
+        lastCount: a,
+        lastTimestamp: t?.computedAt || null
+      };
+    }))).reduce((e, {
+      token: r,
+      percentageDifference: t,
+      count: a,
+      lastCount: s,
+      lastTimestamp: n
+    }) => (e[r] = {
+      percentageDifference: t,
+      count: a,
+      lastCount: s,
+      lastTimestamp: n
+    }, e), {});
+    return r.json({
+      result: {
+        trends: n
+      },
+      source: "v2"
+    });
+  } catch (e) {
+    return console.error("Failed to retrieve CastTrendingTokens from cache:", e), 
+    Sentry.captureException(e), r.status(500).json({
+      error: "Internal Server Error"
     });
   }
 }), module.exports = {
