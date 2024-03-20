@@ -14,10 +14,6 @@ const mongoose = require("mongoose"), contentSchema = require("./content")["sche
     type: String,
     index: !0
   },
-  wieldTag: {
-    type: String,
-    index: !0
-  },
   usernameLowercase: {
     type: String,
     index: !0

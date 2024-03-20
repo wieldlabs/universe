@@ -105,7 +105,7 @@ class AlchemyService {
       }))["data"];
       return !!s?.isHolderOfCollection;
     } catch (e) {
-      return console.log(e), Sentry.captureException(e), !1;
+      return console.error(e), Sentry.captureException(e), !1;
     }
   }
   async getOwnersForToken({
@@ -164,7 +164,7 @@ class AlchemyService {
       new Error("AlchemyService.getCollectionFloor error: " + a.error.message);
       return a;
     } catch (e) {
-      throw console.log(e), Sentry.captureException(e), new Error("AlchemyService.getCollectionFloor error, " + e.message);
+      throw console.error(e), Sentry.captureException(e), new Error("AlchemyService.getCollectionFloor error, " + e.message);
     }
   }
   async verifyOwnership({

@@ -130,7 +130,7 @@ class CacheService extends NormalizeCacheService {
       });
       if (i) return i;
     } catch (e) {
-      console.log(e);
+      console.error(e);
     }
     i = await e?.();
     return i && this.set({

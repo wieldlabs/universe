@@ -369,8 +369,8 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
 };
 
 function getQuestTitle() {
-  var e = new Date("2024-02-17"), t = new Date();
-  return "Lesson " + (Math.floor((t - e) / 864e5) + 1);
+  var e = new Date("2024-02-17"), t = new Date(), t = Math.floor((t - e) / 864e5);
+  return "Lesson " + Math.min(t + 1, 90);
 }
 
 app.get("/v1/school", [ generateSchoolImageMiddleware, generateRewardImageMiddleware ], async (e, t) => {

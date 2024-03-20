@@ -23,15 +23,6 @@ class AccountClass {
     if (e) throw new Error("An account exists with this username.");
     return e;
   }
-  static async _validwieldTagCheck(e, a) {
-    if (!/^[a-z0-9_]{1,16}$/.test(a)) throw new Error("Invalid wieldTag");
-    if (e.wieldTag === a) return !0;
-    e = await Account.exists({
-      wieldTag: a
-    });
-    if (e) throw new Error("An account exists with this wieldTag. Try another one.");
-    return e;
-  }
   static async _existingEmailCheck(e, a) {
     if (e.email === a) return !0;
     e = await Account.exists({
@@ -52,26 +43,26 @@ class AccountClass {
     chainId: t
   }) {
     try {
-      var n = "0x" + JSON.parse(a).address, i = await this.findOne({
+      var n = "0x" + JSON.parse(a).address, s = await this.findOne({
         walletEmail: e
       });
-      return i ? i : await this.createFromAddress({
+      return s ? s : await this.createFromAddress({
         address: n,
         chainId: t,
         walletEmail: e,
         encyrptedWalletJson: a
       });
     } catch (e) {
-      throw console.log(e), new Error(e.message);
+      throw console.error(e), new Error(e.message);
     }
   }
   static async deleteAllData({
     account: e
   }) {
-    e.email = null, e.walletEmail = null, e.encyrptedWalletJson = null, e.wieldTag = null, 
-    e.bio = null, e.location = null, e.profileImage = null, e.expoPushTokens = null, 
-    e.addresses = null, e.identities = null, e.activities = null, e.recoverers = null, 
-    e.deleted = !0, await e.save(), await Post.deleteMany({
+    e.email = null, e.walletEmail = null, e.encyrptedWalletJson = null, e.bio = null, 
+    e.location = null, e.profileImage = null, e.expoPushTokens = null, e.addresses = null, 
+    e.identities = null, e.activities = null, e.recoverers = null, e.deleted = !0, 
+    await e.save(), await Post.deleteMany({
       account: e._id
     });
   }
@@ -80,8 +71,8 @@ class AccountClass {
     chainId: a,
     email: t,
     walletEmail: n,
-    encyrptedWalletJson: i,
-    creationOrigin: s
+    encyrptedWalletJson: s,
+    creationOrigin: i
   }) {
     var r = await mongoose.startSession();
     r.startTransaction();
@@ -104,8 +95,8 @@ class AccountClass {
         addresses: [ u._id ],
         activities: {},
         walletEmail: n,
-        encyrptedWalletJson: i,
-        creationOrigin: s
+        encyrptedWalletJson: s,
+        creationOrigin: i
       } ], {
         session: r
       });
@@ -144,24 +135,24 @@ class AccountClass {
     var t = getMemcachedClient(), e = validateAndConvertAddress(e, a);
     let n;
     try {
-      var i = await t.get(`Account:findByAddressAndChainId:${a}:` + e);
-      i && (n = i.value);
+      var s = await t.get(`Account:findByAddressAndChainId:${a}:` + e);
+      s && (n = s.value);
     } catch (e) {
       console.error(e);
     }
     if (!n) {
-      i = await AccountAddress.findOne({
+      s = await AccountAddress.findOne({
         address: e
       });
-      if (!(n = i?.account)) return null;
+      if (!(n = s?.account)) return null;
       try {
         await t.set(`Account:findByAddressAndChainId:${a}:` + e, n.toString());
       } catch (e) {
         console.error(e);
       }
     }
-    i = await this.findById(n);
-    if (i) return i;
+    s = await this.findById(n);
+    if (s) return s;
     throw new Error(`AccountAddress has a null account for address ${e} and chainId ${a}!`);
   }
   static async findOrCreateByAddressAndChainId({
@@ -200,29 +191,29 @@ class AccountClass {
     chainId: a,
     signature: t
   }) {
-    let n, i;
+    let n, s;
     if ("0x0magiclink" == e) {
-      var s = new Magic(process.env.MAGIC_LINK_SECRET), s = (await s.token.validate(t), 
-      await s.users.getMetadataByToken(t));
+      var i = new Magic(process.env.MAGIC_LINK_SECRET), i = (await i.token.validate(t), 
+      await i.users.getMetadataByToken(t));
       if (!(n = await this.findOne({
-        email: s.email
+        email: i.email
       }))) throw new Error("Account not found");
-      i = await AccountNonce.findOne({
+      s = await AccountNonce.findOne({
         account: n._id
       });
     } else {
-      s = await Account.verifySignature({
+      i = await Account.verifySignature({
         address: e,
         chainId: a,
         signature: t
       });
-      n = s.account, i = s.accountNonce;
+      n = i.account, s = i.accountNonce;
     }
-    await i.generateNewNonce();
+    await s.generateNewNonce();
     e = await generateNewAccessTokenFromAccount(n);
     return {
       account: n,
-      accountNonce: i,
+      accountNonce: s,
       accessToken: e
     };
   }
@@ -231,18 +222,17 @@ class AccountClass {
     return this.encyrptedWalletJson = e, this.save();
   }
   async updateMe(e) {
-    var a = pick(e, [ "email", "location", "username", "wieldTag", "profileImageId", "bio", "isOnboarded", "expoPushToken" ]);
-    return a.username && await Account._existingUsernameCheck(this, a.username), 
-    a.profileImageId && await Account._profileImageIdExistCheck(a.profileImageId), 
-    a.email && await Account._existingEmailCheck(this, a.email), a.wieldTag && await Account._validwieldTagCheck(this, a.wieldTag), 
-    void 0 !== e.wieldTag && (this.wieldTag = a.wieldTag), void 0 !== a.username && (this.username = a.username, 
-    this.usernameLowercase = a.username.toLowerCase()), void 0 !== a.location && (this.location = a.location), 
-    void 0 !== a.email && (this.email = a.email?.toLowerCase() || null), void 0 !== a.isOnboarded && (this.activities || (this.activities = {}), 
-    this.activities.isOnboarded = a.isOnboarded), void 0 !== a.profileImageId && (this.profileImage = a.profileImageId), 
-    void 0 !== a.bio && (this.bio = new ContentService().makeContent({
-      contentRaw: a.bio
-    })), void 0 !== a.expoPushToken && ((e = new Set(this.expoPushTokens || [])).add(a.expoPushToken), 
-    this.expoPushTokens = [ ...e ]), this.save();
+    var a, e = pick(e, [ "email", "location", "username", "profileImageId", "bio", "isOnboarded", "expoPushToken" ]);
+    return e.username && await Account._existingUsernameCheck(this, e.username), 
+    e.profileImageId && await Account._profileImageIdExistCheck(e.profileImageId), 
+    e.email && await Account._existingEmailCheck(this, e.email), void 0 !== e.username && (this.username = e.username, 
+    this.usernameLowercase = e.username.toLowerCase()), void 0 !== e.location && (this.location = e.location), 
+    void 0 !== e.email && (this.email = e.email?.toLowerCase() || null), void 0 !== e.isOnboarded && (this.activities || (this.activities = {}), 
+    this.activities.isOnboarded = e.isOnboarded), void 0 !== e.profileImageId && (this.profileImage = e.profileImageId), 
+    void 0 !== e.bio && (this.bio = new ContentService().makeContent({
+      contentRaw: e.bio
+    })), void 0 !== e.expoPushToken && ((a = new Set(this.expoPushTokens || [])).add(e.expoPushToken), 
+    this.expoPushTokens = [ ...a ]), this.save();
   }
   get addressId() {
     return get(this, "addresses[0]", null);

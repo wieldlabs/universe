@@ -117,7 +117,7 @@ class QuestService extends QuestRewardService {
       }))).reduce((e, t) => e + t, 0));
       return s <= o;
     } catch (e) {
-      return console.log(e), !1;
+      return console.error(e), !1;
     }
   }
   async createQuestRewards({

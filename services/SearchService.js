@@ -38,7 +38,7 @@ class SearchService {
           }
         });
       } catch (e) {
-        console.log(e);
+        console.error(e);
         continue;
       }
       return Object.values(t);

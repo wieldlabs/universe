@@ -8,14 +8,14 @@ class CommunityQuestService extends QuestService {
   async canSatisfyRequirement(e, {
     requirement: t,
     quest: a,
-    questData: s
-  }, r) {
+    questData: r
+  }, s) {
     if (t?.type.includes("VALID_NFT")) return await this._canCompleteValidNFTQuest(a, {
       requirement: t
-    }, r);
+    }, s);
     if (t?.type.includes("FARCASTER_")) {
-      await r.account.populate?.("addresses");
-      var i = r.account?.addresses?.[0]?.address;
+      await s.account.populate?.("addresses");
+      var i = s.account?.addresses?.[0]?.address;
       for (const d of await new FarcasterServiceV2().getProfilesByAddress(i)) {
         if ("FARCASTER_ACCOUNT" === t.type) return !0;
         if (t.type.includes("FARCASTER_CASTS_")) {
@@ -55,32 +55,32 @@ class CommunityQuestService extends QuestService {
      case "TOTAL_NFT":
       return await this._canCompleteTotalNFTQuest(a, {
         requirement: t
-      }, r);
+      }, s);
 
      case "COMMUNITY_PARTICIPATION":
       var c = t.data?.find(e => "requiredParticipationCount" === e.key)?.value || 1;
       return e.accounts?.length >= c;
 
      case "MULTICHOICE_SINGLE_QUIZ":
-      var u, c = s.find(e => "answer" === e.key)?.value;
+      var u, c = r.find(e => "answer" === e.key)?.value;
       return c ? (u = t.data?.find(e => "correctAnswer" === e.key)?.value, c.toLowerCase() === u?.toLowerCase()) : !1;
 
      case "FARMARKET_LISTING_FIRST":
-      return r.account ? (await r.account.populate?.("addresses"), !!await ListingLogs.exists({
+      return s.account ? (await s.account.populate?.("addresses"), !!await ListingLogs.exists({
         eventType: "Listed",
-        from: r.account.addresses?.[0]?.address
+        from: s.account.addresses?.[0]?.address
       })) : !1;
 
      case "FARMARKET_BUY_FIRST":
-      return r.account ? (await r.account.populate?.("addresses"), !!await ListingLogs.exists({
+      return s.account ? (await s.account.populate?.("addresses"), !!await ListingLogs.exists({
         eventType: "Bought",
-        from: r.account.addresses?.[0]?.address
+        from: s.account.addresses?.[0]?.address
       })) : !1;
 
      case "FARMARKET_OFFER_FIRST":
-      return r.account ? (await r.account.populate?.("addresses"), !!await ListingLogs.exists({
+      return s.account ? (await s.account.populate?.("addresses"), !!await ListingLogs.exists({
         eventType: "OfferMade",
-        from: r.account.addresses?.[0]?.address
+        from: s.account.addresses?.[0]?.address
       })) : !1;
 
      default:
@@ -89,19 +89,19 @@ class CommunityQuestService extends QuestService {
   }
   async canClaimReward(t, {
     questData: a = []
-  }, s) {
+  }, r) {
     if (!t) return !1;
     if (t.isArchived) return !1;
-    const r = await Quest.findById(t.quest);
+    const s = await Quest.findById(t.quest);
     var e, i;
-    return !(!r || r.startsAt && r.startsAt > new Date() || (await CommunityQuestAccount.findOne({
+    return !(!s || s.startsAt && s.startsAt > new Date() || (await CommunityQuestAccount.findOne({
       communityQuest: t._id,
-      account: s.account?._id || s.accountId
-    }))?.rewardClaimed) && (!r.requirements || 0 === r.requirements.length || (e = await Promise.all(r.requirements.map(e => this.canSatisfyRequirement(t, {
+      account: r.account?._id || r.accountId
+    }))?.rewardClaimed) && (!s.requirements || 0 === s.requirements.length || (e = await Promise.all(s.requirements.map(e => this.canSatisfyRequirement(t, {
       requirement: e,
-      quest: r,
+      quest: s,
       questData: a
-    }, s))), "OR" === (i = r.requirementJoinOperator || "OR") ? e.some(e => e) : "AND" === i && e.every(e => e)));
+    }, r))), "OR" === (i = s.requirementJoinOperator || "OR") ? e.some(e => e) : "AND" === i && e.every(e => e)));
   }
   async getQuestStatus(e, t, a) {
     return e && a.account ? e.isArchived ? "COMPLETED" : await this.canClaimReward(e, t, a) ? "CAN_CLAIM_REWARD" : (t = await CommunityQuestAccount.findOne({
@@ -111,12 +111,12 @@ class CommunityQuestService extends QuestService {
   }
   async checkIfCommunityQuestClaimedByAddress(e, t, a) {
     if (e) {
-      var a = a.account?._id || a.accountId, s = getMemcachedClient();
+      var a = a.account?._id || a.accountId, r = getMemcachedClient();
       try {
-        var r = `CommunityQuestService:checkIfCommunityQuestClaimedByAddress${e._id}:` + a;
-        if (await s.get(r)) return !0;
+        var s = `CommunityQuestService:checkIfCommunityQuestClaimedByAddress${e._id}:` + a;
+        if (await r.get(s)) return !0;
       } catch (e) {
-        console.log(e);
+        console.error(e);
       }
       if ((await CommunityQuestAccount.findOne({
         communityQuest: e._id,
@@ -124,9 +124,9 @@ class CommunityQuestService extends QuestService {
       }))?.rewardClaimed) {
         try {
           var i = `CommunityQuestService:checkIfCommunityQuestClaimedByAddress${e._id}:` + a;
-          await s.set(i, "true");
+          await r.set(i, "true");
         } catch (e) {
-          console.log(e);
+          console.error(e);
         }
         return !0;
       }

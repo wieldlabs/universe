@@ -155,7 +155,7 @@ class AuthService {
         address: t
       }) ];
     } catch (e) {
-      throw console.log(e), new Error("Invalid token");
+      throw console.error(e), new Error("Invalid token");
     }
   }
   async authByFid({
@@ -187,7 +187,7 @@ class AuthService {
       }) ];
       throw new Error("Invalid signer! If this error persists, try logging out and logging in again.");
     } catch (e) {
-      throw console.log(e), new Error("Invalid token");
+      throw console.error(e), new Error("Invalid token");
     }
   }
   async authByPassKey({
@@ -232,7 +232,7 @@ class AuthService {
       return w.counter = l.authnrData.get("counter"), w.passKeyId = s, await w.save(), 
       A;
     } catch (e) {
-      throw console.log(e), new Error("Could not parse PassKey signature");
+      throw console.error(e), new Error("Could not parse PassKey signature");
     }
   }
   async authenticate({

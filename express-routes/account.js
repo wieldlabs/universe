@@ -34,10 +34,10 @@ app.get("/v1/inventory", limiter, async (r, s) => {
       sort: a,
       filters: e
     });
-    const l = new QuestService();
+    const p = new QuestService();
     await Promise.all(d.map(async e => {
       var r;
-      if (e.rewardId) return r = await l.getQuestReward({
+      if (e.rewardId) return r = await p.getQuestReward({
         rewardId: e.rewardId,
         type: e.rewardType
       }), e.reward = {
@@ -87,25 +87,23 @@ app.get("/v1/inventory", limiter, async (r, s) => {
     var {
       email: t,
       location: c,
-      wieldTag: o,
-      profileImageId: a,
-      bio: n,
-      isOnboarded: i,
-      expoPushToken: u
-    } = e.body, d = await s.updateMe({
+      profileImageId: o,
+      bio: a,
+      isOnboarded: n,
+      expoPushToken: i
+    } = e.body, u = await s.updateMe({
       email: t,
       location: c,
-      wieldTag: o,
-      profileImageId: a,
-      bio: n,
-      isOnboarded: i,
-      expoPushToken: u
+      profileImageId: o,
+      bio: a,
+      isOnboarded: n,
+      expoPushToken: i
     });
     r.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
-      account: d
+      account: u
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), r.status(500).json({

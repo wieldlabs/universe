@@ -1,49 +1,49 @@
 const AccountService = require("../AccountService")["Service"];
 
 class CurrentAccountPermissionService extends AccountService {
-  currentAccountPermissions(c, n, e) {
-    const i = n?.communityId, t = n?.channelId, r = "" + i + (t || "");
+  currentAccountPermissions(c, e, n) {
+    const i = e?.communityId, r = e?.channelId, t = "" + i + (r || "");
     return {
       canRead: async () => {
         if (!i) return !1;
-        if (void 0 !== e.communities?.[r]?.canRead) return e.communities?.[r]?.canRead;
+        if (void 0 !== n.communities?.[t]?.canRead) return n.communities?.[t]?.canRead;
         try {
-          var c = await this.validPermissionForAccount(e.account || {
-            _id: e.accountId
+          var c = await this.validPermissionForAccount(n.account || {
+            _id: n.accountId
           }, {
             communityId: i,
-            channelId: t,
+            channelId: r,
             permissionIdentifier: "READ"
-          }, e);
-          return e.communities = {
-            ...e.communities,
-            [r]: {
+          }, n);
+          return n.communities = {
+            ...n.communities,
+            [t]: {
               canRead: c
             }
           }, c;
         } catch (c) {
-          return console.log(c), !1;
+          return console.error(c), !1;
         }
       },
       canWrite: async () => {
-        if (!i || !e.accountId) return !1;
-        if (void 0 !== e.communities?.[r]?.canWrite) return e.communities?.[r]?.canWrite;
+        if (!i || !n.accountId) return !1;
+        if (void 0 !== n.communities?.[t]?.canWrite) return n.communities?.[t]?.canWrite;
         try {
-          var c = await this.validPermissionForAccount(e.account || {
-            _id: e.accountId
+          var c = await this.validPermissionForAccount(n.account || {
+            _id: n.accountId
           }, {
             communityId: i,
-            channelId: t,
+            channelId: r,
             permissionIdentifier: "WRITE"
-          }, e);
-          return e.communities = {
-            ...e.communities,
-            [r]: {
+          }, n);
+          return n.communities = {
+            ...n.communities,
+            [t]: {
               canWrite: c
             }
           }, c;
         } catch (c) {
-          return console.log(c), !1;
+          return console.error(c), !1;
         }
       }
     };

@@ -47,7 +47,7 @@ class AccountRecovererService {
         id: n
       };
     } catch (e) {
-      throw console.log(e), new Error("Could not parse PassKey signature");
+      throw console.error(e), new Error("Could not parse PassKey signature");
     }
   }
   async _addPasskeyRecoverer(e, {
@@ -145,7 +145,7 @@ class AccountRecovererService {
       } else e.recoverers = [ r ];
       return await e.save();
     } catch (e) {
-      throw console.log(e), new Error("Could not add recoverer: " + e.message);
+      throw console.error(e), new Error("Could not add recoverer: " + e.message);
     }
   }
 }

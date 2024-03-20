@@ -477,7 +477,7 @@ class MarketplaceService {
       }
       return e;
     } catch (e) {
-      return console.log(e), Sentry.captureException(e), {
+      return console.error(e), Sentry.captureException(e), {
         success: !1,
         stats: {}
       };

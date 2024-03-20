@@ -26,8 +26,15 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   createFrame,
   getFrame,
   createReport,
-  getFrames
+  getFrames,
+  getSyncedChannelById,
+  getSyncedChannelByUrl,
+  searchChannels,
+  searchFarcasterCasts
 } = require("../helpers/farcaster"), {
+  fetchAssetMetadata,
+  fetchPriceHistory
+} = require("../helpers/wallet"), {
   getInsecureHubRpcClient,
   getSSLHubRpcClient
 } = require("@farcaster/hub-nodejs"), requireAuth = require("../helpers/auth-middleware")["requireAuth"], {
@@ -200,6 +207,10 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Internal Server Error"
     });
   }
+}), app.get("/v2/search-casts", [ authContext, heavyLimiter ], async (e, r) => {
+  return r.status(503).json({
+    error: "This endpoint is unavailable."
+  });
 }), app.get("/v2/cast-reactions", limiter, async (e, r) => {
   try {
     var t, a, s = e.query.castHash, n = Math.min(parseInt(e.query.limit || 100), 250), o = e.query.cursor || null;
@@ -623,8 +634,8 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     });
     let e = null;
     try {
-      var p = await n.get("getAddressPasses_isHolder:" + s);
-      p && (e = p.value);
+      var y = await n.get("getAddressPasses_isHolder:" + s);
+      y && (e = y.value);
     } catch (e) {
       console.error(e);
     }
@@ -993,35 +1004,44 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: e.message
     });
   }
-}), app.get("/v2/trends", [ limiter ], async (e, r) => {
+}), app.get("/v2/trends", [ limiter, authContext ], async (r, t) => {
   const s = new _CacheService();
   try {
-    var t = await s.get({
+    var [ e, a ] = await Promise.all([ s.get({
       key: "CastTrendingTokens"
-    }), a = t || {};
-    const o = new Date(Date.now() - 36e5);
-    var n = (await Promise.all(Object.entries(a).map(async ([ e, r ]) => {
-      var t = (await s.find({
+    }), s.get({
+      key: "TopTrendingCasts"
+    }) ]), n = e || {}, o = Promise.all(Object.entries(n).map(async ([ e, r ]) => {
+      var [ t, a ] = await Promise.all([ s.find({
         key: "TrendingHistory",
         params: {
           token: e
         },
-        createdAt: {
-          $lt: o
+        sort: {
+          createdAt: -1
+        },
+        limit: 2
+      }), s.find({
+        key: "TrendingHistory",
+        params: {
+          token: e
         },
         sort: {
           createdAt: -1
         },
-        limit: 1
-      }))[0], a = t && t.count ? t.count : r;
+        limit: 1,
+        createdAt: {
+          $lte: new Date(Date.now() - 864e5)
+        }
+      }) ]), a = a[0] || t[1], t = a && a.count ? a.count : r;
       return {
         token: e,
-        percentageDifference: 0 === a ? 0 : (r - a) / a * 100,
+        percentageDifference: 0 === t ? 0 : (r - t) / t * 100,
         count: r,
-        lastCount: a,
-        lastTimestamp: t?.computedAt || null
+        lastCount: t,
+        lastTimestamp: a?.computedAt || null
       };
-    }))).reduce((e, {
+    })), c = await Promise.all(a?.casts?.map(e => getFarcasterCastByHash(e.hash, r.context))), [ i, u ] = await Promise.all([ o, c ]), l = u.filter(e => null !== e), y = i.reduce((e, {
       token: r,
       percentageDifference: t,
       count: a,
@@ -1033,15 +1053,121 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       lastCount: s,
       lastTimestamp: n
     }, e), {});
-    return r.json({
+    return t.json({
       result: {
-        trends: n
+        trends: y,
+        casts: l
       },
       source: "v2"
     });
   } catch (e) {
     return console.error("Failed to retrieve CastTrendingTokens from cache:", e), 
-    Sentry.captureException(e), r.status(500).json({
+    Sentry.captureException(e), t.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/trends/:token", [ limiter, authContext ], async (a, s) => {
+  var n = new _CacheService();
+  try {
+    var o = a.params["token"];
+    if (!o) return s.status(400).json({
+      error: "Token is required"
+    });
+    var c = a.query["timerange"];
+    let e = 3;
+    "1d" === c ? e = 1 : "3d" === c && (e = 3);
+    var i = new Date(Date.now() - 24 * e * 60 * 60 * 1e3), u = n.find({
+      key: "TrendingCastsHistory",
+      params: {
+        token: o.toUpperCase()
+      },
+      sort: {
+        createdAt: -1
+      },
+      limit: 1
+    }), l = n.find({
+      key: "TrendingHistory",
+      params: {
+        token: o.toUpperCase()
+      },
+      createdAt: {
+        $gt: i
+      },
+      sort: {
+        createdAt: 1
+      }
+    }), [ y, p ] = await Promise.all([ u, l ]), d = p.map(e => {
+      var r = e.count;
+      return {
+        computedAt: e.computedAt,
+        currentCount: r,
+        token: e.token,
+        network: e.network,
+        contractAddress: e.contractAddress
+      };
+    });
+    if (!y || !y[0]) return s.status(404).json({
+      error: "No history found for this token"
+    });
+    var v = y[0]["casts"];
+    if (!v || 0 === v.length) return s.status(404).json({
+      error: "No casts found in the history for this token"
+    });
+    var h = [ ...new Set(v?.slice(0, 25).map(e => e.hash)) ], g = (await Promise.all(h.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === g.length) return s.status(404).json({
+      error: "Casts not found"
+    });
+    let r = null, t = [];
+    var m, f = d[d.length - 1];
+    return f.contractAddress && (m = await Promise.allSettled([ fetchAssetMetadata(f.network, f.contractAddress), fetchPriceHistory(f.contractAddress, f.network, "7d") ]), 
+    r = "fulfilled" === m[0].status ? m[0].value : null, t = "fulfilled" === m[1].status ? m[1].value : []), 
+    s.json({
+      result: {
+        casts: g,
+        trendHistory: d,
+        tokenMetadata: r,
+        tokenPriceHistory: t
+      },
+      source: "v2"
+    });
+  } catch (e) {
+    return console.error("Failed to retrieve trends for token:", e), Sentry.captureException(e), 
+    s.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/synced-channel/:identifier", async (r, t) => {
+  try {
+    var {
+      identifier: a,
+      type: s
+    } = r.params;
+    if (!a) return t.status(400).json({
+      error: "Channel identifier is required"
+    });
+    let e;
+    return (e = "id" === s ? await getSyncedChannelById(a) : "url" !== s && await getSyncedChannelById(a) || await getSyncedChannelByUrl(a)) ? t.json({
+      syncedChannel: e
+    }) : t.status(404).json({
+      error: "Synced channel not found"
+    });
+  } catch (e) {
+    return console.error("Failed to retrieve synced channel:", e), Sentry.captureException(e), 
+    t.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/search-channel", async (e, r) => {
+  try {
+    var t, a = e.query["query"];
+    return a ? (t = await searchChannels(a), r.json({
+      channels: t
+    })) : r.status(400).json({
+      error: "Search query is required"
+    });
+  } catch (e) {
+    return console.error("Failed to search channels:", e), Sentry.captureException(e), 
+    r.status(500).json({
       error: "Internal Server Error"
     });
   }

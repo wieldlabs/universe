@@ -7,16 +7,16 @@ class PostService {
     externalId: i,
     communityId: o,
     contentRaw: c,
-    contentJson: a,
-    contentHtml: r,
+    contentJson: r,
+    contentHtml: a,
     blocks: u
   }, s) {
     c = await new _ContentSerice().makeRichContent({
       contentRaw: c,
-      contentJson: a,
-      contentHtml: r,
+      contentJson: r,
+      contentHtml: a,
       blocks: u
-    }), a = new Post({
+    }), r = new Post({
       account: s.account?._id || s.accountId,
       community: o,
       channel: t,
@@ -24,13 +24,13 @@ class PostService {
       richContent: c
     });
     let m;
-    if (n && (m = await Post._getParentOrError(n), a.parent = m._id, a.root = m.root || m._id, 
-    a.community = m.community || null, a.channel = m.channel || null), a.channel) {
-      r = await Channel.findById(a.channel);
-      if (!r) throw new Error("Invalid channel");
-      a.community = r.community;
+    if (n && (m = await Post._getParentOrError(n), r.parent = m._id, r.root = m.root || m._id, 
+    r.community = m.community || null, r.channel = m.channel || null), r.channel) {
+      a = await Channel.findById(r.channel);
+      if (!a) throw new Error("Invalid channel");
+      r.community = a.community;
     }
-    return [ a, m ];
+    return [ r, m ];
   }
   async canHide(e, n, t) {
     var i, o;
@@ -46,7 +46,7 @@ class PostService {
     if (void 0 !== i.communities?.[o]?.canWrite) return i.communities?.[o]?.canWrite;
     var c = new _AccountService();
     try {
-      var a = await c.validPermissionForAccount(i.account, {
+      var r = await c.validPermissionForAccount(i.account, {
         communityId: n,
         channelId: t,
         permissionIdentifier: "WRITE"
@@ -54,11 +54,11 @@ class PostService {
       return i.communities = {
         ...i.communities,
         [o]: {
-          canWrite: a
+          canWrite: r
         }
-      }, a;
+      }, r;
     } catch (e) {
-      return console.log(e), Sentry.captureException(e), !1;
+      return console.error(e), Sentry.captureException(e), !1;
     }
   }
   async canRead(e, n, t) {
@@ -80,7 +80,7 @@ class PostService {
         }
       }, o;
     } catch (e) {
-      return console.log(e), Sentry.captureException(e), !1;
+      return console.error(e), Sentry.captureException(e), !1;
     }
   }
   async getExplorePostFeedCommunityIds(n, e, t) {

@@ -101,17 +101,7 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }, {
   timestamps: !0
 })), reactionsSchema = (castsSchema.index({
-  type: 1,
-  deletedAt: 1
-}), castsSchema.index({
-  hash: 1,
-  deletedAt: 1
-}), castsSchema.index({
   parentHash: 1,
-  deletedAt: 1
-}), castsSchema.index({
-  hash: "text",
-  fid: 1,
   deletedAt: 1
 }), castsSchema.index({
   fid: 1,
@@ -130,10 +120,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   threadHash: 1,
   deletedAt: 1
 }), castsSchema.index({
-  globalScore: -1,
-  deletedAt: 1,
-  timestamp: -1
-}), castsSchema.index({
   text: "text",
   deletedAt: 1,
   timestamp: -1
@@ -146,6 +132,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   threadHash: 1,
   deletedAt: 1,
   timestamp: -1
+}), castsSchema.index({
+  external: 1,
+  _id: 1,
+  timestamp: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -186,6 +176,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   targetFid: 1,
   fid: 1,
   reactionType: 1,
+  deletedAt: 1
+}), reactionsSchema.index({
+  reactionType: 1,
+  fid: 1,
+  targetHash: 1,
   deletedAt: 1
 }), new mongoose.Schema({
   deletedAt: Date,
@@ -750,10 +745,45 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   }
 }, {
   timestamps: !0
+})), syncedChannelsSchema = (reportsSchema.index({
+  fid: 1
+}), new mongoose.Schema({
+  channelId: {
+    type: String,
+    required: !0
+  },
+  url: {
+    type: String,
+    required: !0
+  },
+  name: {
+    type: String,
+    required: !0
+  },
+  description: {
+    type: String
+  },
+  imageUrl: {
+    type: String
+  },
+  leadFid: {
+    type: String
+  },
+  createdAt: {
+    type: Number
+  }
+}, {
+  timestamps: !1
 }));
 
-reportsSchema.index({
-  fid: 1
+syncedChannelsSchema.index({
+  channelId: 1
+}), syncedChannelsSchema.index({
+  name: 1
+}), syncedChannelsSchema.index({
+  url: 1
+}), syncedChannelsSchema.index({
+  createdAt: 1
 }), module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
   messagesSchema: messagesSchema,
@@ -772,5 +802,6 @@ reportsSchema.index({
   appraisalSchema: appraisalSchema,
   listingLogSchema: listingLogSchema,
   framesSchema: framesSchema,
-  reportsSchema: reportsSchema
+  reportsSchema: reportsSchema,
+  syncedChannelsSchema: syncedChannelsSchema
 };

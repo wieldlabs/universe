@@ -82,8 +82,8 @@ app.get("/uri/:uri", lightLimiter, async (r, a) => {
     if (!i || 0 == i.length) throw Error("uri invalid!");
     var n = ethers.BigNumber.from(i), c = ethers.BigNumber.from(2).pow(256).sub(1);
     if (n.gt(c)) throw new Error("The URI is too large to be represented in a 64-character-long hexadecimal string!");
-    var s, o = n.toHexString(), f = 64 - (o.length - 2), m = "0x" + "0".repeat(f) + o.slice(2), l = await Metadata.findOne({
-      uri: m
+    var s, o = n.toHexString(), m = 64 - (o.length - 2), f = "0x" + "0".repeat(m) + o.slice(2), l = await Metadata.findOne({
+      uri: f
     });
     if (!l) return s = {
       name: "~no_metadata_please_search_domain",
@@ -107,7 +107,7 @@ app.get("/uri/:uri", lightLimiter, async (r, a) => {
     p.select(".container").html()), h = "data:image/svg+xml;base64," + Buffer.from(y).toString("base64"), A = (process.env.NODE_ENV, 
     {
       name: q + ".cast",
-      description: q.startsWith("op_") ? "Check out far.quest and far.quest/cast 👁️" : `Check the status of ${q}.cast on wield.xyz, and check out far.quest and far.quest/cast 👁️`,
+      description: q.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${q}.cast on wield.xyz, and check out far.quest 👁️`,
       image: h,
       attributes: [ {
         trait_type: "Length",

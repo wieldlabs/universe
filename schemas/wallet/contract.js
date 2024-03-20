@@ -10,6 +10,7 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   tokenType: String,
   contractDeployer: String,
   deployedBlockNumber: Number,
+  type: String,
   metadata: {
     floorPrice: Number,
     collectionName: String,
@@ -31,6 +32,10 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
 schema.index({
   address: 1,
   chainId: 1
+}), schema.index({
+  address: 1,
+  chainId: 1,
+  type: 1
 }), module.exports = {
   schema: schema
 };
