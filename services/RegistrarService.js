@@ -4,37 +4,45 @@ const ethers = require("ethers"), Sentry = require("@sentry/node"), _AlchemyServ
 } = require("../helpers/registrar"), validateAndConvertAddress = require("../helpers/validate-and-convert-address")["validateAndConvertAddress"], validateAndConvertDuration = require("../helpers/validate-and-convert-duration")["validateAndConvertDuration"], generateSecretFromAddressAndDuration = require("../helpers/generate-secret-from-address-and-duration")["generateSecretFromAddressAndDuration"], Community = require("../models/Community")["Community"];
 
 class RegistrarService {
-  constructor(e = !1) {
-    var r, t, i;
-    e ? (e = new _AlchemyService({
+  constructor(e = null) {
+    var r, t, i, n;
+    e && "ethereum" !== e ? "optimism" === e ? (t = new _AlchemyService({
       apiKey: prod().OPTIMISM_NODE_URL,
       chain: prod().OPTIMISM_NODE_NETWORK
-    }), r = getProvider({
+    }), i = getProvider({
       network: prod().OPTIMISM_NODE_NETWORK,
       node: prod().OPTIMISM_NODE_URL
-    }), t = new ethers.Contract(prod().OPTIMISM_CONTROLLER_ADDRESS, prod().OPTIMISM_CONTROLLER_ABI, r), 
-    i = new ethers.Contract(prod().OPTIMISM_REGISTRAR_ADDRESS, prod().REGISTRAR_ABI, r), 
-    this.AlchemyService = e, this.alchemyProvider = r, this.controller = t, this.registrar = i) : (e = new _AlchemyService({
+    }), n = new ethers.Contract(prod().OPTIMISM_CONTROLLER_ADDRESS, prod().OPTIMISM_CONTROLLER_ABI, i), 
+    r = new ethers.Contract(prod().OPTIMISM_REGISTRAR_ADDRESS, prod().REGISTRAR_ABI, i), 
+    this.AlchemyService = t, this.alchemyProvider = i, this.controller = n, this.registrar = r) : "base" === e && (t = new _AlchemyService({
+      apiKey: config().BASE_NODE_URL,
+      chain: config().BASE_NODE_NETWORK
+    }), i = getProvider({
+      network: config().BASE_NODE_NETWORK,
+      node: config().BASE_NODE_URL
+    }), n = new ethers.Contract(config().BASE_CONTROLLER_ADDRESS, config().BASE_CONTROLLER_ABI, i), 
+    r = new ethers.Contract(config().BASE_REGISTRAR_ADDRESS, config().BASE_REGISTRAR_ABI, i), 
+    this.AlchemyService = t, this.alchemyProvider = i, this.controller = n, this.registrar = r) : (e = new _AlchemyService({
       apiKey: prod().NODE_URL,
       chain: prod().NODE_NETWORK
-    }), r = getProvider({
+    }), t = getProvider({
       network: config().NODE_NETWORK,
       node: config().NODE_URL
-    }), t = new ethers.Contract(config().BETA_CONTROLLER_ADDRESS, config().BETA_CONTROLLER_ABI, r), 
-    i = new ethers.Contract(config().REGISTRAR_ADDRESS, config().REGISTRAR_ABI, r), 
-    this.AlchemyService = e, this.alchemyProvider = r, this.controller = t, this.registrar = i);
+    }), i = new ethers.Contract(config().BETA_CONTROLLER_ADDRESS, config().BETA_CONTROLLER_ABI, t), 
+    n = new ethers.Contract(config().REGISTRAR_ADDRESS, config().REGISTRAR_ABI, t), 
+    this.AlchemyService = e, this.alchemyProvider = t, this.controller = i, this.registrar = n);
   }
   async getOwner(e, r = 0) {
     if (!e) return null;
     var t = this.getTokenIdFromLabel(e);
     try {
-      var i, a = new _CacheService(), n = await a.get({
+      var i, n = new _CacheService(), a = await n.get({
         key: "RegistrarService.getOwner",
         params: {
           domain: e
         }
       });
-      return n ? n : ((i = await this.registrar.ownerOf(t)) && a.set({
+      return a ? a : ((i = await this.registrar.ownerOf(t)) && n.set({
         key: "RegistrarService.getOwner",
         params: {
           domain: e
@@ -53,13 +61,13 @@ class RegistrarService {
     if (!e) return null;
     var r = this.getTokenIdFromLabel(e);
     try {
-      var t, i = new _CacheService(), a = await i.get({
+      var t, i = new _CacheService(), n = await i.get({
         key: "RegistrarService.expiresAt",
         params: {
           domain: e
         }
       });
-      return a ? a : ((t = await this.registrar.nameExpires(r)) && i.set({
+      return n ? n : ((t = await this.registrar.nameExpires(r)) && i.set({
         key: "RegistrarService.expiresAt",
         params: {
           domain: e
@@ -111,21 +119,21 @@ class RegistrarService {
     tld: t = "beb"
   }, i) {
     if (!r) throw new Error("Invalid domain name");
-    var a = await this.getOwner(r, t);
-    if (!a) throw new Error("Community is not registered in the registrar");
-    if (await i.account?.populate?.("addresses"), i.account?.addresses?.[0]?.address?.toLowerCase?.() !== a?.toLowerCase?.()) throw new Error("Only owner can register a community");
+    var n = await this.getOwner(r, t);
+    if (!n) throw new Error("Community is not registered in the registrar");
+    if (await i.account?.populate?.("addresses"), i.account?.addresses?.[0]?.address?.toLowerCase?.() !== n?.toLowerCase?.()) throw new Error("Only owner can register a community");
     if (await Community.findOne({
       bebdomain: r
     })) throw new Error("A community already exists for this domain");
     if (process.env.BLOCK_INITIALIZE) throw new Error("Initializing Communities is blocked due to BLOCK_INITIALIZE!");
-    a = new _InitializeCommunityService(), r = await Community.create({
+    n = new _InitializeCommunityService(), r = await Community.create({
       bebdomain: r,
       tokenId: this.getTokenIdFromLabel(r),
       name: r,
       owner: i.account._id,
       tld: t
     });
-    return await a.createDefaultRoleWithPermissions(r), r;
+    return await n.createDefaultRoleWithPermissions(r), r;
   }
 }
 

@@ -1,4 +1,4 @@
-const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = import("d3"), jsdom = require("jsdom"), validateName = require("../helpers/validate-community-name")["validateName"], keccak256 = require("web3-utils").keccak256, utf8ToHex = require("web3-utils").utf8ToHex, ethers = require("ethers")["ethers"], _RegistrarService = require("../services/RegistrarService")["Service"], rateLimit = require("express-rate-limit"), getCharacterSet = t => t.match(/^[a-zA-Z]+$/) ? "letter" : t.match(/^[0-9]+$/) ? "digit" : t.match(/^[a-zA-Z0-9]+$/) ? "alphanumeric" : t.match(/[\u{1F300}-\u{1F5FF}]/u) ? "emoji" : "mixed", background = async t => "premium" == t ? `
+const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = import("d3"), jsdom = require("jsdom"), validateName = require("../helpers/validate-community-name")["validateName"], keccak256 = require("web3-utils").keccak256, utf8ToHex = require("web3-utils").utf8ToHex, ethers = require("ethers")["ethers"], _RegistrarService = require("../services/RegistrarService")["Service"], rateLimit = require("express-rate-limit"), getCharacterSet = t => t.match(/^[a-zA-Z]+$/) ? "letter" : t.match(/^[0-9]+$/) ? "digit" : t.match(/^[a-zA-Z0-9]+$/) ? "alphanumeric" : t.match(/[\u{1F300}-\u{1F5FF}]/u) ? "emoji" : "mixed", background = async t => "premium" === t ? `
     <svg id="eAVy1O8efKQ1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
 
 <style><![CDATA[
@@ -11,7 +11,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
   <g id="eAVy1O8efKQ32_to" transform="translate(510.857224,602.567139)"><path d="M510.11,613.76c-6.43-5.14-13.6-12.47-17.61-19.91-.136638-.256167-.139739-.562879-.008309-.821757s.380869-.437377.668309-.478243q19.06-2.78,35.84.33c.126903.023444.233992.108147.286033.22624s.042294.254282-.026033.36376q-7.2,11.95-18.36,20.3c-.236468.172054-.557963.167985-.79-.01Z" transform="translate(-510.857224,-602.567139)" fill="#060606"/></g>
 <path d="M625.54,663.5c-21.33,9.81-43.14,12.49-66.54,12.59q-64.37.26-97.44.1c-33.75-.16-63.99-6.86-91.06-27.65q.7.09.68-.18c-.012244-.297064.019199-.532886.08-.6q1.54-1.74,3.32-.1q4.66,4.3,9.64,6.21.38.15.79.57.33.34.75.53q10.74,4.96,21.85,8.99c3.67,1.33,7.7,1.62,11.21,2.49c8.88,2.2,19.59,2.18,26.66,2.62c5.73.36,12.66.89,19.57.32q1.89-.16,1.92-.16q29.24.03,58.47.01.32,0,.93-.24.69-.27,1.88-.2q19.65,1.16,44.17.51c6.47-.18,13.28-1.15,20.02-1.67q8.76-.68,22.84-4.41c2.41-.64,5.32-.71,7.98-1.61.348726-.114625.69238-.054686.86.15l1.42,1.73Z" fill="#dddcdc"/>
 </svg>
-    ` : "optimism" == t ? `
+    ` : "optimism" === t ? `
     <svg id="eAVy1O8efKQ1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
 
 <style><![CDATA[
@@ -49,7 +49,9 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
     if (!r || 0 == r.length || r.toLowerCase() != r) throw Error("inputDomain invalid!");
     if (r.includes(".beb") || r.includes(".cast")) {
       if (2 != r.split(".").length) throw Error("inputDomain cannot contain subdomains!");
-      if (0 < (r.includes(".beb") ? r.split(".beb") : r.split(".cast"))[1].length) throw Error("inputDomain extension incorrect!");
+      let t;
+      if (r.includes(".beb") ? t = r.split(".beb") : r.includes(".cast") && (t = r.split(".cast")), 
+      0 < t[1].length) throw Error("inputDomain extension incorrect!");
     } else if (r.includes(".")) throw Error("inputDomain does not have correct extension!");
     validateName(r);
     var a, i = r.replace(".beb", "").replace(".cast", ""), n = await Metadata.findOne({
@@ -74,9 +76,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
       message: t.message
     });
   }
-}), '<svg height="100%" fill="rgb(0,0,0,0.6)" version="1" viewBox="100 -50 1280 1280"></svg>');
-
-app.get("/uri/:uri", lightLimiter, async (r, a) => {
+}), '<svg height="100%" fill="rgb(0,0,0,0.6)" version="1" viewBox="100 -50 1280 1280"></svg>'), processUriRequest = async (r, a) => {
   try {
     var i = r.params.uri;
     if (!i || 0 == i.length) throw Error("uri invalid!");
@@ -89,7 +89,7 @@ app.get("/uri/:uri", lightLimiter, async (r, a) => {
       name: "~no_metadata_please_search_domain",
       description: "This domain does not have metadata, navigate to far.quest or Wield and search the domain you minted again to refresh!"
     }, a.json(s);
-    var q = l.domain, g = new JSDOM("<!DOCTYPE html><html><body></body></html>"), p = (await d3).select(g.window.document).select("body"), d = q.startsWith("op_"), u = await new _RegistrarService(d).expiresAt(q);
+    var q = l.domain, g = new JSDOM("<!DOCTYPE html><html><body></body></html>"), p = (await d3).select(g.window.document).select("body"), d = q.startsWith("op_"), u = await new _RegistrarService(d ? "optimism" : null).expiresAt(q);
     let t = [ ...q ].length;
     q.match(/^[\u0000-\u007f]*$/) || (t *= 2);
     var _ = {
@@ -133,6 +133,8 @@ app.get("/uri/:uri", lightLimiter, async (r, a) => {
       message: t.message
     });
   }
-}), module.exports = {
+};
+
+app.get("/uri/:uri", lightLimiter, processUriRequest), module.exports = {
   router: app
 };

@@ -14,6 +14,12 @@ const BebRegistryBetaController = require("./abi/beb-controller-abi.json"), BebR
   OPTIMISM_NODE_URL: process.env.OPTIMISM_NODE_URL,
   OPTIMISM_REGISTRAR_ADDRESS: "0xd14005cb9b40a1b7104eacdeae36f7fe112fae5f",
   OPTIMISM_NODE_NETWORK: "opt-mainnet",
+  BASE_NODE_URL: process.env.BASE_NODE_URL,
+  BASE_NODE_NETWORK: "base-mainnet",
+  BASE_REGISTRAR_ADDRESS: "0x0000000000000000000000000000000000000000",
+  BASE_REGISTRAR_ABI: BebRegistrar.abi,
+  BASE_CONTROLLER_ADDRESS: "0x0000000000000000000000000000000000000000",
+  BASE_CONTROLLER_ABI: BebRegistryBetaController.abi,
   FARCAST_FID: 18548,
   FARCAST_KEY: process.env.FARCAST_KEY
 }), prod = () => ({
@@ -28,6 +34,13 @@ const BebRegistryBetaController = require("./abi/beb-controller-abi.json"), BebR
   PRICE_ORACLE_ADDRESS: "0x8d881B939cEb6070a9368Aa6D91bc42e30697Da9",
   BETA_CONTROLLER_ABI: BebRegistryBetaController.abi,
   OPTIMISM_CONTROLLER_ABI: OPBebRegistryBetaController.abi,
+  REGISTRAR_ABI: BebRegistrar.abi,
+  BASE_NODE_URL: process.env.BASE_NODE_URL,
+  BASE_NODE_NETWORK: "base-mainnet",
+  BASE_REGISTRAR_ADDRESS: "0x0000000000000000000000000000000000000000",
+  BASE_REGISTRAR_ABI: BebRegistrar.abi,
+  BASE_CONTROLLER_ADDRESS: "0x0000000000000000000000000000000000000000",
+  BASE_CONTROLLER_ABI: BebRegistryBetaController.abi,
   REGISTRAR_ABI: BebRegistrar.abi,
   FARCAST_FID: 18548,
   FARCAST_KEY: process.env.FARCAST_KEY
