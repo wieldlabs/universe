@@ -14,7 +14,7 @@ class MarketplaceService {
     var e = getProvider({
       network: config().NODE_NETWORK,
       node: config().NODE_URL
-    }), t = new ethers.Contract(config().FID_MARKETPLACE_V1_ADDRESS, config().FID_MARKETPLACE_V1_ABI, e), r = new ethers.Contract(config().ID_REGISTRY_ADDRESS, config().ID_REGISTRY_ABI, e);
+    }), t = new ethers.Contract(config().FID_MARKETPLACE_V1_ADDRESS, config().FID_MARKETPLACE_ABI, e), r = new ethers.Contract(config().ID_REGISTRY_ADDRESS, config().ID_REGISTRY_ABI, e);
     this.marketplace = t, this.idRegistry = r, this.alchemyProvider = e, this.usdFormatter = new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
@@ -305,7 +305,7 @@ class MarketplaceService {
   }) {
     var e = await this.alchemyProvider.getTransaction(e.toString());
     if (e) return {
-      functionName: (e = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI).parseTransaction({
+      functionName: (e = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI).parseTransaction({
         data: e.data,
         value: e.value
       })).name,
@@ -339,7 +339,7 @@ class MarketplaceService {
       txHash: e
     });
     if (!t) throw new Error("Transaction not found");
-    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI);
+    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     let i = null;
     for (r of t.logs) try {
       var s = a.parseLog(r), n = s.args.fid.toNumber(), o = {
@@ -488,7 +488,7 @@ class MarketplaceService {
   }) {
     var t, e = await this.getReceipt({
       txHash: e
-    }), r = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI), a = getMemcachedClient();
+    }), r = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI), a = getMemcachedClient();
     for (t of e.logs) try {
       var i = r.parseLog(t);
       if ("Listed" === i.name) {
@@ -528,7 +528,7 @@ class MarketplaceService {
       txHash: e
     });
     if (!t) throw new Error("Transaction not found");
-    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI);
+    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     let i = null;
     for (r of t.logs) try {
       var s = a.parseLog(r), n = s.args.fid.toNumber(), o = {
@@ -583,7 +583,7 @@ class MarketplaceService {
       txHash: e
     });
     if (!t) throw new Error("Transaction not found");
-    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI);
+    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     let i = null;
     for (r of t.logs) try {
       var s = a.parseLog(r);
@@ -633,7 +633,7 @@ class MarketplaceService {
       txHash: e
     });
     if (!t) throw new Error("Transaction not found");
-    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI);
+    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     let i = null;
     for (r of t.logs) try {
       var s = a.parseLog(r);
@@ -689,7 +689,7 @@ class MarketplaceService {
       txHash: e
     });
     if (!t) throw new Error("Transaction not found");
-    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI);
+    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     let i = null;
     for (r of t.logs) try {
       var s = a.parseLog(r);
@@ -742,7 +742,7 @@ class MarketplaceService {
       txHash: e
     });
     if (!t) throw new Error("Transaction not found");
-    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_V1_ABI);
+    var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     let i = null;
     for (r of t.logs) try {
       var s = a.parseLog(r);

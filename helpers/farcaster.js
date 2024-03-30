@@ -118,32 +118,35 @@ const getSyncedChannelById = async e => {
       }), d = new _AlchemyService({
         apiKey: prod().OPTIMISM_NODE_URL,
         chain: prod().OPTIMISM_NODE_NETWORK
-      }), g = Buffer.from(t.data.userDataBody.value).toString("ascii").replace(".beb", "").replace(".cast", ""), u = getHexTokenIdFromLabel(g), [ h, y ] = await Promise.all([ o.getNFTs({
+      });
+      let e = Buffer.from(t.data.userDataBody.value).toString("ascii").replace(".beb", "").replace(".cast", "");
+      e.includes(".op") && (e = "op_" + e.replace(".op", ""));
+      var g = getHexTokenIdFromLabel(e), [ u, h ] = await Promise.all([ o.getNFTs({
         owner: r,
         contractAddresses: [ prod().REGISTRAR_ADDRESS ]
       }), d.getNFTs({
         owner: r,
         contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
-      }) ]), f = (h?.ownedNfts || []).concat(y?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
-      if (!f.includes(u)) {
-        var m = `Invalid UserData for external user, could not find ${g}/${u} in validPasses=` + f;
-        if ("production" === process.env.NODE_ENV) throw new Error(m);
-        console.error(m);
+      }) ]), y = (u?.ownedNfts || []).concat(h?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
+      if (!y.includes(g)) {
+        var f = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + y;
+        if ("production" === process.env.NODE_ENV) throw new Error(f);
+        console.error(f);
       }
     }
     if (!e) {
-      var F = await i.submitMessage(t), p = F.unwrapOr(null);
-      if (!p) throw new Error("Could not send message: " + F?.error);
+      var m = await i.submitMessage(t), F = m.unwrapOr(null);
+      if (!F) throw new Error("Could not send message: " + m?.error);
       t = {
-        ...p,
-        hash: p.hash,
-        signer: p.signer
+        ...F,
+        hash: F.hash,
+        signer: F.signer
       };
     }
-    var C = new Date(), A = {
+    var p = new Date(), C = {
       fid: e ? r : t.data.fid,
-      createdAt: C,
-      updatedAt: C,
+      createdAt: p,
+      updatedAt: p,
       messageType: t.data.type,
       timestamp: farcasterTimeToDate(t.data.timestamp),
       hash: bytesToHex(t.hash),
@@ -157,13 +160,13 @@ const getSyncedChannelById = async e => {
       bodyOverrides: n
     };
     try {
-      await Messages.create(A);
+      await Messages.create(C);
     } catch (e) {
       if (11e3 !== (e?.code || 0)) throw e;
       console.error("Message with this hash already exists, skipping!");
     }
     return {
-      result: A,
+      result: C,
       source: "v2"
     };
   } catch (e) {

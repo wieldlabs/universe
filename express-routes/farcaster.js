@@ -1073,10 +1073,13 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     if (!o) return s.status(400).json({
       error: "Token is required"
     });
-    var c = a.query["timerange"];
-    let e = 3;
-    "1d" === c ? e = 1 : "3d" === c && (e = 3);
-    var i = new Date(Date.now() - 24 * e * 60 * 60 * 1e3), u = n.find({
+    var {
+      castTimerange: c = "3d",
+      tokenTimerange: i = "7d"
+    } = a.query;
+    let e;
+    "1d" === c ? e = 1 : "3d" === c ? e = 3 : "7d" === c && (e = 7);
+    var u = new Date(Date.now() - 24 * e * 60 * 60 * 1e3), l = n.find({
       key: "TrendingCastsHistory",
       params: {
         token: o.toUpperCase()
@@ -1085,18 +1088,18 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         createdAt: -1
       },
       limit: 1
-    }), l = n.find({
+    }), y = n.find({
       key: "TrendingHistory",
       params: {
         token: o.toUpperCase()
       },
       createdAt: {
-        $gt: i
+        $gt: u
       },
       sort: {
         createdAt: 1
       }
-    }), [ y, p ] = await Promise.all([ u, l ]), d = p.map(e => {
+    }), [ p, d ] = await Promise.all([ l, y ]), v = d.map(e => {
       var r = e.count;
       return {
         computedAt: e.computedAt,
@@ -1106,25 +1109,25 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         contractAddress: e.contractAddress
       };
     });
-    if (!y || !y[0]) return s.status(404).json({
+    if (!p || !p[0]) return s.status(404).json({
       error: "No history found for this token"
     });
-    var v = y[0]["casts"];
-    if (!v || 0 === v.length) return s.status(404).json({
+    var h = p[0]["casts"];
+    if (!h || 0 === h.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var h = [ ...new Set(v?.slice(0, 25).map(e => e.hash)) ], g = (await Promise.all(h.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
-    if (0 === g.length) return s.status(404).json({
+    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === m.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
-    var m, f = d[d.length - 1];
-    return f.contractAddress && (m = await Promise.allSettled([ fetchAssetMetadata(f.network, f.contractAddress), fetchPriceHistory(f.contractAddress, f.network, "7d") ]), 
-    r = "fulfilled" === m[0].status ? m[0].value : null, t = "fulfilled" === m[1].status ? m[1].value : []), 
+    var f, S = v[v.length - 1];
+    return S?.contractAddress && (f = await Promise.allSettled([ fetchAssetMetadata(S.network, S.contractAddress), fetchPriceHistory(S.contractAddress, S.network, i) ]), 
+    r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
-        casts: g,
-        trendHistory: d,
+        casts: m,
+        trendHistory: v,
         tokenMetadata: r,
         tokenPriceHistory: t
       },

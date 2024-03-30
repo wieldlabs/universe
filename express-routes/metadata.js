@@ -103,12 +103,12 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
     <svg width="500" height="500">
       ${await background(e)}
     </svg>
-  `, y = (p.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(b + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", x + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(q + ".cast"), 
-    p.select(".container").html()), h = "data:image/svg+xml;base64," + Buffer.from(y).toString("base64"), A = (process.env.NODE_ENV, 
+  `, y = q.startsWith("op_") ? q.replace("op_", "") + ".op.cast" : q + ".cast", h = (p.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(b + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", x + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(y), 
+    p.select(".container").html()), A = "data:image/svg+xml;base64," + Buffer.from(h).toString("base64"), O = (process.env.NODE_ENV, 
     {
-      name: q + ".cast",
-      description: q.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${q}.cast on wield.xyz, and check out far.quest 👁️`,
-      image: h,
+      name: y,
+      description: q.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${y} on wield.xyz, and check out far.quest 👁️`,
+      image: A,
       attributes: [ {
         trait_type: "Length",
         value: q.length,
@@ -118,14 +118,14 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
         value: q.startsWith("op_") ? "Optimism Renewal" : q.length < 10 ? "Premium Renewal" : "Free Renewal"
       }, {
         trait_type: "Character Set",
-        value: getCharacterSet(q)
+        value: getCharacterSet(q.replace("op_", ""))
       }, {
         display_type: "date",
         trait_type: "Expiration Date",
         value: u
       } ]
     });
-    return a.json(A);
+    return a.json(O);
   } catch (t) {
     return Sentry.captureException(t), console.error(t), a.json({
       code: "500",

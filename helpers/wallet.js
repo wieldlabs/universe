@@ -5,7 +5,7 @@ const prod = require("../helpers/registrar")["prod"], axios = require("axios"), 
 } = require("alchemy-sdk"), {
   getMemcachedClient,
   getHash
-} = require("../connectmemcached");
+} = require("../connectmemcached"), normalizeTimeToRangeStart = require("./timerange")["normalizeTimeToRangeStart"];
 
 async function getAccountAssets() {}
 
@@ -121,37 +121,16 @@ async function getOnchainTransactions(e, t, {
   return n;
 }
 
-function isDataFreshEnough(e, t = 36e5) {
-  e = new Date(e).getTime();
-  return Date.now() - e < t;
-}
-
-function normalizeTimeToRangeStart(e, t) {
-  var a = new Date(e);
-  switch (t) {
-   case "1d":
-    a.setHours(0, 0, 0, 0);
-    break;
-
-   case "7d":
-   case "1w":
-    a.setDate(a.getDate() - a.getDay()), a.setHours(0, 0, 0, 0);
-    break;
-
-   case "1m":
-    a.setDate(1), a.setHours(0, 0, 0, 0);
-    break;
-
-   default:
-    throw new Error("Unsupported time range: " + t);
-  }
-  return a.toISOString();
-}
-
 function calculateTTL(e) {
   switch (e) {
+   case "1h":
+    return 3600;
+
    case "1d":
     return 86400;
+
+   case "3d":
+    return 259200;
 
    case "1w":
     return 604800;
@@ -164,53 +143,66 @@ function calculateTTL(e) {
   }
 }
 
-async function fetchPriceHistory(c, s, e) {
-  const i = getMemcachedClient();
-  var t = normalizeTimeToRangeStart(new Date(), e);
-  const o = `wallet:fetchPriceHistory:${s}:${c}:${e}:` + t;
+async function fetchPriceHistory(t, a, r) {
+  const n = getMemcachedClient();
+  var e = new Date(), e = normalizeTimeToRangeStart(e, r);
+  const c = `wallet:fetchPriceHistory:${a}:${t}:${r}:` + e;
   try {
-    var a, r = await i.get(o);
-    return r && (a = JSON.parse(r.value), "1d" !== e || isDataFreshEnough(a.timestamp, 6e4)) ? a : await n({
-      from: t,
-      range: e
-    });
+    var s = await n.get(c);
+    if (s) return JSON.parse(s.value);
+    {
+      var [ {
+        range: i = "1d"
+      } ] = [ {
+        range: r
+      } ];
+      let e;
+      var o = new Date();
+      switch (i) {
+       case "1h":
+        o.setHours(o.getHours() - 1), e = o.getTime();
+        break;
+
+       case "1d":
+        o.setDate(o.getDate() - 1), e = o.getTime();
+        break;
+
+       case "3d":
+        o.setDate(o.getDate() - 3), e = o.getTime();
+        break;
+
+       case "1w":
+       case "7d":
+        o.setDate(o.getDate() - 7), e = o.getTime();
+        break;
+
+       case "1m":
+        o.setDate(1), o.setHours(0, 0, 0, 0), e = o.getTime();
+        break;
+
+       default:
+        e = o.getTime();
+      }
+      try {
+        var l = new URLSearchParams({
+          asset: t,
+          blockchain: a,
+          from: e
+        }).toString(), T = (await axios.get("https://api.mobula.io/api/1/market/history?" + l, {
+          headers: {
+            Authorization: process.env.MOBULA_API_KEY
+          }
+        })).data;
+        return await (T.timestamp = new Date().toISOString(), await n.set(c, JSON.stringify(T.data || {}), {
+          lifetime: calculateTTL(i)
+        }), T.data);
+      } catch (e) {
+        throw console.error("Failed to fetch and cache:", e), e;
+      }
+      return await void 0;
+    }
   } catch (e) {
     throw console.error(e), e;
-  }
-  async function n({
-    range: e = "1d"
-  }) {
-    let t;
-    var a = new Date();
-    switch (e) {
-     case "1d":
-      t = a.getTime();
-      break;
-
-     case "1w":
-     case "7d":
-      a.setDate(a.getDate() - 7), t = a.getTime();
-      break;
-
-     default:
-      t = a.getTime();
-    }
-    try {
-      var r = new URLSearchParams({
-        asset: c,
-        blockchain: s,
-        from: t
-      }).toString(), n = (await axios.get("https://api.mobula.io/api/1/market/history?" + r, {
-        headers: {
-          Authorization: process.env.MOBULA_API_KEY
-        }
-      })).data;
-      return n.timestamp = new Date().toISOString(), await i.set(o, JSON.stringify(n.data || {}), {
-        lifetime: calculateTTL(e)
-      }), n.data;
-    } catch (e) {
-      throw console.error("Failed to fetch and cache:", e), e;
-    }
   }
 }
 
