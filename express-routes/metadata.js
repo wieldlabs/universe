@@ -103,15 +103,15 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
     <svg width="500" height="500">
       ${await background(e)}
     </svg>
-  `, y = q.startsWith("op_") ? q.replace("op_", "") + ".op.cast" : q + ".cast", h = (p.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(b + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", x + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(y), 
-    p.select(".container").html()), A = "data:image/svg+xml;base64," + Buffer.from(h).toString("base64"), O = (process.env.NODE_ENV, 
+  `, y = q.startsWith("op_") ? q.replace("op_", "") + ".op.cast" : q + ".cast", h = q.replace("op_", "").length, A = (p.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(b + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", x + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(y), 
+    p.select(".container").html()), O = "data:image/svg+xml;base64," + Buffer.from(A).toString("base64"), w = (process.env.NODE_ENV, 
     {
       name: y,
       description: q.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${y} on wield.xyz, and check out far.quest 👁️`,
-      image: A,
+      image: O,
       attributes: [ {
         trait_type: "Length",
-        value: q.length,
+        value: h,
         display_type: "number"
       }, {
         trait_type: "Category",
@@ -125,7 +125,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
         value: u
       } ]
     });
-    return a.json(O);
+    return a.json(w);
   } catch (t) {
     return Sentry.captureException(t), console.error(t), a.json({
       code: "500",
