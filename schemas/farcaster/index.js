@@ -59,6 +59,38 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   timestamps: !0
 })), castsSchema = (messagesSchema.index({
   unindexed: 1
+}), messagesSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
+}), messagesSchema.index({
+  prunedAt: 1
+}, {
+  name: "expirePruned",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
+}), messagesSchema.index({
+  revokedAt: 1
+}, {
+  name: "expireRevoked",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
+}), messagesSchema.index({
+  timestamp: 1
+}, {
+  name: "expireMessages",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 604800
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -136,6 +168,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   external: 1,
   _id: 1,
   timestamp: 1
+}), castsSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -182,6 +222,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   fid: 1,
   targetHash: 1,
   deletedAt: 1
+}), reactionsSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -215,6 +263,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 })), claimSchema = (signersSchema.index({
   fid: 1,
   signer: 1
+}), signersSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
 }), new mongoose.Schema({
   address: String,
   claimSignature: String,
@@ -269,6 +325,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }), verificationsSchema.index({
   "claimObj.address": 1,
   deletedAt: 1
+}), verificationsSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -334,6 +398,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   external: 1,
   deletedAt: 1,
   value: 1
+}), userDataSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
 }), new mongoose.Schema({
   fid: {
     type: String,
@@ -427,6 +499,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   fid: 1,
   targetFid: 1,
   type: 1
+}), linksSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -450,6 +530,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 })), notificationsSchema = (storageSchema.index({
   fid: 1,
   deletedAt: 1
+}), storageSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  expireAfterSeconds: 0
 }), new mongoose.Schema({
   timestamp: {
     type: Date,
@@ -491,6 +576,22 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }), notificationsSchema.index({
   "payload.castHash": 1,
   deletedAt: 1
+}), notificationsSchema.index({
+  deletedAt: 1
+}, {
+  name: "expireDeleted",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 0
+}), notificationsSchema.index({
+  timestamp: 1
+}, {
+  name: "expireNotifications",
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: 7776e3
 }), new mongoose.Schema({
   buyerAddress: {
     type: String,
@@ -641,6 +742,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   },
   price: {
     type: String
+  },
+  referrer: {
+    type: String
   }
 }, {
   timestamps: !0
@@ -654,6 +758,12 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }), listingLogSchema.index({
   fid: 1,
   eventType: 1
+}), listingLogSchema.index({
+  referrer: 1
+}), listingLogSchema.index({
+  referrer: 1,
+  eventType: 1,
+  createdAt: 1
 }), listingLogSchema.index({
   eventType: 1
 }), listingLogSchema.index({

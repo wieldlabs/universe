@@ -584,38 +584,42 @@ class MarketplaceService {
     });
     if (!t) throw new Error("Transaction not found");
     var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
-    let i = null;
+    let i = null, s = null;
     for (r of t.logs) try {
-      var s = a.parseLog(r);
-      if ("Bought" === s.name) {
-        var n = s.args.fid.toNumber(), o = {
-          fid: n
-        }, c = (i = await Listings.findOneAndUpdate(o, {
+      var n = a.parseLog(r);
+      if ("Bought" === n.name) {
+        var o = n.args.fid.toNumber(), c = {
+          fid: o
+        }, l = (i = await Listings.findOneAndUpdate(c, {
           txHash: e,
           canceledAt: new Date()
         }, {
           upsert: !0,
           new: !0
-        }), await ListingLogs.updateOne({
-          txHash: e
-        }, {
+        }), s = {
           eventType: "Bought",
-          fid: n,
-          from: s.args.buyer,
-          price: this._padWithZeros(s.args.amount.toString()),
+          fid: o,
+          from: n.args.buyer,
+          price: this._padWithZeros(n.args.amount.toString()),
           txHash: e
-        }, {
-          upsert: !0
-        }), getMemcachedClient());
+        }, getMemcachedClient());
         try {
-          await c.set("Listing:" + s.args.fid, JSON.stringify(i));
+          await l.set("Listing:" + n.args.fid, JSON.stringify(i));
         } catch (e) {
           console.error(e);
         }
         break;
       }
+      "Referred" === n.name && (s = {
+        ...s || {},
+        referrer: n.args.referrer
+      });
     } catch (e) {}
-    if (i) return this.computeStats({
+    if (s && await ListingLogs.updateOne({
+      txHash: e
+    }, s, {
+      upsert: !0
+    }), i) return this.computeStats({
       txHash: e
     }), i;
     throw new Error("FID not bought");

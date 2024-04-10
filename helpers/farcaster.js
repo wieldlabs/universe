@@ -26,7 +26,21 @@ const {
 } = require("../connectmemcached"), {
   Message,
   fromFarcasterTime
-} = require("@farcaster/hub-nodejs"), bs58 = require("bs58");
+} = require("@farcaster/hub-nodejs"), bs58 = require("bs58"), axios = require("axios");
+
+async function isFollowingChannel(e, t) {
+  let a = "";
+  do {
+    var r = await axios.get(`https://client.warpcast.com/v2/user-following-channels?fid=${e}&limit=50&cursor=` + a, {
+      headers: {
+        Authorization: "Bearer " + process.env.FARQUEST_FARCASTER_APP_TOKEN
+      }
+    });
+    if (r.data.result.channels.find(e => e.key === t)) return !0;
+    a = r.data.next?.cursor;
+  } while (a);
+  return !1;
+}
 
 function farcasterTimeToDate(e) {
   if (void 0 !== e) {
@@ -143,7 +157,7 @@ const getSyncedChannelById = async e => {
         signer: F.signer
       };
     }
-    var p = new Date(), C = {
+    var p = new Date(), A = {
       fid: e ? r : t.data.fid,
       createdAt: p,
       updatedAt: p,
@@ -160,13 +174,13 @@ const getSyncedChannelById = async e => {
       bodyOverrides: n
     };
     try {
-      await Messages.create(C);
+      await Messages.create(A);
     } catch (e) {
       if (11e3 !== (e?.code || 0)) throw e;
       console.error("Message with this hash already exists, skipping!");
     }
     return {
-      result: C,
+      result: A,
       source: "v2"
     };
   } catch (e) {
@@ -606,11 +620,11 @@ const getSyncedChannelById = async e => {
     }
   })) || [], [ l, i, c, o, d, g, u, h ] = (i.push(Promise.all(l)), await Promise.all(i)), y = s.text;
   let f = 0;
-  var m, F, p, C, A, w = [];
+  var m, F, p, A, C, w = [];
   let S = Buffer.from(y, "utf-8");
   for (let e = 0; e < u.length; e++) u[e] && (p = s.mentionsPositions[e], m = u[e].username || "fid:" + u[e].fid, 
   m = Buffer.from("@" + m, "utf-8"), F = u[e].originalMention || "", F = Buffer.from(F, "utf-8").length, 
-  p = p + f, C = S.slice(0, p), A = S.slice(p + F), S = Buffer.concat([ C, m, A ]), 
+  p = p + f, A = S.slice(0, p), C = S.slice(p + F), S = Buffer.concat([ A, m, C ]), 
   f += m.length - F, w.push(p));
   y = S.toString("utf-8");
   const T = {
@@ -1309,5 +1323,6 @@ module.exports = {
   getSyncedChannelById: getSyncedChannelById,
   getSyncedChannelByUrl: getSyncedChannelByUrl,
   searchChannels: searchChannels,
-  searchFarcasterCasts: searchFarcasterCasts
+  searchFarcasterCasts: searchFarcasterCasts,
+  isFollowingChannel: isFollowingChannel
 };
