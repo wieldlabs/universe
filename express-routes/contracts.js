@@ -3,37 +3,38 @@ const app = require("express").Router(), Contract = require("../models/wallet/Co
   getHash
 } = require("../connectmemcached");
 
-app.get("/v1/contracts", async (e, a) => {
+app.get("/v1/", async (e, a) => {
   try {
     var {
       factoryInterfaceType: s,
-      cursor: c,
-      limit: n = 10
-    } = e.query, o = getMemcachedClient(), [ l, u ] = c ? c.split("-") : [ null, null ], d = s ? {
+      contractDeployer: c,
+      cursor: n,
+      limit: o = 10
+    } = e.query, l = getMemcachedClient(), [ u, d ] = n ? n.split("-") : [ null, null ], i = s ? {
       factoryInterfaceType: s
-    } : {}, i = {
+    } : {}, g = (c && (i.contractDeployer = c), {
       sort: {
         createdAt: -1
       },
-      limit: parseInt(n, 10)
-    };
-    d.createdAt = {
-      $lt: l || Date.now()
-    }, d.id = {
-      $lt: u || Number.MAX_SAFE_INTEGER
+      limit: parseInt(o, 10)
+    });
+    i.createdAt = {
+      $lt: u || Date.now()
+    }, i.id = {
+      $lt: d || Number.MAX_SAFE_INTEGER
     };
     let t;
-    var g, m = `getContracts:${s}:${n}:` + c;
+    var m, p = `getContracts:${JSON.stringify(i)}:${o}:` + n;
     try {
-      var p = await o.get(m);
-      p && (t = JSON.parse(p.value));
+      var h = await l.get(p);
+      h && (t = JSON.parse(h.value));
     } catch (t) {
       console.error(t);
     }
     if (!t) {
-      t = await Contract.find(d, null, i);
+      t = await Contract.find(i, null, g);
       try {
-        c && await o.set(m, JSON.stringify(t), {
+        n && await l.set(p, JSON.stringify(t), {
           lifetime: 60
         });
       } catch (t) {
@@ -41,10 +42,10 @@ app.get("/v1/contracts", async (e, a) => {
       }
     }
     let r = null;
-    return t.length === n && (g = t[t.length - 1], r = g.createdAt.getTime() + "-" + g._id), 
+    return t.length === o && (m = t[t.length - 1], r = m.createdAt.getTime() + "-" + m._id), 
     a.json({
       success: !0,
-      data: t,
+      contracts: t,
       next: r
     });
   } catch (t) {

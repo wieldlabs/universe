@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"), axios = require("axios").default, axiosRetry = require("axios-retry"), cleanIframeHtml = (axiosRetry(axios, {
+const mongoose = require("mongoose"), axios = require("axios").default, axiosRetry = require("axios-retry").default, cleanIframeHtml = (axiosRetry(axios, {
   retries: 3
 }), require("../helpers/html-sanitize-and-store"))["cleanIframeHtml"], schema = require("../schemas/richBlocks/link")["schema"], metascraper = require("metascraper")([ require("metascraper-description")(), require("metascraper-image")(), require("metascraper-logo")(), require("metascraper-title")(), require("metascraper-url")(), require("metascraper-iframe")() ]), Sentry = require("@sentry/node"), TIMEOUT = 1e4, imgurRegex = /https:\/\/i.imgur.com\/\w+(.(png|jpg|jpeg|gif))/;
 
@@ -29,7 +29,7 @@ class LinkClass {
     if (e.includes(".dmg")) return a?.(null) || null;
     if (e.includes(".zip")) return a?.(null) || null;
     try {
-      var r, i, s, l, n, c, o, m, u, p, d, g, h, x, f, w, k, q;
+      var r, i, s, l, n, c, o, m, u, p, d, g, h, f, x, w, k, q;
       return e.includes("farcaster://") ? (r = process.env.BEB_FARCASTER_APP_TOKEN, 
       s = "https://api.warpcast.com/v2/cast?hash=" + (i = e.split("farcaster://casts/")[1].split("/")[0]), 
       l = (await axios.get(s, {
@@ -54,15 +54,15 @@ class LinkClass {
       {
         description: g,
         image: h,
-        title: x,
-        logo: f,
+        title: f,
+        logo: x,
         url: w,
         iframe: k
       } = (a?.(d), await metascraper({
         html: p,
         url: e
       })), q = k && -1 !== w?.indexOf("twitter") ? cleanIframeHtml(k) : null, d.url = w, 
-      d.title = x, d.description = g, d.image = h, d.logo = f, d.iframe = q, await d.save());
+      d.title = f, d.description = g, d.image = h, d.logo = x, d.iframe = q, await d.save());
     } catch (e) {
       return Sentry.captureException(e), console.error(e), t?.(e), null;
     }

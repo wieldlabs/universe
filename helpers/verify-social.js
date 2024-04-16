@@ -1,9 +1,7 @@
-const axios = require("axios").default, axiosRetry = require("axios-retry"), TIMEOUT = (axiosRetry(axios, {
+const axios = require("axios").default, axiosRetry = require("axios-retry").default, TIMEOUT = (axiosRetry(axios, {
   retries: 3
-}), 1e4), verifyTwitter = async (e, t) => {
-  return !!e && (e = (await axios.get("https://publish.twitter.com/oembed?url=" + e.replace("x.com", "twitter.com"), {
-    timeout: TIMEOUT
-  }))["data"], e.html.includes("@wieldlabs"));
+}), 1e4), verifyTwitter = async (e, r) => {
+  return !!e;
 };
 
 module.exports = {

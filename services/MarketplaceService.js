@@ -608,9 +608,7 @@ class MarketplaceService {
         } catch (e) {
           console.error(e);
         }
-        break;
-      }
-      "Referred" === n.name && (s = {
+      } else "Referred" === n.name && (s = {
         ...s || {},
         referrer: n.args.referrer
       });
@@ -798,50 +796,54 @@ class MarketplaceService {
     fid: t,
     from: r,
     collection: a,
-    limit: i = 20,
-    cursor: s
+    referrer: i,
+    limit: s = 20,
+    cursor: n
   }) {
-    var n = getMemcachedClient(), o = `MarketplaceService:getActivities:${e}:${t}:${r}:${a}:` + s + i;
-    let c;
+    var o = getMemcachedClient();
+    let c = `MarketplaceService:getActivities:${e}:${t}:${r}:${a}:` + n + s;
+    i && (c = c + ":" + i);
+    let l;
     try {
-      var l = await n.get(o);
-      l && (c = JSON.parse(l.value).map(e => new ListingLogs(e)));
+      var f = await o.get(c);
+      f && (l = JSON.parse(f.value).map(e => new ListingLogs(e)));
     } catch (e) {
       console.error(e);
     }
-    var [ l, f ] = s ? s.split("-") : [ Date.now(), null ];
-    if (!c) {
-      l = {
+    var [ f, g ] = n ? n.split("-") : [ Date.now(), null ];
+    if (!l) {
+      f = {
         createdAt: {
-          $lt: l
+          $lt: f
         },
         id: {
-          $lt: f || Number.MAX_SAFE_INTEGER
+          $lt: g || Number.MAX_SAFE_INTEGER
         }
       };
-      e && "all" !== e && "Bought" === (l.eventType = e) && (l.eventType = {
+      e && "all" !== e && "Bought" === (f.eventType = e) && (f.eventType = {
         $in: [ "Bought", "OfferApproved" ]
-      }), t ? l.fid = t : a && (f = this._getFidCollectionQuery(a)) && (l.fid = f), 
-      r && (l.from = r), c = await ListingLogs.find(l).limit(i).sort({
+      }), t ? f.fid = t : a && (g = this._getFidCollectionQuery(a)) && (f.fid = g), 
+      r && (f.from = r), i && (f.referrer = i), l = await ListingLogs.find(f).limit(s).sort({
         createdAt: -1
       });
       try {
-        s ? await n.set(o, JSON.stringify(c)) : await n.set(o, JSON.stringify(c), {
+        n ? await o.set(c, JSON.stringify(l)) : await o.set(c, JSON.stringify(l), {
           lifetime: 60
         });
       } catch (e) {
         console.error(e);
       }
     }
-    let g = null;
-    return [ await Promise.all(c.map(async e => {
-      var [ t, r ] = await Promise.all([ this.fetchUserData(e.fid), this.ethToUsd(e.price) ]), r = this.usdFormatter.format(ethers.utils.formatEther(r));
-      return {
+    let h = null;
+    return [ await Promise.all(l.map(async e => {
+      var [ t, r ] = await Promise.all([ this.fetchUserData(e.fid), this.ethToUsd(e.price) ]), a = this.usdFormatter.format(ethers.utils.formatEther(r)), a = {
         ...e._doc,
-        usd: r,
+        usd: a,
         user: t
       };
-    })), g = c.length === i ? c[c.length - 1].createdAt.getTime() + "-" + c[c.length - 1].id : g ];
+      return e.referrer && (a.referrerUsd = this.usdFormatter.format(config().FID_MARKETPLACE_REF_PERCENTAGE * ethers.utils.formatEther(r) / 100)), 
+      a;
+    })), h = l.length === s ? l[l.length - 1].createdAt.getTime() + "-" + l[l.length - 1].id : h ];
   }
   async getOffers({
     fid: e,
