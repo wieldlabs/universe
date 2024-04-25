@@ -10,14 +10,14 @@ class ImageClass {
     try {
       var a = new FormData();
       if (e instanceof String || "string" == typeof e) if (e.startsWith("data:image")) {
-        var r = e.match(/^data:(.+);base64,(.*)$/);
-        if (3 !== r.length) throw new Error("Invalid base64 data");
-        var s = r[1], o = r[2], t = Buffer.from(o, "base64"), i = new Blob([ t ], {
-          type: s
+        var s = e.match(/^data:(.+);base64,(.*)$/);
+        if (3 !== s.length) throw new Error("Invalid base64 data");
+        var r = s[1], o = s[2], t = Buffer.from(o, "base64"), i = new Blob([ t ], {
+          type: r
         });
         a.append("file", i);
       } else a.append("file", e); else a.append("file", e, e.name);
-      var n = await axios.post("https://api.cloudflare.com/client/v4/accounts/c5af02bff1d4930e0d9bdbaaebb238e2/images/v1", a, {
+      var n = await axios.post(`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/images/v1`, a, {
         headers: {
           Authorization: "Bearer " + process.env.CLOUDFLARE_API_KEY
         }
