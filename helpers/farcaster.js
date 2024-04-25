@@ -638,12 +638,12 @@ const getSyncedChannelById = async e => {
     }
   })) || [], [ l, i, c, o, d, g, u, h ] = (i.push(Promise.all(l)), await Promise.all(i)), f = s.text;
   let y = 0;
-  var m, F, p, w, A, C = [];
+  var m, F, p, w, C, A = [];
   let S = Buffer.from(f, "utf-8");
   for (let e = 0; e < u.length; e++) u[e] && (p = s.mentionsPositions[e], m = u[e].username || "fid:" + u[e].fid, 
   m = Buffer.from("@" + m, "utf-8"), F = u[e].originalMention || "", F = Buffer.from(F, "utf-8").length, 
-  p = p + y, w = S.slice(0, p), A = S.slice(p + F), S = Buffer.concat([ w, m, A ]), 
-  y += m.length - F, C.push(p));
+  p = p + y, w = S.slice(0, p), C = S.slice(p + F), S = Buffer.concat([ w, m, C ]), 
+  y += m.length - F, A.push(p));
   f = S.toString("utf-8");
   const T = {
     hash: s.hash,
@@ -657,7 +657,7 @@ const getSyncedChannelById = async e => {
       quoteCasts: h
     },
     mentions: u,
-    mentionsPositions: C,
+    mentionsPositions: A,
     external: s.external,
     author: d,
     parentAuthor: o,
@@ -684,11 +684,15 @@ const getSyncedChannelById = async e => {
     ...r
   };
 }, getFarcasterFeedCastByHash = async (e, t = {}) => {
-  e = await getFarcasterCastByHash(e, t);
-  return e?.threadHash ? {
-    ...await getFarcasterCastByHash(e.threadHash, t),
-    childCast: e,
-    childrenCasts: [ e ]
+  var a = await getFarcasterCastByHash(e, t);
+  return a?.threadHash === e ? {
+    ...a,
+    childCast: null,
+    childrenCasts: []
+  } : a?.threadHash ? {
+    ...await getFarcasterCastByHash(a.threadHash, t),
+    childCast: a,
+    childrenCasts: [ a ]
   } : null;
 }, getFarcasterCastByShortHash = async (e, t, a = {}) => {
   t = await getFarcasterUserByUsername(t);

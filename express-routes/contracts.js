@@ -1,88 +1,89 @@
 const app = require("express").Router(), Contract = require("../models/wallet/Contract")["Contract"], {
   getMemcachedClient,
   getHash
-} = require("../connectmemcached");
-
-app.get("/v1/", async (e, a) => {
+} = require("../connectmemcached"), axios = (app.get("/v1/", async (t, a) => {
   try {
     var {
       factoryInterfaceType: s,
-      contractDeployer: c,
-      cursor: n,
+      contractDeployer: n,
+      cursor: c,
       limit: o = 10
-    } = e.query, l = getMemcachedClient(), [ u, d ] = n ? n.split("-") : [ null, null ], i = s ? {
+    } = t.query, i = getMemcachedClient(), [ u, l ] = c ? c.split("-") : [ null, null ], g = s ? {
       factoryInterfaceType: s
-    } : {}, g = (c && (i.contractDeployer = c), {
+    } : {}, m = (n && (g.contractDeployer = n), {
       sort: {
         createdAt: -1
       },
       limit: parseInt(o, 10)
     });
-    i.createdAt = {
+    g.createdAt = {
       $lt: u || Date.now()
-    }, i.id = {
-      $lt: d || Number.MAX_SAFE_INTEGER
+    }, g.id = {
+      $lt: l || Number.MAX_SAFE_INTEGER
     };
-    let t;
-    var m, p = `getContracts:${JSON.stringify(i)}:${o}:` + n;
+    let e;
+    var d, f = `getContracts:${JSON.stringify(g)}:${o}:` + c;
     try {
-      var h = await l.get(p);
-      h && (t = JSON.parse(h.value));
-    } catch (t) {
-      console.error(t);
+      var p = await i.get(f);
+      p && (e = JSON.parse(p.value));
+    } catch (e) {
+      console.error(e);
     }
-    if (!t) {
-      t = await Contract.find(i, null, g);
+    if (!e) {
+      e = await Contract.find(g, null, m);
       try {
-        n && await l.set(p, JSON.stringify(t), {
+        c && await i.set(f, JSON.stringify(e), {
           lifetime: 60
         });
-      } catch (t) {
-        console.error(t);
+      } catch (e) {
+        console.error(e);
       }
     }
     let r = null;
-    return t.length === o && (m = t[t.length - 1], r = m.createdAt.getTime() + "-" + m._id), 
+    return e.length === o && (d = e[e.length - 1], r = d.createdAt.getTime() + "-" + d._id), 
     a.json({
       success: !0,
-      contracts: t,
+      contracts: e,
       next: r
     });
-  } catch (t) {
-    return console.error("Error fetching contracts: " + t), a.status(500).json({
+  } catch (e) {
+    return console.error("Error fetching contracts: " + e), a.status(500).json({
       success: !1,
       message: "Internal server error"
     });
   }
-}), app.get("/v1/metadata/:contractSlugOrAddress", async (t, r) => {
+}), app.get("/v1/metadata/:contractSlugOrAddress/:tokenId", async (e, r) => {
   try {
-    var e = t.params["contractSlugOrAddress"], a = await Contract.findOne({
+    var t = e.params["contractSlugOrAddress"], a = await Contract.findOne({
       $or: [ {
-        slug: e
+        slug: t
       }, {
-        address: e
+        address: t
       } ]
     });
-    return a ? r.json(a.metadata) : r.status(404).json({
+    return a ? r.json({
+      ...a.metadata?.toJSON(),
+      image: a.metadata?.rawImageUrl || a.metadata?.imageUrl
+    }) : r.status(404).json({
       success: !1,
       message: "Contract not found"
     });
-  } catch (t) {
-    return console.error("Error fetching contract metadata: " + t), r.status(500).json({
+  } catch (e) {
+    return console.error("Error fetching contract metadata: " + e), r.status(500).json({
       success: !1,
       message: "Internal server error"
     });
   }
-}), app.get("/v1/:chainId/:contractSlugOrAddress", async (t, r) => {
+}), app.get("/v1/:chainId/:contractSlugOrAddress", async (e, r) => {
   try {
     var {
-      contractSlugOrAddress: e,
+      contractSlugOrAddress: t,
       chainId: a
-    } = t.params, s = await Contract.findOne({
+    } = e.params, s = await Contract.findOne({
       $or: [ {
-        slug: e
+        slug: t
       }, {
-        address: e
+        address: t
       } ],
       chainId: a
     });
@@ -92,8 +93,57 @@ app.get("/v1/", async (e, a) => {
       success: !1,
       message: "Contract not found"
     });
-  } catch (t) {
-    return console.error("Error fetching contract metadata: " + t), r.status(500).json({
+  } catch (e) {
+    return console.error("Error fetching contract metadata: " + e), r.status(500).json({
+      success: !1,
+      message: "Internal server error"
+    });
+  }
+}), require("axios")), cheerio = require("cheerio");
+
+async function fetchDirectImageUrl(e) {
+  const r = new AbortController();
+  var t = setTimeout(() => r.abort(), 5e3);
+  try {
+    var a = await axios.get(e, {
+      signal: r.signal
+    }), s = (clearTimeout(t), a.data), n = cheerio.load(s), c = n('meta[property="og:image"]').attr("content"), o = n("img").first().attr("src");
+    return c || o || e;
+  } catch (e) {
+    return clearTimeout(t), console.error("Error fetching direct image URL: " + e), 
+    null;
+  }
+}
+
+async function handleImageResponse(e, r) {
+  var t = e.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  t ? e = "https://drive.google.com/uc?export=view&id=" + t[1] : /\.(jpeg|jpg|gif|png|svg)$/.test(e) || (e = await Promise.race([ fetchDirectImageUrl(e), new Promise((e, r) => setTimeout(() => r(new Error("Timeout")), 5e3)) ]));
+  try {
+    var a = await axios.get(e, {
+      responseType: "arraybuffer"
+    }), s = a.headers["content-type"];
+    if (!s.startsWith("image")) return r.redirect(e);
+    var n = Buffer.from(a.data, "binary");
+    r.setHeader("Content-Type", s), r.send(n);
+  } catch (e) {
+    return console.error("Error fetching image: " + e), r.status(500).json({
+      success: !1,
+      message: "Internal server error"
+    });
+  }
+}
+
+app.get("/v1/images", async (r, t) => {
+  try {
+    var a, s = r.query["contractId"];
+    let e = r.query.image;
+    if (e || (a = await Contract.findById(s), e = a.metadata?.imageUrl), !e) return t.status(404).json({
+      success: !1,
+      message: "Image not found for contract"
+    });
+    await handleImageResponse(e, t);
+  } catch (e) {
+    return console.error("Error fetching contract image: " + e), t.status(500).json({
       success: !1,
       message: "Internal server error"
     });

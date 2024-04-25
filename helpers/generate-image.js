@@ -28,22 +28,30 @@ const generateImageWithText = async ({
   image: t,
   type: r = "png"
 }) => {
-  var a = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ a ] = await Promise.all([ fs.readFile(a) ]), t = [ {
+  var i = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ i ] = await Promise.all([ fs.readFile(i) ]), a = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml"
+  }[t.slice(2 + (t.lastIndexOf(".") - 1 >>> 0))] || "image/png";
+  let n;
+  try {
+    n = await Promise.race([ convertImageToBase64(t, a), new Promise((e, t) => setTimeout(() => t(new Error("Timeout after 4 seconds")), 4e3)) ]);
+  } catch (e) {
+    console.error(e), n = "";
+  }
+  t = n ? [ {
     type: "img",
     props: {
-      src: await convertImageToBase64(t, {
-        ".png": "image/png",
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".gif": "image/gif",
-        ".svg": "image/svg+xml"
-      }[path.extname(t).toLowerCase()] || "application/octet-stream"),
+      src: n,
       style: {
-        width: 400,
-        height: 400
+        width: "100%",
+        height: "100%",
+        objectFit: "cover"
       }
     }
-  } ], t = await satori({
+  } ] : [], a = await satori({
     type: "div",
     props: {
       children: [ ...t, {
@@ -91,16 +99,16 @@ const generateImageWithText = async ({
     height: 400,
     fonts: [ {
       name: "Silkscreen",
-      data: a,
+      data: i,
       weight: 400,
       style: "normal"
     } ]
   });
-  let i, n;
-  return n = "png" === r ? (i = await getPngFromSvg(t), "image/png") : (i = await getJpgFromSvg(t), 
+  let o, g;
+  return g = "png" === r ? (o = await getPngFromSvg(a), "image/png") : (o = await getJpgFromSvg(a), 
   "image/jpeg"), {
-    imageBuffer: i,
-    imageType: n
+    imageBuffer: o,
+    imageType: g
   };
 };
 

@@ -8,24 +8,28 @@ class ImageClass {
     image: e
   }) {
     try {
-      var a = new FormData(), s = (e instanceof String || "string" == typeof e ? a.append("image", e) : (a.append("image", fs.createReadStream(e.filepath)), 
-      a.append("type", "file"), a.append("name", e.newFilename)), await axios.post("https://api.imgur.com/3/image", a, {
-        headers: {
-          ...a.getHeaders(),
-          Authorization: "Client-ID " + process.env.IMGUR_CLIENT_ID
-        }
-      }));
-      if (s?.data?.success) {
-        const e = await Image.create({
-          src: s.data.data.link,
-          name: s.data.data.name,
-          isVerified: !1
+      var a = new FormData();
+      if (e instanceof String || "string" == typeof e) if (e.startsWith("data:image")) {
+        var r = e.match(/^data:(.+);base64,(.*)$/);
+        if (3 !== r.length) throw new Error("Invalid base64 data");
+        var s = r[1], o = r[2], t = Buffer.from(o, "base64"), i = new Blob([ t ], {
+          type: s
         });
-        return e;
-      }
-      throw new Error("Imgur API error");
+        a.append("file", i);
+      } else a.append("file", e); else a.append("file", e, e.name);
+      var n = await axios.post("https://api.cloudflare.com/client/v4/accounts/c5af02bff1d4930e0d9bdbaaebb238e2/images/v1", a, {
+        headers: {
+          Authorization: "Bearer " + process.env.CLOUDFLARE_API_KEY
+        }
+      });
+      if (n?.data?.success) return await Image.create({
+        src: n.data.result.variants[n.data.result.variants.length - 1],
+        name: n.data.result.filename,
+        isVerified: !1
+      });
+      throw new Error("Cloudflare API error");
     } catch (e) {
-      throw Sentry.captureException(e), console.error(e), new Error(e.message);
+      throw console.error(e), new Error(e.message);
     }
   }
 }

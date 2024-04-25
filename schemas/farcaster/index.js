@@ -161,10 +161,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   timestamp: -1,
   globalScore: 1
 }), castsSchema.index({
-  threadHash: 1,
-  deletedAt: 1,
-  timestamp: -1
-}), castsSchema.index({
   external: 1,
   _id: 1,
   timestamp: 1
@@ -391,10 +387,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   value: 1
 }), userDataSchema.index({
   fid: 1,
-  external: 1,
-  deletedAt: 1,
-  value: 1
-}), userDataSchema.index({
   external: 1,
   deletedAt: 1,
   value: 1

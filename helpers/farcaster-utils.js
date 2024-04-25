@@ -103,10 +103,9 @@ const frameContext = async (a, e, t) => {
       untrustedData: a.body.untrustedData,
       verifiedFrameData: !0
     };
-    ethers.utils.isAddress(a.body.untrustedData?.fid) ? (r = await getConnectedAddressForFid(n.data.fid), 
+    ethers.utils.isAddress(a.body.untrustedData?.fid) ? (d.isExternal = !0, d.connectedAddress = a.body?.untrustedData?.fid) : (r = await getConnectedAddressForFid(n.data.fid), 
     d.isExternal = !1, (d.connectedAddress = r) || (s = await getCustodyAddressByFid(n.data.fid), 
-    d.connectedAddress = s)) : (d.isExternal = !0, d.connectedAddress = a.body?.untrustedData?.fid), 
-    a.context = d;
+    d.connectedAddress = s)), a.context = d;
   } catch (e) {
     console.error(e), Sentry.captureException(e), a.context = {
       ...a.context || {},

@@ -35,7 +35,8 @@ const mongoose = require("mongoose"), framesSchema = require("../farcaster")["fr
     discordUrl: String,
     bannerImageUrl: String,
     lastIngestedAt: Date,
-    frame: framesSchema
+    frame: framesSchema,
+    rawImageUrl: String
   },
   metadataUrl: String,
   isVerified: Boolean,
