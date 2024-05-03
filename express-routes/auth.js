@@ -2,7 +2,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), _Auth
   heavyLimiter,
   authContext,
   limiter
-} = require("../helpers/express-middleware"), FarcasterHubService = require("../services/identities/FarcasterHubService")["Service"], AccountInvite = require("../models/AccountInvite")["AccountInvite"];
+} = require("../helpers/express-middleware"), FarcasterHubService = require("../services/identities/FarcasterHubService")["Service"], AccountInvite = require("../models/AccountInvite")["AccountInvite"], getFarcasterUserByFid = require("../helpers/farcaster")["getFarcasterUserByFid"];
 
 app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
   e = e.body;
@@ -59,18 +59,18 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
   try {
     var r = e.context.account;
     if (!r) throw new Error("Account not found");
-    var t = new FarcasterHubService(), [ , c, a ] = await Promise.all([ await r.populate("addresses profileImage"), await AccountInvite.findOrCreate({
+    var [ , t, c ] = await Promise.all([ await r.populate("addresses profileImage"), await AccountInvite.findOrCreate({
       accountId: r._id
-    }), await t.getProfileByAccount(r, e.context.isExternal) ]);
+    }), await getFarcasterUserByFid(r.addresses[0].address) ]);
     s.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
       account: {
         ...r.toObject(),
-        invite: c,
+        invite: t,
         identities: {
-          farcaster: a
+          farcaster: c
         }
       }
     });

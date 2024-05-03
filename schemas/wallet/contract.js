@@ -1,4 +1,13 @@
-const mongoose = require("mongoose"), framesSchema = require("../farcaster")["framesSchema"], schema = mongoose.Schema({
+const mongoose = require("mongoose"), framesSchema = require("../farcaster")["framesSchema"], setSchema = mongoose.Schema({
+  name: String,
+  description: String,
+  imageUrl: String,
+  rawImageUrl: String,
+  percentage: {
+    type: Number,
+    default: 0
+  }
+}), schema = mongoose.Schema({
   address: {
     type: String,
     index: !0
@@ -11,6 +20,7 @@ const mongoose = require("mongoose"), framesSchema = require("../farcaster")["fr
   },
   symbol: String,
   totalSupply: Number,
+  tokenCount: Number,
   tokenType: String,
   contractDeployer: {
     type: String,
@@ -40,7 +50,18 @@ const mongoose = require("mongoose"), framesSchema = require("../farcaster")["fr
   },
   metadataUrl: String,
   isVerified: Boolean,
-  isSpam: Boolean
+  isSpam: Boolean,
+  isSet: {
+    type: Boolean,
+    default: !1
+  },
+  setData: {
+    type: {
+      type: String,
+      enum: [ "RANDOM" ]
+    },
+    metadata: [ setSchema ]
+  }
 }, {
   timestamps: !0
 });
@@ -68,6 +89,10 @@ schema.index({
 }), schema.index({
   factoryInterfaceType: 1,
   chainId: 1,
+  createdAt: 1
+}), schema.index({
+  factoryInterfaceType: 1,
+  tokenCount: 1,
   createdAt: 1
 }), module.exports = {
   schema: schema

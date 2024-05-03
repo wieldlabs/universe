@@ -16,7 +16,8 @@ const {
   Storage,
   Frames,
   Reports,
-  SyncedChannels
+  SyncedChannels,
+  SyncedActions
 } = require("../models/farcaster"), mongoose = require("mongoose"), Score = require("../models/Score")["Score"], _AlchemyService = require("../services/AlchemyService")["Service"], {
   config,
   prod
@@ -141,11 +142,11 @@ const getSyncedChannelById = async e => {
       }), d.getNFTs({
         owner: r,
         contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
-      }) ]), f = (u?.ownedNfts || []).concat(h?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
-      if (!f.includes(g)) {
-        var y = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + f;
-        if ("production" === process.env.NODE_ENV) throw new Error(y);
-        console.error(y);
+      }) ]), y = (u?.ownedNfts || []).concat(h?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
+      if (!y.includes(g)) {
+        var f = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + y;
+        if ("production" === process.env.NODE_ENV) throw new Error(f);
+        console.error(f);
       }
     }
     if (!e) {
@@ -157,7 +158,7 @@ const getSyncedChannelById = async e => {
         signer: F.signer
       };
     }
-    var p = new Date(), w = {
+    var p = new Date(), A = {
       fid: e ? r : t.data.fid,
       createdAt: p,
       updatedAt: p,
@@ -174,13 +175,13 @@ const getSyncedChannelById = async e => {
       bodyOverrides: n
     };
     try {
-      await Messages.create(w);
+      await Messages.create(A);
     } catch (e) {
       if (11e3 !== (e?.code || 0)) throw e;
       console.error("Message with this hash already exists, skipping!");
     }
     return {
-      result: w,
+      result: A,
       source: "v2"
     };
   } catch (e) {
@@ -222,10 +223,10 @@ const getSyncedChannelById = async e => {
   };
   let o = i?.timestamp;
   var d = {};
-  for (const y of s) {
-    y.external && (c.external = !0), o = o || y.createdAt, y.createdAt < o && (o = y.createdAt);
-    var g = y.value.startsWith("0x") ? y.value.slice(2) : y.value, u = Buffer.from(g, "hex").toString("utf8");
-    switch (y.type) {
+  for (const f of s) {
+    f.external && (c.external = !0), o = o || f.createdAt, f.createdAt < o && (o = f.createdAt);
+    var g = f.value.startsWith("0x") ? f.value.slice(2) : f.value, u = Buffer.from(g, "hex").toString("utf8");
+    switch (f.type) {
      case UserDataType.USER_DATA_TYPE_USERNAME:
       d.username || (c.username = u, d.username = !0);
       break;
@@ -241,7 +242,7 @@ const getSyncedChannelById = async e => {
      case UserDataType.USER_DATA_TYPE_BIO:
       if (!d.bio) {
         c.bio.text = u;
-        for (var h, f = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; h = f.exec(u); ) c.bio.mentions.push(h[1]);
+        for (var h, y = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; h = y.exec(u); ) c.bio.mentions.push(h[1]);
         d.bio = !0;
       }
       break;
@@ -636,28 +637,28 @@ const getSyncedChannelById = async e => {
     quotedCasts: {
       [e.hash]: !0
     }
-  })) || [], [ l, i, c, o, d, g, u, h ] = (i.push(Promise.all(l)), await Promise.all(i)), f = s.text;
-  let y = 0;
-  var m, F, p, w, C, A = [];
-  let S = Buffer.from(f, "utf-8");
+  })) || [], [ l, i, c, o, d, g, u, h ] = (i.push(Promise.all(l)), await Promise.all(i)), y = s.text;
+  let f = 0;
+  var m, F, p, A, w, C = [];
+  let S = Buffer.from(y, "utf-8");
   for (let e = 0; e < u.length; e++) u[e] && (p = s.mentionsPositions[e], m = u[e].username || "fid:" + u[e].fid, 
   m = Buffer.from("@" + m, "utf-8"), F = u[e].originalMention || "", F = Buffer.from(F, "utf-8").length, 
-  p = p + y, w = S.slice(0, p), C = S.slice(p + F), S = Buffer.concat([ w, m, C ]), 
-  y += m.length - F, A.push(p));
-  f = S.toString("utf-8");
+  p = p + f, A = S.slice(0, p), w = S.slice(p + F), S = Buffer.concat([ A, m, w ]), 
+  f += m.length - F, C.push(p));
+  y = S.toString("utf-8");
   const T = {
     hash: s.hash,
     parentHash: s.parentHash,
     parentFid: s.parentFid,
     parentUrl: s.parentUrl,
     threadHash: s.threadHash,
-    text: f,
+    text: y,
     embeds: {
       ...n,
       quoteCasts: h
     },
     mentions: u,
-    mentionsPositions: A,
+    mentionsPositions: C,
     external: s.external,
     author: d,
     parentAuthor: o,
@@ -766,7 +767,7 @@ const getSyncedChannelById = async e => {
   };
   n?.noReplies ? l.parentHash = null : n?.repliesOnly && (l.parentHash = {
     $ne: null
-  }), e ? l.fid = e : t && (l.parentUrl = t, i) && (l.globalScore = {
+  }), e && (l.fid = e), t && (l.parentUrl = t, i) && (l.globalScore = {
     $gt: GLOBAL_SCORE_THRESHOLD_CHANNEL
   });
   let d;
@@ -1054,7 +1055,7 @@ const getSyncedChannelById = async e => {
       console.error(e);
     }
   }
-  n = l.map(e => getFarcasterFeedCastByHash(e.hash, a)), c = (await Promise.all(n)).filter(e => !!e);
+  n = l.map(e => getFarcasterFeedCastByHash(e.hash, a)), c = (await Promise.all(n)).filter(e => !(!e || e.parentHash && e.threadHash === e.hash));
   const o = {};
   i = c.reduce((e, t) => (t.author?.fid && (e[t.hash] || o[t.author.fid] ? o[t.author.fid] || t.childrenCasts.length > e[t.hash].childrenCasts.length && (e[t.hash] = t, 
   o[t.author.fid] = o[t.author.fid] ? o[t.author.fid] + 1 : 1) : (e[t.hash] = t, 
@@ -1306,6 +1307,57 @@ const getSyncedChannelById = async e => {
   }, {
     upsert: !0
   });
+}, getActions = async ({
+  limit: e,
+  cursor: t
+}) => {
+  var [ a, r ] = t ? t.split("-") : [ null, null ], s = getMemcachedClient(), a = {
+    createdAt: {
+      $lt: a || Date.now()
+    },
+    id: {
+      $lt: r || Number.MAX_SAFE_INTEGER
+    },
+    deletedAt: null,
+    rank: {
+      $gt: -1
+    }
+  };
+  let i;
+  try {
+    var n = await s.get(`getActions:${e}:` + t);
+    n && (i = JSON.parse(n.value).map(e => new SyncedActions(e)));
+  } catch (e) {
+    console.error(e);
+  }
+  let l = null;
+  return (i = i || await SyncedActions.find(a).sort("rank _id").limit(e)).length === e && (l = i[i.length - 1].createdAt.getTime() + "-" + i[i.length - 1].id), 
+  [ i, l ];
+}, createAction = async ({
+  ...e
+}) => {
+  e = {
+    name: e.name,
+    icon: e.icon,
+    description: e.description,
+    aboutUrl: e.aboutUrl,
+    actionUrl: e.actionUrl,
+    action: {
+      actionType: e.actionType,
+      postUrl: e.actionPostUrl
+    }
+  };
+  try {
+    return await SyncedActions.findOneAndUpdate({
+      actionUrl: e.actionUrl
+    }, {
+      $set: e
+    }, {
+      upsert: !0
+    });
+  } catch (e) {
+    throw console.error("Failed to create or update action:", e), e;
+  }
 };
 
 module.exports = {
@@ -1347,5 +1399,7 @@ module.exports = {
   searchChannels: searchChannels,
   searchFarcasterCasts: searchFarcasterCasts,
   isFollowingChannel: isFollowingChannel,
-  isFollowingFid: isFollowingFid
+  isFollowingFid: isFollowingFid,
+  getActions: getActions,
+  createAction: createAction
 };

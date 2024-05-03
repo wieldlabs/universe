@@ -4,7 +4,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), Quest
 } = require("../models/farcaster"), CommunityQuest = require("../models/quests/CommunityQuest")["CommunityQuest"], _QuestService = require("../services/QuestService")["Service"], _CacheService = require("../services/cache/CacheService")["Service"], _CommunityQuestMutationService = require("../services/mutationServices/CommunityQuestMutationService")["Service"], sharp = require("sharp"), config = require("../helpers/constants/config")["config"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], satori = require("satori").default, fs = require("fs").promises, path = require("path"), {
   frameContext,
   getAddressPasses
-} = require("../helpers/farcaster-utils"), isFollowingChannel = require("../helpers/farcaster")["isFollowingChannel"], fetch = require("node-fetch"), axios = require("axios"), abcToIndex = {
+} = require("../helpers/farcaster-utils"), isFollowingChannel = require("../helpers/farcaster")["isFollowingChannel"], fetch = require("node-fetch"), axios = require("axios"), fetchAndCacheOpenGraphData = require("../helpers/opengraph")["fetchAndCacheOpenGraphData"], {
+  limiter,
+  authContext
+} = require("../helpers/express-middleware"), abcToIndex = {
   1: "A",
   2: "B",
   3: "C",
@@ -69,7 +72,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     } catch (e) {
       console.error(e);
     }
-    var p = await Quest.findById(a), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), l = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), f = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ d, g, u ] = await Promise.all([ fs.readFile(m), fs.readFile(l), fs.readFile(f) ]), h = (t.quest = p).requirements?.[0]?.data || [], y = h.find(e => "question" === e.key)?.value, w = h.find(e => "answers" === e.key)?.value.split(";"), v = "false" !== o, S = [ {
+    var p = await Quest.findById(a), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), l = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), f = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ d, u, g ] = await Promise.all([ fs.readFile(m), fs.readFile(l), fs.readFile(f) ]), h = (t.quest = p).requirements?.[0]?.data || [], y = h.find(e => "question" === e.key)?.value, w = h.find(e => "answers" === e.key)?.value.split(";"), v = "false" !== o, S = [ {
       type: "text",
       props: {
         children: y,
@@ -135,12 +138,12 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
         style: "normal"
       }, {
         name: "Inter",
-        data: g,
+        data: u,
         weight: 800,
         style: "extrabold"
       }, {
         name: "Silkscreen",
-        data: u,
+        data: g,
         weight: 400,
         style: "normal"
       } ]
@@ -181,10 +184,10 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     } catch (e) {
       console.error(e);
     }
-    var p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), l = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , f ] = await Promise.all([ fs.readFile(p), fs.readFile(m), fs.readFile(l) ]), d = await new _QuestService().getQuestReward(o), g = getRewardImage(o, d), u = getRewardRarity(o, d), h = o?.quantity || 0, y = o?.title || "Reward", w = [ {
+    var p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), l = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , f ] = await Promise.all([ fs.readFile(p), fs.readFile(m), fs.readFile(l) ]), d = await new _QuestService().getQuestReward(o), u = getRewardImage(o, d), g = getRewardRarity(o, d), h = o?.quantity || 0, y = o?.title || "Reward", w = [ {
       type: "img",
       props: {
-        src: await convertImageToBase64(g, "image/png"),
+        src: await convertImageToBase64(u, "image/png"),
         style: {
           width: 100,
           height: 100
@@ -193,12 +196,12 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }, {
       type: "text",
       props: {
-        children: u,
+        children: g,
         style: {
           marginLeft: 16,
           marginRight: 16,
           textAlign: "center",
-          color: getTextColorByRarity(u),
+          color: getTextColorByRarity(g),
           fontSize: 16,
           fontWeight: 400,
           fontFamily: "Silkscreen"
@@ -465,7 +468,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
       questId: o._id,
       verifiedFrameData: t.context.verifiedFrameData,
       isExternal: t.context.isExternal
-    }), g = await Account.findOrCreateByAddressAndChainId({
+    }), u = await Account.findOrCreateByAddressAndChainId({
       address: t.context.connectedAddress,
       chainId: 1
     });
@@ -473,21 +476,21 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     f = await getRandomReward({
       communityId: n,
       questId: o._id,
-      account: g
+      account: u
     }), await incrSpinCount({
       address: t.context.connectedAddress,
       questId: o._id
     }), p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&reward=" + encodeURIComponent(JSON.stringify(f)), 
-    g = `Just got ${f?.title} on @farquest, get your free daily spins before they expire on https://far.quest/school 🎩🎩🎩 `, 
+    u = `Just got ${f?.title} on @farquest, get your free daily spins before they expire on https://far.quest/school 🎩🎩🎩 `, 
     f = `Just got ${f?.title} on FarQuest by @wieldlabs, get your free daily spins before they expire on https://far.quest/school and learn about Farcaster today 🎩🎩🎩 `, 
-    g = `https://warpcast.com/~/compose?text=${encodeURIComponent(g)}&embeds[]=https://far.quest/school&rand=` + Math.random().toString()?.slice(0, 7), 
+    u = `https://warpcast.com/~/compose?text=${encodeURIComponent(u)}&embeds[]=https://far.quest/school&rand=` + Math.random().toString()?.slice(0, 7), 
     `
                 <meta property="fc:frame:button:1" content="Share on X" />
         <meta property="fc:frame:button:1:action" content="link" />
         <meta property="fc:frame:button:1:target" content="${"https://twitter.com/intent/tweet?text=" + encodeURIComponent(f)}" />
                 <meta property="fc:frame:button:2" content="Share on 🟪" />
         <meta property="fc:frame:button:2:action" content="link" />
-        <meta property="fc:frame:button:2:target" content="${g}" />
+        <meta property="fc:frame:button:2:target" content="${u}" />
 
          <meta property="fc:frame:button:3:action" content="post" />
         <meta property="fc:frame:button:3" content="${`Spin again (${d ? d - 1 : 0} left)`}" />
@@ -513,7 +516,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png", m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
     l = c.join("\n");
   }
-  let u = `
+  let g = `
       <!DOCTYPE html>
     <html>
       <head>
@@ -522,9 +525,9 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
         <meta property="fc:frame:post_url" content=${m} />
         <meta property="fc:frame:image:aspect_ratio" content="1:1" />
   `;
-  l && (u += l), u += `        
+  l && (g += l), g += `        
       </head>
-    </html>`, e.setHeader("Content-Type", "text/html"), e.send(u);
+    </html>`, e.setHeader("Content-Type", "text/html"), e.send(g);
 }), app.post("/v1/channel/whoami/post_url", frameContext, async (e, t) => {
   var r = e.query["step"];
   let a, n, o;
@@ -581,6 +584,36 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
       </head>
     </html>`;
   t.setHeader("Content-Type", "text/html"), t.send(e);
+}), app.post("/v1/fetch-frame", limiter, async (e, t) => {
+  var {
+    proxyUrl: e,
+    untrustedData: r,
+    trustedData: a,
+    action: n
+  } = e.body;
+  try {
+    var o, i = await axios.post(e, {
+      untrustedData: r,
+      trustedData: a
+    });
+    "post_redirect" === n && i.request?.res?.responseUrl !== e ? t.json({
+      success: !0,
+      message: "Successfully redirected",
+      data: {
+        url: i.request?.res?.responseUrl
+      },
+      redirect: !0
+    }) : (o = await fetchAndCacheOpenGraphData(e, i.data), t.json({
+      success: !0,
+      message: "Successfully fetched frame",
+      data: o
+    }));
+  } catch (e) {
+    console.error("Failed to fetch frame: " + e.message), t.status(500).json({
+      success: !1,
+      message: "Error fetching frame: " + e.message
+    });
+  }
 }), module.exports = {
   router: app
 };

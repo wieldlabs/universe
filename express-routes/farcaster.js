@@ -30,7 +30,9 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getSyncedChannelById,
   getSyncedChannelByUrl,
   searchChannels,
-  searchFarcasterCasts
+  searchFarcasterCasts,
+  getActions,
+  createAction
 } = require("../helpers/farcaster"), {
   fetchAssetMetadata,
   fetchPriceHistory
@@ -186,7 +188,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/casts", [ authContext, limiter ], async (e, r) => {
   try {
-    var t = e.query.fid, a = JSON.parse(e.query.filters || null), s = e.query.parentChain, n = Math.min(e.query.limit || 10, 100), o = e.query.cursor || null, c = "true" === e.query.explore, [ i, u ] = await getFarcasterCasts({
+    var t = e.query.fid, a = JSON.parse(e.query.filters || null), s = e.query.parentChain || null, n = Math.min(e.query.limit || 10, 100), o = e.query.cursor || null, c = "true" === e.query.explore, [ i, u ] = await getFarcasterCasts({
       fid: t,
       parentChain: s,
       limit: n,
@@ -1116,8 +1118,8 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     if (!h || 0 === h.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
-    if (0 === m.length) return s.status(404).json({
+    var m = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], g = (await Promise.all(m.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === g.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
@@ -1126,7 +1128,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
-        casts: m,
+        casts: g,
         trendHistory: v,
         tokenMetadata: r,
         tokenPriceHistory: t
@@ -1172,6 +1174,63 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     return console.error("Failed to search channels:", e), Sentry.captureException(e), 
     r.status(500).json({
       error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/actions", [ limiter ], async (e, r) => {
+  try {
+    var t = Math.min(e.query.limit || 10, 100), a = e.query.cursor || null, [ s, n ] = await getActions({
+      limit: t,
+      cursor: a
+    });
+    return r.json({
+      result: {
+        actions: s
+      },
+      next: n,
+      source: "v2"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.post("/v2/actions", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await createAction(e.body);
+    return r.json({
+      result: {
+        action: t
+      },
+      source: "v2"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.post("/v2/actions/fetch-action", [ heavyLimiter ], async (e, r) => {
+  var {
+    proxyUrl: e,
+    untrustedData: t,
+    trustedData: a
+  } = e.body;
+  try {
+    var s = await axios.post(e, {
+      trustedData: a,
+      untrustedData: t
+    }, {
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    return r.json({
+      result: s.data,
+      type: s.data.type || "message",
+      source: "v2"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), r.status(500).json({
+      error: e.message || e.response?.data?.message || "Internal Server Error"
     });
   }
 }), module.exports = {

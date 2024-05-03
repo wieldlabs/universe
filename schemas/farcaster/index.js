@@ -876,9 +876,7 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   }
 }, {
   timestamps: !1
-}));
-
-syncedChannelsSchema.index({
+})), syncedActionsSchema = (syncedChannelsSchema.index({
   channelId: 1
 }), syncedChannelsSchema.index({
   name: 1
@@ -886,6 +884,46 @@ syncedChannelsSchema.index({
   url: 1
 }), syncedChannelsSchema.index({
   createdAt: 1
+}), new mongoose.Schema({
+  name: {
+    type: String,
+    required: !0
+  },
+  icon: {
+    type: String
+  },
+  description: {
+    type: String
+  },
+  aboutUrl: {
+    type: String
+  },
+  actionUrl: {
+    type: String,
+    required: !0
+  },
+  rank: {
+    type: Number,
+    index: !0
+  },
+  action: {
+    actionType: {
+      type: String
+    },
+    postUrl: {
+      type: String
+    }
+  }
+}, {
+  timestamps: !0
+}));
+
+syncedActionsSchema.index({
+  name: 1
+}), syncedActionsSchema.index({
+  actionUrl: 1
+}), syncedActionsSchema.index({
+  "action.actionType": 1
 }), module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
   messagesSchema: messagesSchema,
@@ -905,5 +943,6 @@ syncedChannelsSchema.index({
   listingLogSchema: listingLogSchema,
   framesSchema: framesSchema,
   reportsSchema: reportsSchema,
-  syncedChannelsSchema: syncedChannelsSchema
+  syncedChannelsSchema: syncedChannelsSchema,
+  syncedActionsSchema: syncedActionsSchema
 };

@@ -1,20 +1,59 @@
 const axios = require("axios"), cheerio = require("cheerio"), {
   getMemcachedClient,
   getHash
-} = require("../connectmemcached"), MAX_HTML_TIMEOUT = 5e3, MAX_HTML_CONTENT_LENGTH = 5242880, getHtml = async e => {
-  var t, r, a, i = getMemcachedClient();
+} = require("../connectmemcached"), MAX_HTML_TIMEOUT = 5e3, MAX_HTML_CONTENT_LENGTH = 5242880, extractOpenGraphData = t => {
   try {
-    var o = await i.get(getHash("getHtml:ogData:" + e));
-    if (o) return JSON.parse(o.value);
+    const i = cheerio.load(t), c = {};
+    return i("meta").each((t, e) => {
+      var a = i(e).attr("property"), r = i(e).attr("content"), a = ("og:url" === a && (c.url = r), 
+      "og:image" === a && (c.image = r), "twitter:image" === a && (c.image ||= r), 
+      "og:title" === a && (c.title = r), "og:description" === a && (c.description = r), 
+      "og:domain" === a && (c.domain = r), a || i(e).attr("name"));
+      a?.includes("fc:frame") && (c[a] = r);
+    }), c;
+  } catch (t) {
+    throw new Error("Error extracting OpenGraph data with cheerio: " + t);
+  }
+}, extractTwitterData = t => {
+  try {
+    var e = cheerio.load(t), a = {}, r = e(".twitter-tweet p").text(), i = (r && (a.description = r), 
+    e(".twitter-tweet a:last-child").attr("href"));
+    i && (a.url = i);
+    var c, o = e(".twitter-tweet").text().match(/@(\w+)/);
+    return o && (c = o[1], a.title = `@${c}'s tweet`), a.title || (a.title = e(".twitter-tweet a:last-child").text() || "Twitter"), 
+    a.image = "/twitter.png", a.logo = "/twitter.png", a.domain = "twitter.com", 
+    a;
+  } catch (t) {
+    throw new Error("Error extracting Twitter data with cheerio: " + t);
+  }
+};
+
+async function fetchAndCacheOpenGraphData(t, e) {
+  var a = getMemcachedClient(), e = (t.includes("twitter.com") ? extractTwitterData : extractOpenGraphData)(e);
+  try {
+    await a.set(getHash("getHtml:ogData:" + t), JSON.stringify(e), {
+      lifetime: 86400
+    });
   } catch (t) {
     console.error(t);
   }
-  let c;
+  return e;
+}
+
+const getHtml = async e => {
+  var t, a, r, i = getMemcachedClient();
   try {
-    c = e.includes("twitter.com") || e.includes("x.com") ? (t = (await axios.get("https://publish.twitter.com/oembed?url=" + e.replace("x.com", "twitter.com"), {
+    var c = await i.get(getHash("getHtml:ogData:" + e));
+    if (c) return JSON.parse(c.value);
+  } catch (t) {
+    console.error(t);
+  }
+  let o;
+  try {
+    o = e.includes("twitter.com") || e.includes("x.com") ? (t = (await axios.get("https://publish.twitter.com/oembed?url=" + e.replace("x.com", "twitter.com"), {
       timeout: MAX_HTML_TIMEOUT,
       maxContentLength: MAX_HTML_CONTENT_LENGTH
-    }))["data"], t.html) : (r = e.startsWith("http") ? e : "http://" + e, a = (await axios.get(r, {
+    }))["data"], t.html) : (a = e.startsWith("http") ? e : "http://" + e, r = (await axios.get(a, {
       headers: {
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
         "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
@@ -24,7 +63,7 @@ const axios = require("axios"), cheerio = require("cheerio"), {
       },
       timeout: MAX_HTML_TIMEOUT,
       maxContentLength: MAX_HTML_CONTENT_LENGTH
-    }))["data"], a);
+    }))["data"], r);
   } catch (t) {
     console.error("caching getHTML error to prevent server overload");
     try {
@@ -38,41 +77,10 @@ const axios = require("axios"), cheerio = require("cheerio"), {
     }
     throw t;
   }
-  o = (e.includes("twitter.com") ? extractTwitterData : extractOpenGraphData)(c);
-  try {
-    await i.set(getHash("getHtml:ogData:" + e), JSON.stringify(o), {
-      lifetime: 86400
-    });
-  } catch (t) {
-    console.error(t);
-  }
-  return o;
-}, extractOpenGraphData = t => {
-  try {
-    const i = cheerio.load(t), o = {};
-    return i("meta").each((t, e) => {
-      var r = i(e).attr("property"), a = i(e).attr("content"), r = ("og:url" === r && (o.url = a), 
-      "og:image" === r && (o.image = a), "og:title" === r && (o.title = a), "og:description" === r && (o.description = a), 
-      "og:domain" === r && (o.domain = a), r || i(e).attr("name"));
-      r?.includes("fc:frame") && (o[r] = a);
-    }), o;
-  } catch (t) {
-    throw new Error("Error extracting OpenGraph data with cheerio: " + t);
-  }
-}, extractTwitterData = t => {
-  try {
-    var e = cheerio.load(t), r = {}, a = e(".twitter-tweet p").text(), i = (a && (r.description = a), 
-    e(".twitter-tweet a:last-child").attr("href"));
-    i && (r.url = i);
-    var o, c = e(".twitter-tweet").text().match(/@(\w+)/);
-    return c && (o = c[1], r.title = `@${o}'s tweet`), r.title || (r.title = e(".twitter-tweet a:last-child").text() || "Twitter"), 
-    r.image = "/twitter.png", r.logo = "/twitter.png", r.domain = "twitter.com", 
-    r;
-  } catch (t) {
-    throw new Error("Error extracting Twitter data with cheerio: " + t);
-  }
+  return await fetchAndCacheOpenGraphData(e, o);
 };
 
 module.exports = {
-  getHtml: getHtml
+  getHtml: getHtml,
+  fetchAndCacheOpenGraphData: fetchAndCacheOpenGraphData
 };

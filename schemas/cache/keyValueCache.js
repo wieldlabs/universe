@@ -17,6 +17,9 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
 
 schema.index({
   createdAt: 1
+}), schema.index({
+  key: 1,
+  createdAt: -1
 }), module.exports = {
   schema: schema
 };

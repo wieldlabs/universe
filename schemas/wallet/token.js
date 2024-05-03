@@ -2,13 +2,6 @@ const mongoose = require("mongoose"), attributeSchema = mongoose.Schema({
   displayType: String,
   value: String,
   traitType: String
-}), imageSchema = mongoose.Schema({
-  cachedUrl: String,
-  thumbnailUrl: String,
-  pngUrl: String,
-  contentType: String,
-  size: Number,
-  originalUrl: String
 }), schema = mongoose.Schema({
   contract: {
     type: mongoose.Schema.Types.ObjectId,
@@ -24,16 +17,15 @@ const mongoose = require("mongoose"), attributeSchema = mongoose.Schema({
     type: String,
     enum: [ "ERC721", "ERC1155", "ERC20" ]
   },
-  name: String,
-  description: String,
-  image: imageSchema,
-  attributes: [ attributeSchema ],
-  timeLastUpdated: Date,
-  balance: String,
-  acquiredAt: {
-    blockTimestamp: Date,
-    blockNumber: Number
-  }
+  metadata: {
+    name: String,
+    imageUrl: String,
+    description: String,
+    lastIngestedAt: Date,
+    rawImageUrl: String,
+    attributes: [ attributeSchema ]
+  },
+  timeLastUpdated: Date
 }, {
   timestamps: !0
 });
