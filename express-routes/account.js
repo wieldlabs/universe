@@ -3,7 +3,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), Accou
   authContext
 } = require("../helpers/express-middleware"), QuestService = require("../services/QuestService")["Service"];
 
-app.get("/v1/inventory", limiter, async (t, s) => {
+app.get("/v1/inventory", limiter, async (s, t) => {
   try {
     var {
       address: c,
@@ -11,19 +11,19 @@ app.get("/v1/inventory", limiter, async (t, s) => {
       offset: o,
       sort: a,
       filters: n
-    } = t.query, i = await Account.findByAddressAndChainId({
+    } = s.query, u = await Account.findByAddressAndChainId({
       address: c,
       chainId: 1
     });
-    if (!i) throw new Error("Account not found");
+    if (!u) throw new Error("Account not found");
     let e = {
-      account: i._id
+      account: u._id
     };
     if (n) try {
-      var u = JSON.parse(n);
+      var i = JSON.parse(n);
       e = {
         ...e,
-        ...u
+        ...i
       };
     } catch (e) {
       throw new Error("Invalid filters");
@@ -36,20 +36,42 @@ app.get("/v1/inventory", limiter, async (t, s) => {
     });
     const m = new QuestService();
     await Promise.all(d.map(async e => {
-      var t;
-      if (e.rewardId) return t = await m.getQuestReward({
+      var s;
+      if (e.rewardId) return s = await m.getQuestReward({
         rewardId: e.rewardId,
         type: e.rewardType
       }), e.reward = {
         _id: e.rewardId,
         type: e.rewardType,
-        item: t
-      }, t;
-    })), s.status(201).json({
+        item: s
+      }, s;
+    })), t.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
       inventory: d
+    });
+  } catch (e) {
+    Sentry.captureException(e), console.error(e), t.status(500).json({
+      code: "500",
+      success: !1,
+      message: e.message
+    });
+  }
+}), app.get("/v1/score", limiter, async (e, s) => {
+  try {
+    var {
+      address: t,
+      bebdomain: c
+    } = e.query, r = await new _ScoreService().getCommunityScore({
+      address: t,
+      bebdomain: c
+    });
+    s.status(201).json({
+      code: "201",
+      success: !0,
+      message: "Success",
+      score: r
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), s.status(500).json({
@@ -58,123 +80,102 @@ app.get("/v1/inventory", limiter, async (t, s) => {
       message: e.message
     });
   }
-}), app.get("/v1/score", limiter, async (e, t) => {
+}), app.get("/v1/bookmarks", [ limiter, authContext ], async (e, s) => {
   try {
     var {
-      address: s,
-      bebdomain: c
-    } = e.query, r = await new _ScoreService().getCommunityScore({
-      address: s,
-      bebdomain: c
+      type: t,
+      limit: c,
+      cursor: r
+    } = e.query, [ o, a ] = await new _AccountBookmarkService().bookmarks(e.context.account?._id, {
+      type: t,
+      limit: c,
+      cursor: r
     });
-    t.status(201).json({
+    s.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
-      score: r
+      bookmarks: o,
+      next: a
     });
   } catch (e) {
-    Sentry.captureException(e), console.error(e), t.status(500).json({
+    Sentry.captureException(e), console.error(e), s.status(500).json({
       code: "500",
       success: !1,
       message: e.message
     });
   }
-}), app.get("/v1/bookmarks", [ limiter, authContext ], async (e, t) => {
-  try {
-    var {
-      type: s,
-      limit: c,
-      offset: r
-    } = e.query, o = await new _AccountBookmarkService().bookmarks(e.context.account?._id, {
-      type: s,
-      limit: c,
-      offset: r
-    });
-    t.status(201).json({
-      code: "201",
-      success: !0,
-      message: "Success",
-      bookmarks: o
-    });
-  } catch (e) {
-    Sentry.captureException(e), console.error(e), t.status(500).json({
-      code: "500",
-      success: !1,
-      message: e.message
-    });
-  }
-}), app.post("/v1/bookmarks", [ limiter, authContext ], async (e, t) => {
+}), app.post("/v1/bookmarks", [ limiter, authContext ], async (e, s) => {
   try {
     const {
       type: r,
       ...o
     } = e.body;
-    var s = {
+    var t = {
       account: e.context.account,
       accountId: e.context.account._id
     }, c = await new _AccountBookmarkService().createBookmark({
       type: r,
       ...o
-    }, s);
-    t.status(201).json({
+    }, t);
+    s.status(201).json({
       code: "201",
       success: !0,
       message: "Bookmark created successfully",
       bookmark: c
     });
   } catch (e) {
-    Sentry.captureException(e), console.error(e), t.status(500).json({
+    Sentry.captureException(e), console.error(e), s.status(500).json({
       code: "500",
       success: !1,
       message: e.message
     });
   }
-}), app.post("/v1/update", [ limiter, authContext ], async (e, t) => {
+}), app.post("/v1/update", [ limiter, authContext ], async (e, s) => {
   try {
-    var s = e.context.account;
-    if (!s) throw new Error("Account not found");
+    var t = e.context.account;
+    if (!t) throw new Error("Account not found");
     var {
       email: c,
       location: r,
       profileImageId: o,
       bio: a,
       isOnboarded: n,
-      expoPushToken: i
-    } = e.body, u = await s.updateMe({
+      expoPushToken: u
+    } = e.body, i = await t.updateMe({
       email: c,
       location: r,
       profileImageId: o,
       bio: a,
       isOnboarded: n,
-      expoPushToken: i
+      expoPushToken: u
     });
-    t.status(201).json({
+    s.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
-      account: u
+      account: i
     });
   } catch (e) {
-    Sentry.captureException(e), console.error(e), t.status(500).json({
+    Sentry.captureException(e), console.error(e), s.status(500).json({
       code: "500",
       success: !1,
       message: e.message
     });
   }
-}), app.delete("/v1/delete", [ limiter, authContext ], async (e, t) => {
+}), app.delete("/v1/delete", [ limiter, authContext ], async (e, s) => {
   try {
-    var s = e.context.account;
-    if (!s) throw new Error("Account not found");
+    var t = e.context.account;
+    if (!t) throw new Error("Account not found");
     await Account.deleteAllData({
-      account: s
-    }), t.status(201).json({
+      account: t
+    }), s.status(201).json({
       code: "200",
       success: !0,
       message: "Success: account has been deleted!"
     });
   } catch (e) {
-    Sentry.captureException(e), console.error(e), t.status(500).json({
+    Sentry.captureException(e), console.error(e), s.status(500).json({
       code: "500",
       success: !1,
       message: e.message

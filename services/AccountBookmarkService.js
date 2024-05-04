@@ -1,67 +1,94 @@
-const SyncedActions = require("../models/farcaster")["SyncedActions"], AccountBookmarks = require("../models/AccountBookmarks")["AccountBookmarks"];
+const SyncedActions = require("../models/farcaster")["SyncedActions"], AccountBookmarks = require("../models/AccountBookmarks")["AccountBookmarks"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"];
 
 class AccountBookmarkService {
   static SupportedTypes = [ "ACTIONS" ];
-  async bookmarks(r, {
-    type: e,
-    limit: t,
-    offset: c
+  async bookmarks(o, {
+    type: t,
+    limit: c,
+    cursor: a
   }) {
+    var n = getMemcachedClient();
     try {
-      var a = (await AccountBookmarks.find({
-        account: r,
-        type: e
-      }).limit(t).skip(c)).map(o => o.object);
-      let o;
-      if ("ACTIONS" !== e) throw new Error("Unsupported type");
-      return o = await SyncedActions.find({
-        _id: {
-          $in: a
+      var i, [ u, s ] = a ? a.split("-") : [ null, null ], k = {
+        account: o,
+        type: t,
+        createdAt: {
+          $lt: u || Date.now()
+        },
+        id: {
+          $lt: s || Number.MAX_SAFE_INTEGER
         }
-      });
-    } catch (o) {
-      throw console.error("Failed to fetch bookmarks:", o), o;
+      }, d = await AccountBookmarks.find(k).sort({
+        createdAt: -1,
+        _id: 1
+      }).limit(c), m = d.map(e => e.object);
+      let e;
+      try {
+        var l = await n.get(a ? `AccountBookmarkService:bookmarks:${o}:${t}:${c}:` + a : `AccountBookmarkService:bookmarks:${o}:` + t);
+        l && (e = JSON.parse(l.value).map(e => {
+          if ("ACTIONS" === t) return new SyncedActions(e);
+        }).filter(e => null !== e));
+      } catch (e) {
+        console.error(e);
+      }
+      if (!e) {
+        if ("ACTIONS" !== t) throw new Error("Unsupported type");
+        if (e = await SyncedActions.find({
+          _id: {
+            $in: m
+          }
+        }), a) try {
+          await n.set(a ? `AccountBookmarkService:bookmarks:${o}:${t}:${c}:` + a : `AccountBookmarkService:bookmarks:${o}:` + t, JSON.stringify(e));
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      let r = null;
+      return d.length == c && (i = d[d.length - 1], r = i.createdAt.getTime() + "-" + i._id), 
+      [ e.slice(0, c), r ];
+    } catch (e) {
+      throw console.error("Failed to fetch bookmarks:", e), e;
     }
   }
-  async createBookmark(o, r) {
+  async createBookmark(e, r) {
     if (!r.account || !r.accountId) throw new Error("Account information is required.");
-    if (!o.type || !AccountBookmarkService.SupportedTypes.includes(o.type)) throw new Error("Type is required.");
-    if (!o.object) throw new Error("Object is required.");
+    if (!e.type || !AccountBookmarkService.SupportedTypes.includes(e.type)) throw new Error("Type is required.");
+    if (!e.object) throw new Error("Object is required.");
     try {
       return await AccountBookmarks.findOneAndUpdate({
         account: r.accountId || r.account._id,
-        type: o.type,
-        object: o.object
+        type: e.type,
+        object: e.object
       }, {
         account: r.accountId || r.account._id,
-        ...o
+        ...e
       }, {
         upsert: !0
       });
-    } catch (o) {
-      throw console.error("Failed to create bookmark:", o), o;
+    } catch (e) {
+      throw console.error("Failed to create bookmark:", e), e;
     }
   }
   async createBookmarkWithObject({
-    type: o,
+    type: e,
     ...r
-  }, e) {
-    if (!e.account || !e.accountId) throw new Error("Account information is required.");
-    if (!o || !AccountBookmarkService.SupportedTypes.includes(o)) throw new Error("Type is required.");
+  }, o) {
+    if (!o.account || !o.accountId) throw new Error("Account information is required.");
+    if (!e || !AccountBookmarkService.SupportedTypes.includes(e)) throw new Error("Type is required.");
     let t;
-    if ("ACTIONS" !== o) throw new Error("Unsupported type");
+    if ("ACTIONS" !== e) throw new Error("Unsupported type");
     t = await SyncedActions.create(r);
     try {
       var c = await this.createBookmark({
-        type: o,
+        type: e,
         object: t._id
-      }, e);
+      }, o);
       return {
         ...t,
         bookmark: c
       };
-    } catch (o) {
-      throw console.error("Failed to create bookmark:", o), o;
+    } catch (e) {
+      throw console.error("Failed to create bookmark:", e), e;
     }
   }
 }

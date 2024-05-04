@@ -873,6 +873,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   },
   createdAt: {
     type: Number
+  },
+  followerCount: {
+    type: Number,
+    default: 0,
+    index: !0
+  },
+  hostFids: {
+    type: [ String ]
   }
 }, {
   timestamps: !1

@@ -12,6 +12,8 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     index: !0
   }
+}, {
+  timestamps: !0
 });
 
 schema.index({

@@ -4,6 +4,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getFarcasterUserByCustodyAddress,
   getFarcasterUserByConnectedAddress,
   getFarcasterCastByHash,
+  getFarcasterCastsInThread,
   getFarcasterAllCastsInThread,
   getFarcasterCasts,
   getFarcasterFollowing,
@@ -177,6 +178,24 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       result: {
         casts: t
       },
+      source: "v2"
+    })) : r.status(400).json({
+      error: "Missing threadHash"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/casts-in-thread", [ authContext, limiter ], async (e, r) => {
+  try {
+    var t, a, s = e.query.threadHash, n = Math.min(e.query.limit || 10, 50), o = e.query.cursor || null;
+    return s ? ([ t, a ] = await getFarcasterCastsInThread(s, n, o, e.context), 
+    r.json({
+      result: {
+        casts: t
+      },
+      next: a,
       source: "v2"
     })) : r.status(400).json({
       error: "Missing threadHash"
@@ -1118,8 +1137,8 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     if (!h || 0 === h.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var m = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], g = (await Promise.all(m.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
-    if (0 === g.length) return s.status(404).json({
+    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === m.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
@@ -1128,7 +1147,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
-        casts: g,
+        casts: m,
         trendHistory: v,
         tokenMetadata: r,
         tokenPriceHistory: t
