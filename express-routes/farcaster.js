@@ -189,9 +189,14 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/casts-in-thread", [ authContext, limiter ], async (e, r) => {
   try {
-    var t, a, s = e.query.threadHash, n = Math.min(e.query.limit || 10, 50), o = e.query.cursor || null;
-    return s ? ([ t, a ] = await getFarcasterCastsInThread(s, n, o, e.context), 
-    r.json({
+    var t, a, s = e.query.threadHash, n = e.query.parentHash, o = Math.min(e.query.limit || 10, 50), c = e.query.cursor || null;
+    return s ? ([ t, a ] = await getFarcasterCastsInThread({
+      threadHash: s,
+      limit: o,
+      cursor: c,
+      parentHash: n,
+      context: e.context
+    }), r.json({
       result: {
         casts: t
       },
@@ -1137,8 +1142,8 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     if (!h || 0 === h.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
-    if (0 === m.length) return s.status(404).json({
+    var m = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], g = (await Promise.all(m.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === g.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
@@ -1147,7 +1152,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
-        casts: m,
+        casts: g,
         trendHistory: v,
         tokenMetadata: r,
         tokenPriceHistory: t

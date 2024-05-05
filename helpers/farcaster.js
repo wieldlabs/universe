@@ -753,40 +753,63 @@ const getSyncedChannelById = async e => {
   }
   s = await Promise.all(r.map(e => getFarcasterCastByHash(e.hash, t)));
   return [ await getFarcasterCastByHash(e, t), ...s ];
-}, getFarcasterCastsInThread = async (e, t, a, r) => {
-  var s = getMemcachedClient(), [ i, n ] = a ? a.split("-") : [ null, null ];
-  let l;
+}, getFarcasterCastsInThread = async ({
+  threadHash: e,
+  parentHash: t,
+  limit: a,
+  cursor: r,
+  context: s
+}) => {
+  var i = getMemcachedClient(), [ n, l ] = r ? r.split("-") : [ null, null ];
+  let c;
   try {
-    var c = await s.get(`getFarcasterCastsInThread:${e}:${t}:` + a);
-    c && (childrenCasts = JSON.parse(c.value).map(e => new Casts(e)));
+    var o = await i.get(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r);
+    o && (c = JSON.parse(o.value).map(e => new Casts(e)));
   } catch (e) {
     console.error(e);
   }
-  if (!l) {
-    l = await Casts.find({
-      threadHash: e,
-      deletedAt: null,
-      timestamp: {
-        $lt: i || Date.now()
-      },
-      id: {
-        $lt: n || Number.MAX_SAFE_INTEGER
-      }
-    }).sort({
+  o = {
+    threadHash: e,
+    deletedAt: null,
+    timestamp: {
+      $lt: n || Date.now()
+    },
+    id: {
+      $lt: l || Number.MAX_SAFE_INTEGER
+    }
+  };
+  if (t && (o.parentHash = t), !c) {
+    c = await Casts.find(o).sort({
       timestamp: -1
-    }).limit(t);
+    }).limit(a);
     try {
-      await s.set(`getFarcasterCastsInThread:${e}:${t}:` + a, JSON.stringify(childrenCasts));
+      await i.set(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r, JSON.stringify(c));
     } catch (e) {
       console.error(e);
     }
   }
-  c = await Promise.all(l.map(e => getFarcasterCastByHash(e.hash, r, {
-    includeReply: !0
-  }))), i = await getFarcasterCastByHash(e, r);
-  let o = null;
-  return l.length === t && (o = l[l.length - 1].timestamp.getTime() + "-" + l[l.length - 1].id), 
-  [ [ i, ...c ], o ];
+  n = await Promise.all(c.map(async e => {
+    e = await getFarcasterCastByHash(e.hash, s, {
+      includeReply: !0
+    });
+    return e ? {
+      ...e,
+      childrenCasts: e.replies?.reply ? [ e.replies.reply ] : []
+    } : null;
+  })), l = await getFarcasterCastByHash(e, s);
+  let d = t;
+  var g = [];
+  for (l?.parentHash && (d = l.parentHash), t && (d = t); d && d !== e; ) {
+    var u = await getFarcasterCastByHash(d, s);
+    if (!u) break;
+    g.push(u), d = u.parentHash;
+  }
+  let h = null;
+  c.length === a && (h = c[c.length - 1].timestamp.getTime() + "-" + c[c.length - 1].id);
+  const y = new Map();
+  return [ l, ...g, ...n ].forEach(e => {
+    e && !y.has(e.hash) && y.set(e.hash, e);
+  }), [ Array.from(y.values()), h ];
 }, getFarcasterCasts = async ({
   fid: e,
   parentChain: t,
