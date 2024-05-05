@@ -4,7 +4,8 @@
 
 Superhubs are open-source hosts built by the team behind
 [Wield Labs](https://wield.xyz), used for apps such as
-[far.quest](https://far.quest) and [Cast](https://far.quest/cast).
+[far.quest](https://far.quest). To start building right away, check out
+[docs.far.quest](https://docs.far.quest).
 
 **See our developer documents at [`docs.far.quest`](https://docs.far.quest).**
 
