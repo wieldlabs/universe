@@ -1072,6 +1072,8 @@ const getSyncedChannelById = async e => {
       $lt: r || Date.now()
     },
     deletedAt: null
+  }).sort({
+    timestamp: -1
   }).limit(t), a)) try {
     await i.set(`getFarcasterCastRecasters:${e}:${t}:` + a, JSON.stringify(n));
   } catch (e) {

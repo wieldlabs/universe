@@ -563,6 +563,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   notificationType: 1,
   deletedAt: 1
 }), notificationsSchema.index({
+  toFid: 1,
+  fromFid: 1,
+  notificationType: 1,
+  deletedAt: 1
+}), notificationsSchema.index({
   "payload.linkHash": 1,
   deletedAt: 1
 }), notificationsSchema.index({
