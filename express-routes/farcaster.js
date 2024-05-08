@@ -581,12 +581,12 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/signed-key-requests", limiter, async (e, r) => {
   try {
-    var t = "0x" + e.query.key, a = {
+    var t, a, s = "0x" + e.query.key, n = {
       name: "Farcaster SignedKeyRequestValidator",
       version: "1",
       chainId: 10,
       verifyingContract: "0x00000000fc700472606ed4fa22623acf62c60553"
-    }, s = [ {
+    }, o = [ {
       name: "requestFid",
       type: "uint256"
     }, {
@@ -595,21 +595,23 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     }, {
       name: "deadline",
       type: "uint256"
-    } ], n = Math.floor(Date.now() / 1e3) + 86400, o = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY)._signTypedData(a, {
-      SignedKeyRequest: s
+    } ], c = Math.floor(Date.now() / 1e3) + 86400;
+    return process.env.FARCAST_KEY ? (t = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY)._signTypedData(n, {
+      SignedKeyRequest: o
     }, {
       requestFid: ethers.BigNumber.from(18548),
-      key: t,
-      deadline: ethers.BigNumber.from(n)
-    }), c = (await axios.post("https://api.warpcast.com/v2/signed-key-requests", {
+      key: s,
+      deadline: ethers.BigNumber.from(c)
+    }), a = (await axios.post("https://api.warpcast.com/v2/signed-key-requests", {
       requestFid: "18548",
-      deadline: n,
-      key: t,
-      signature: o
-    }))["data"];
-    return r.json({
-      result: c.result,
+      deadline: c,
+      key: s,
+      signature: t
+    }))["data"], r.json({
+      result: a.result,
       source: "v2"
+    })) : r.status(500).json({
+      error: "Not configured"
     });
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({
@@ -1142,8 +1144,8 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     if (!h || 0 === h.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var m = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], g = (await Promise.all(m.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
-    if (0 === g.length) return s.status(404).json({
+    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === m.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
@@ -1152,7 +1154,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
-        casts: g,
+        casts: m,
         trendHistory: v,
         tokenMetadata: r,
         tokenPriceHistory: t

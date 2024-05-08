@@ -1291,7 +1291,7 @@ const getSyncedChannelById = async e => {
       message: e.message,
       primaryType: e.primaryType
     }, t._signTypedData(e.domain, e.types, e.message);
-    throw new Error("Mnemonic key not found in environment variables");
+    throw new Error("Not configured!");
   })(e);
   throw new Error("Invalid signature params");
 }, createFrame = async (e = {}) => {
