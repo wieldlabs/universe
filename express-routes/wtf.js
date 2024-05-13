@@ -241,11 +241,11 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
     message: "Unauthorized"
   });
   let f;
-  var a = getMemcachedClient(), u = "contract:" + r.params.contractId;
+  var u = getMemcachedClient(), a = "contract:" + r.params.contractId;
   try {
-    var d = await a.get(u);
+    var d = await u.get(a);
     d ? f = JSON.parse(d.value) : (f = await Contract.findById(r.params.contractId), 
-    await a.set(u, JSON.stringify(f), {
+    await u.set(a, JSON.stringify(f), {
       lifetime: 604800
     }));
   } catch (t) {
@@ -297,8 +297,21 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         `;
         break;
       }
+      var l = "Wtf:Frame:MintedOut:" + f._id;
+      if ("1" === (await u.get(l))?.value) {
+        c = "https://i.imgur.com/zSqLZoV.png", m = `
+          <meta property="fc:frame:button:1" content="Install Action" />
+          <meta property="fc:frame:button:1:action" content="link" />
+          <meta property="fc:frame:button:1:target" content="${ACTION_URL}" />
+
+          <meta property="fc:frame:button:2" content="Create with /whoami" />
+          <meta property="fc:frame:button:2:action" content="link" />
+          <meta property="fc:frame:button:2:target" content="${CHANNEL_URL}" />
+        `;
+        break;
+      }
       let t = !0, e = {};
-      o && o.toString() !== i.toString() && ([ l, y, g ] = await Promise.all([ getFarcasterUserAndLinksByFid({
+      o && o.toString() !== i.toString() && ([ y, l, g ] = await Promise.all([ getFarcasterUserAndLinksByFid({
         fid: o,
         context: {
           fid: i
@@ -313,10 +326,10 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         context: {
           fid: i
         }
-      }) ]), e = l, t = l.isFollowing && (y.isFollowing || "274" === i.toString()) && (g.isFollowing || "251" === i.toString()));
-      l = r.query.count ? parseInt(r.query.count) : 0, y = 5 <= l;
-      if (!t && !y) {
-        c = "https://i.imgur.com/Bvfd03f.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustFollow=` + o + (n ? "&mustLikeAndRecast=" + n : ""), 
+      }) ]), e = y, t = y.isFollowing && (l.isFollowing || "274" === i.toString()) && (g.isFollowing || "251" === i.toString()));
+      y = r.query.count ? parseInt(r.query.count) : 0, l = 5 <= y;
+      if (!t && !l) {
+        c = "https://i.imgur.com/Bvfd03f.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${y + 1}&mustFollow=` + o + (n ? "&mustLikeAndRecast=" + n : ""), 
         m = `
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="https://warpcast.com/${e.username}" />
@@ -335,8 +348,8 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
       }
       let a;
       if (r.context.frameData?.frameActionBody?.castId?.hash && (a = "0x" + Buffer.from(r.context.frameData?.frameActionBody?.castId?.hash).toString("hex")), 
-      n && a && a !== TEST_HASH && !y) {
-        var [ g, y ] = await Promise.all([ Reactions.exists({
+      n && a && a !== TEST_HASH && !l) {
+        var [ g, l ] = await Promise.all([ Reactions.exists({
           targetHash: a,
           deletedAt: null,
           fid: i,
@@ -347,8 +360,8 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           reactionType: 2,
           fid: i
         }) ]);
-        if (!g || !y) {
-          c = "https://i.imgur.com/3urlLNk.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + n, 
+        if (!g || !l) {
+          c = "https://i.imgur.com/3urlLNk.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${y + 1}&mustLikeAndRecast=` + n, 
           m = `
           <meta property="fc:frame:button:1:action" content="post" />
           <meta property="fc:frame:button:1" content="Mint ➡️" />
@@ -405,8 +418,12 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           <meta property="fc:frame:button:4:target" content="${CHANNEL_URL}" />
         `;
       } catch (t) {
-        console.error(t), c = "https://i.imgur.com/zSqLZoV.png", s = "", m = `
-             
+        t.message?.includes?.("execution reverted: Total cap reached") ? (await u.set("Wtf:Frame:MintedOut:" + f._id, "1", {
+          lifetime: 604800,
+          noreply: !0
+        }), c = "https://i.imgur.com/zSqLZoV.png") : (c = "https://i.imgur.com/dDh20zB.png", 
+        Sentry.captureException(t)), s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${y + 1}&mustLikeAndRecast=` + n, 
+        m = `
           <meta property="fc:frame:button:1" content="Install Action" />
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="${ACTION_URL}" />
@@ -414,6 +431,9 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           <meta property="fc:frame:button:2" content="Create with /whoami" />
           <meta property="fc:frame:button:2:action" content="link" />
           <meta property="fc:frame:button:2:target" content="${CHANNEL_URL}" />
+
+          <meta property="fc:frame:button:3" content="try again 🔄" />
+          <meta property="fc:frame:button:3:action" content="post" />
         `;
       }
       break;
@@ -538,7 +558,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
           <meta property="fc:frame:button:1:action" content="post" />
           <meta property="fc:frame:button:1:post_url" content="${p}?step=fillSet" />
         `, n.length && (c += `
-          <meta property="fc:frame:button:2" content="Done (${n.length} images)" />
+          <meta property="fc:frame:button:2" content="Done (${n.length} ${1 === n.length ? "image" : "images"})" />
           <meta property="fc:frame:button:2:action" content="post" />
           <meta property="fc:frame:post_url" content="${p}?step=chooseSetImage&isSet=true" />
           `);
@@ -561,7 +581,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
       break;
 
      case "mustLikeAndRecast":
-      var f = 1 === parseInt(e.body?.untrustedData?.buttonIndex) ? e.context.frameData.fid : null;
+      var f = 1 === parseInt(e.body?.untrustedData?.buttonIndex) ? e.context.isExternal ? e.context.connectedAddress : e.context.frameData.fid : null;
       s = "https://i.imgur.com/PgFh6wI.png", c = `
                 <meta property="fc:frame:button:1" content="Yes" />
           <meta property="fc:frame:button:1:action" content="post" />

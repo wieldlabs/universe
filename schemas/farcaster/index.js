@@ -172,6 +172,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     external: !1
   },
   expireAfterSeconds: 0
+}), castsSchema.index({
+  threadHash: 1,
+  deletedAt: 1,
+  timestamp: -1,
+  parentHash: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -226,6 +231,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     external: !1
   },
   expireAfterSeconds: 0
+}), reactionsSchema.index({
+  fid: 1,
+  targetFid: 1,
+  reactionType: 1,
+  deletedAt: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {

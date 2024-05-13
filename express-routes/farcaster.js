@@ -87,9 +87,8 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
 
 let _hubClient;
 
-const authContext = async (r, e, t) => {
-  var a = _hubClient || ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS);
-  _hubClient = a;
+const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), authContext = async (r, e, t) => {
+  var a = getHubClient();
   try {
     if (r.context && r.context.accountId && r.context.hubClient) return t();
     var s = new _FarcasterHubService(), n = await requireAuth(r.headers.authorization || "");
@@ -571,6 +570,28 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       bodyOverrides: e.body.bodyOverrides
     });
     t.json(a);
+  } catch (e) {
+    Sentry.captureException(e), console.error(e);
+    let r = "Internal Server Error";
+    e?.message?.includes("no storage") ? r = "No active storage for this FID, buy a storage unit at far.quest!" : e?.message?.includes("invalid signer") && (r = "Invalid signer! If this error persists, try logging out and logging in again."), 
+    t.status(500).json({
+      error: r
+    });
+  }
+}), app.post("/v3/message", [ heavyLimiter ], async (e, t) => {
+  var r = getHubClient(), a = e.body.fid;
+  try {
+    var s = await postMessage({
+      isExternal: e.body.isExternal || a.startsWith("0x") || !1,
+      externalFid: a,
+      messageJSON: e.body.message,
+      hubClient: r,
+      errorHandler: e => {
+        Sentry.captureException(e), console.error(e);
+      },
+      bodyOverrides: e.body.bodyOverrides
+    });
+    t.json(s);
   } catch (e) {
     Sentry.captureException(e), console.error(e);
     let r = "Internal Server Error";
