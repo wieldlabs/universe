@@ -129,6 +129,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   type: {
     type: String,
     enum: [ "FRAME" ]
+  },
+  tag: {
+    type: String
   }
 }, {
   timestamps: !0
@@ -177,6 +180,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   deletedAt: 1,
   timestamp: -1,
   parentHash: 1
+}), castsSchema.index({
+  tag: 1,
+  deletedAt: 1,
+  timestamp: -1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -375,6 +382,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   fid: 1,
   deletedAt: 1
 }), userDataSchema.index({
+  fid: "text",
+  deletedAt: 1
+}), userDataSchema.index({
   value: "text",
   type: 1,
   deletedAt: 1
@@ -440,6 +450,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     required: !0,
     unique: !0
   },
+  fid: {
+    type: String
+  },
   custodyAddress: {
     type: String,
     required: !0
@@ -451,11 +464,20 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   external: {
     type: Boolean,
     default: !1
+  },
+  deletedAt: {
+    type: Date
   }
 }, {
   timestamps: !0
 })), linksSchema = (fnamesSchema.index({
+  fname: 1,
+  deletedAt: 1
+}), fnamesSchema.index({
   custodyAddress: 1,
+  deletedAt: 1
+}), fnamesSchema.index({
+  fid: 1,
   deletedAt: 1
 }), new mongoose.Schema({
   fid: {
@@ -544,7 +566,8 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   },
   notificationType: {
     type: String,
-    required: !0
+    required: !0,
+    enum: [ "link", "reply", "reaction", "mention" ]
   },
   fromFid: {
     type: String,
@@ -565,14 +588,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }, {
   timestamps: !0
 })), offerSchema = (notificationsSchema.index({
-  toFid: 1,
-  notificationType: 1,
-  deletedAt: 1
-}), notificationsSchema.index({
-  fromFid: 1,
-  notificationType: 1,
-  deletedAt: 1
-}), notificationsSchema.index({
   toFid: 1,
   fromFid: 1,
   notificationType: 1,
@@ -599,6 +614,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     external: !1
   },
   expireAfterSeconds: 7776e3
+}), notificationsSchema.index({
+  "payload.castHash": 1,
+  notificationType: 1,
+  fromFid: 1,
+  toFid: 1
 }), new mongoose.Schema({
   buyerAddress: {
     type: String,

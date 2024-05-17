@@ -17,7 +17,7 @@ class FarcasterHubService {
   async getFidByAccount(e, r) {
     var t;
     return e ? (t = this._getSigner(e, r)) ? t.id : (await e.populate("addresses"), 
-    t = e.addresses[0].address, r ? t : await getFarcasterFidByCustodyAddress(t)) : null;
+    t = e.addresses[0].address, r ? t?.toLowerCase?.() : await getFarcasterFidByCustodyAddress(t?.toLowerCase?.())) : null;
   }
   isExternalAccount(e) {
     return !e.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type);

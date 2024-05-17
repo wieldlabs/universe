@@ -127,19 +127,19 @@ class AuthService {
           params: {
             token: a
           }
-        }))["data"], o = i.result.signedKeyRequest;
-        if ("completed" === o.state) {
-          r = o;
+        }))["data"], s = i.result.signedKeyRequest;
+        if ("completed" === s.state) {
+          r = s;
           break;
         }
       }
       if (60 <= e) throw new Error("Timeout");
       const l = r.userFid.toString();
-      var s = (await getCustodyAddress({
+      var o = (await getCustodyAddress({
         fid: l,
         token: process.env.FARQUEST_FARCASTER_APP_TOKEN
       }))["custodyAddress"], c = await Account.findOrCreateByAddressAndChainId({
-        address: s,
+        address: o,
         chainId: n,
         creationOrigin: "WARPCAST"
       });
@@ -171,16 +171,16 @@ class AuthService {
         signature: a
       }))["account"];
       if (n?.deleted) throw new Error("Account is deleted");
-      var i, o, s = new _AccountRecovererService();
-      const c = await s.verifyFarcasterSignerAndGetFid(n, {
+      var i, s, o = new _AccountRecovererService();
+      const c = await o.verifyFarcasterSignerAndGetFid(n, {
         signerAddress: r,
         custodyAddress: e
       });
-      if (c) return (i = n.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type && e.pubKey === r && e.id === c.toString())) ? [ n, i ] : [ o = await s.addRecoverer(n, {
+      if (c) return (i = n.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type && e.pubKey === r && e.id === c.toString())) ? [ n, i ] : [ s = await o.addRecoverer(n, {
         type: "FARCASTER_SIGNER",
         address: r,
         id: c
-      }), this._getRecoverer(o, {
+      }), this._getRecoverer(s, {
         id: c.toString(),
         type: "FARCASTER_SIGNER",
         address: r
@@ -200,8 +200,8 @@ class AuthService {
         email: r
       }))?.deleted) throw new Error("Account is deleted");
       if (A) throw new Error("Account already exists");
-      var a = JSON.parse(e), n = a.response.clientDataJSON, i = a.response.attestationObject, o = bufferToAB(base64url.toBuffer(a.id)), {
-        id: s,
+      var a = JSON.parse(e), n = a.response.clientDataJSON, i = a.response.attestationObject, s = bufferToAB(base64url.toBuffer(a.id)), {
+        id: o,
         type: c
       } = a;
       if ("public-key" !== c) throw new Error("Invalid PassKey type");
@@ -215,8 +215,8 @@ class AuthService {
         origin: "production" === process.env.NODE_ENV ? "https://beb.lol" : "http://localhost:5678",
         factor: "either"
       }, l = await d.attestationResult({
-        rawId: o,
-        id: o,
+        rawId: s,
+        id: s,
         response: {
           ...a.response,
           attestationObject: i,
@@ -226,10 +226,10 @@ class AuthService {
         address: l.authnrData.get("credentialPublicKeyPem"),
         chainId: t,
         email: r
-      }), w = await AccountAddress.findOne({
+      }), h = await AccountAddress.findOne({
         account: A._id
       });
-      return w.counter = l.authnrData.get("counter"), w.passKeyId = s, await w.save(), 
+      return h.counter = l.authnrData.get("counter"), h.passKeyId = o, await h.save(), 
       A;
     } catch (e) {
       throw console.error(e), new Error("Could not parse PassKey signature");
@@ -242,22 +242,22 @@ class AuthService {
     type: a = "SIGNATURE",
     id: n
   }) {
-    let i = null, o = !0, s = null;
+    let i = null, s = !0, o = null;
     "PASSKEY" === a ? i = await this.authByPassKey({
       signature: t,
       email: e,
       chainId: r
-    }) : "WARPCAST" === a ? ([ i, s ] = await this.authByWarpcast({
+    }) : "WARPCAST" === a ? ([ i, o ] = await this.authByWarpcast({
       address: e,
       token: t,
       fid: n,
       chainId: r
-    }), o = !1) : "FID" === a ? ([ i, s ] = await this.authByFid({
+    }), s = !1) : "FID" === a ? ([ i, o ] = await this.authByFid({
       address: e,
       signature: t,
       id: n,
       chainId: r
-    }), o = !1) : i = "0x0magiclink" == e ? await this.authByEmail({
+    }), s = !1) : i = "0x0magiclink" == e ? await this.authByEmail({
       address: e,
       chainId: r,
       signature: t
@@ -267,11 +267,45 @@ class AuthService {
       signature: t
     });
     a = {
-      isExternal: o
+      isExternal: s
     };
-    return s && (a.signerId = s.id, a.signerPubKey = s.address), this._generateNonceAndAccessToken({
+    return o && (a.signerId = o.id, a.signerPubKey = o.address), this._generateNonceAndAccessToken({
       account: i,
       extra: a
+    });
+  }
+  async authenticateWithSigner({
+    address: e,
+    chainId: r,
+    signature: t,
+    signerData: a
+  }) {
+    let n = !0;
+    let i = null, s = null;
+    r = await this.authBySignature({
+      address: e,
+      chainId: r,
+      signature: t
+    }), a && (o = await (t = new _AccountRecovererService()).getFid(r, {
+      custodyAddress: e
+    }), s = (i = 0 != o?.toNumber() ? (await t.addOrGetSigner(r, {
+      signerAddress: a.recovererAddress,
+      signature: a.signature,
+      deadline: a.deadline,
+      metadata: a.metadata,
+      fid: o,
+      custodyAddress: e
+    }), n = !1, o) : (n = !0, e), a.recovererAddress), e = {
+      id: o,
+      type: o ? "FARCASTER_SIGNER" : "FARCASTER_SIGNER_EXTERNAL",
+      address: a.recovererAddress
+    }, await t.addRecoverer(r, e));
+    var o = {
+      isExternal: n
+    };
+    return i && (o.signerId = i), s && (o.signerPubKey = s), this._generateNonceAndAccessToken({
+      account: r,
+      extra: o
     });
   }
   async authByEncryptedWalletJson({
@@ -283,8 +317,8 @@ class AuthService {
     var n = await Account.findOne({
       walletEmail: e
     }), i = "0x" + JSON.parse(r).address;
-    let o;
-    if (n) o = await this.authBySignature({
+    let s;
+    if (n) s = await this.authBySignature({
       address: i,
       chainId: t,
       signature: a
@@ -294,14 +328,14 @@ class AuthService {
         data: n,
         signature: a
       }).toLowerCase() !== i.toLowerCase()) throw new Error("Unauthorized");
-      o = await Account.createFromEncryptedWalletJson({
+      s = await Account.createFromEncryptedWalletJson({
         email: e,
         encyrptedWalletJson: r,
         chainId: t
       });
     }
     return this._generateNonceAndAccessToken({
-      account: o
+      account: s
     });
   }
 }

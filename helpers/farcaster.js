@@ -498,7 +498,9 @@ const getSyncedChannelById = async e => {
       type: UserDataType.USER_DATA_TYPE_DISPLAY,
       deletedAt: null
     }, {
-      fid: "" + e,
+      fid: e?.startsWith("0x") ? {
+        $regex: "^" + e
+      } : "" + e,
       deletedAt: null
     } ]
   }, r || (l.external = !1), s = await UserData.find(l).limit(t).sort(a);
@@ -507,7 +509,7 @@ const getSyncedChannelById = async e => {
   r = await Promise.all(e.map(e => getFarcasterUserByFid(e)));
   try {
     await n.set(getHash(i), JSON.stringify(r), {
-      lifetime: 3600
+      lifetime: 300
     });
   } catch (e) {
     console.error(e);
@@ -798,8 +800,7 @@ const getSyncedChannelById = async e => {
     } : null;
   })), l = await getFarcasterCastByHash(e, s);
   let d = t;
-  var g = [];
-  for (l?.parentHash && (d = l.parentHash), t && (d = t); d && d !== e; ) {
+  for (var g = []; d && d !== e; ) {
     var u = await getFarcasterCastByHash(d, s);
     if (!u) break;
     g.push(u), d = u.parentHash;
@@ -1088,8 +1089,7 @@ const getSyncedChannelById = async e => {
   context: a = {},
   explore: r = !1
 }) => {
-  var s = getMemcachedClient(), [ i, n ] = t ? t.split("-") : [ null, null ], i = (Date.now(), 
-  {
+  var s = getMemcachedClient(), [ i, n ] = t ? t.split("-") : [ null, null ], i = {
     timestamp: {
       $lt: i || Date.now()
     },
@@ -1097,7 +1097,7 @@ const getSyncedChannelById = async e => {
       $lt: n || Number.MAX_SAFE_INTEGER
     },
     deletedAt: null
-  });
+  };
   r && (i.globalScore = {
     $gt: GLOBAL_SCORE_THRESHOLD
   });
@@ -1126,7 +1126,7 @@ const getSyncedChannelById = async e => {
   o[t.author.fid] = o[t.author.fid] ? o[t.author.fid] + 1 : 1) : (e[t.hash] = t, 
   o[t.author.fid] = o[t.author.fid] ? o[t.author.fid] + 1 : 1)), e), {});
   let d = null;
-  return l.length === e && (d = l[l.length - 1].timestamp.getTime() + "-" + l[l.length - 1].id), 
+  return l.length >= e && (d = l[l.length - 1].timestamp.getTime() + "-" + l[l.length - 1].id), 
   [ Object.values(i), d ];
 }, getFarcasterUnseenNotificationsCount = async ({
   lastSeen: e,
@@ -1284,7 +1284,7 @@ const getSyncedChannelById = async e => {
     deadline: t
   });
   if (e.message) return (async e => {
-    var t = config().FARCAST_KEY;
+    var t = config().FARCAST_KEY || config().MOCK_SIGNER_KEY;
     if (t) return t = ethers.Wallet.fromMnemonic(t), e = {
       domain: e.domain,
       types: e.types,

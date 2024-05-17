@@ -2,7 +2,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), _Auth
   heavyLimiter,
   authContext,
   limiter
-} = require("../helpers/express-middleware"), FarcasterHubService = require("../services/identities/FarcasterHubService")["Service"], AccountInvite = require("../models/AccountInvite")["AccountInvite"], {
+} = require("../helpers/express-middleware"), AccountInvite = require("../models/AccountInvite")["AccountInvite"], {
   getFarcasterUserByFid,
   getFarcasterUserByCustodyAddress
 } = require("../helpers/farcaster");
@@ -13,7 +13,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
     var {
       account: r,
       accessToken: t
-    } = await new _AuthService().authenticate(e);
+    } = await new _AuthService().authenticateWithSigner(e);
     s.status(201).json({
       code: "201",
       success: !0,
@@ -65,7 +65,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
     await r.populate("addresses profileImage");
     var t = r.addresses[0].address?.toLowerCase(), [ c, a, o ] = await Promise.all([ AccountInvite.findOrCreate({
       accountId: r._id
-    }), getFarcasterUserByCustodyAddress(t), getFarcasterUserByFid(t) ]);
+    }), getFarcasterUserByCustodyAddress(t), getFarcasterUserByFid(t) ]), n = a || o;
     s.status(201).json({
       code: "201",
       success: !0,
@@ -74,7 +74,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
         ...r.toObject(),
         invite: c,
         identities: {
-          farcaster: a || o
+          farcaster: n
         }
       }
     });
@@ -88,20 +88,24 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
 }), app.post("/v1/add-recoverer", [ limiter, authContext ], async (e, s) => {
   var r = e.context.account;
   if (!r) throw new Error("Account not found");
-  e = e.body.recovererAddress;
+  var {
+    recovererAddress: e,
+    type: t,
+    id: c
+  } = e.body;
   if (!e) throw new Error("RecovererAddress is required");
   await r.populate("addresses");
   try {
-    var t = await new _AccountRecovererService().addRecoverer(r, {
-      id: r.addresses[0].address,
-      type: "FARCASTER_SIGNER_EXTERNAL",
+    var a = await new _AccountRecovererService().addRecoverer(r, {
+      id: c || r.addresses[0].address,
+      type: t || "FARCASTER_SIGNER_EXTERNAL",
       address: e
     });
     s.status(201).json({
       code: "201",
       success: !0,
       message: "Recoverer added successfully",
-      result: t
+      result: a
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), s.status(500).json({

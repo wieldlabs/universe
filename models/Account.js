@@ -1,4 +1,7 @@
-const mongoose = require("mongoose"), get = require("lodash/get"), pick = require("lodash/pick"), Magic = require("@magic-sdk/admin")["Magic"], ChainHelpers = require("../helpers/chain"), AccountAddress = require("./AccountAddress")["AccountAddress"], AccountNonce = require("./AccountNonce")["AccountNonce"], AccountExp = require("./AccountExp")["AccountExp"], Image = require("./Image")["Image"], Post = require("./Post")["Post"], schema = require("../schemas/account")["schema"], generateNewAccessTokenFromAccount = require("../helpers/jwt")["generateNewAccessTokenFromAccount"], validateAndConvertAddress = require("../helpers/validate-and-convert-address")["validateAndConvertAddress"], ContentService = require("../services/ContentService")["Service"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], Sentry = require("@sentry/node");
+const mongoose = require("mongoose"), get = require("lodash/get"), pick = require("lodash/pick"), Magic = require("@magic-sdk/admin")["Magic"], ChainHelpers = require("../helpers/chain"), {
+  getFarcasterUserByCustodyAddress,
+  getFarcasterUserByFid
+} = require("../helpers/farcaster"), AccountAddress = require("./AccountAddress")["AccountAddress"], AccountNonce = require("./AccountNonce")["AccountNonce"], AccountExp = require("./AccountExp")["AccountExp"], Image = require("./Image")["Image"], Post = require("./Post")["Post"], Expo = require("expo-server-sdk")["Expo"], schema = require("../schemas/account")["schema"], generateNewAccessTokenFromAccount = require("../helpers/jwt")["generateNewAccessTokenFromAccount"], validateAndConvertAddress = require("../helpers/validate-and-convert-address")["validateAndConvertAddress"], ContentService = require("../services/ContentService")["Service"], _CacheService = require("../services/cache/CacheService")["Service"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], Sentry = require("@sentry/node");
 
 class AccountClass {
   static ping() {
@@ -43,11 +46,11 @@ class AccountClass {
     chainId: t
   }) {
     try {
-      var n = "0x" + JSON.parse(a).address, s = await this.findOne({
+      var s = "0x" + JSON.parse(a).address, n = await this.findOne({
         walletEmail: e
       });
-      return s ? s : await this.createFromAddress({
-        address: n,
+      return n ? n : await this.createFromAddress({
+        address: s,
         chainId: t,
         walletEmail: e,
         encyrptedWalletJson: a
@@ -70,22 +73,22 @@ class AccountClass {
     address: e,
     chainId: a,
     email: t,
-    walletEmail: n,
-    encyrptedWalletJson: s,
-    creationOrigin: i
+    walletEmail: s,
+    encyrptedWalletJson: n,
+    creationOrigin: r
   }) {
-    var r = await mongoose.startSession();
-    r.startTransaction();
+    var i = await mongoose.startSession();
+    i.startTransaction();
     try {
       if (!get(ChainHelpers, `chainTable[${a}]`)) throw new Error("Invalid chain id");
-      var c = validateAndConvertAddress(e, a), o = await this.findByAddressAndChainId({
-        address: c,
+      var o = validateAndConvertAddress(e, a), c = await this.findByAddressAndChainId({
+        address: o,
         chainId: a
       });
-      if (o?.deleted) throw new Error("Account is deleted");
-      if (o) return o;
+      if (c?.deleted) throw new Error("Account is deleted");
+      if (c) return c;
       var d = new AccountNonce(), l = new AccountExp(), u = new AccountAddress({
-        address: c,
+        address: o,
         chain: {
           chainId: a,
           name: ChainHelpers.mapChainIdToName(a)
@@ -94,38 +97,38 @@ class AccountClass {
         email: t,
         addresses: [ u._id ],
         activities: {},
-        walletEmail: n,
-        encyrptedWalletJson: s,
-        creationOrigin: i
+        walletEmail: s,
+        encyrptedWalletJson: n,
+        creationOrigin: r
       } ], {
-        session: r
+        session: i
       });
       u.account = h._id, d.account = h._id, l.account = h._id, await u.save({
-        session: r
+        session: i
       }), await d.save({
-        session: r
+        session: i
       }), await l.save({
-        session: r
+        session: i
       });
       try {
         await this.findByAddressAndChainId({
-          address: c,
+          address: o,
           chainId: a
         });
       } catch (e) {
         throw await h.delete({
-          session: r
+          session: i
         }), await u.delete({
-          session: r
+          session: i
         }), await d.delete({
-          session: r
+          session: i
         }), await l.delete({
-          session: r
+          session: i
         }), e;
       }
-      return await r.commitTransaction(), r.endSession(), h;
+      return await i.commitTransaction(), i.endSession(), h;
     } catch (e) {
-      throw await r.abortTransaction(), r.endSession(), e;
+      throw await i.abortTransaction(), i.endSession(), e;
     }
   }
   static async findByAddressAndChainId({
@@ -133,26 +136,26 @@ class AccountClass {
     chainId: a
   }) {
     var t = getMemcachedClient(), e = validateAndConvertAddress(e, a);
-    let n;
+    let s;
     try {
-      var s = await t.get(`Account:findByAddressAndChainId:${a}:` + e);
-      s && (n = s.value);
+      var n = await t.get(`Account:findByAddressAndChainId:${a}:` + e);
+      n && (s = n.value);
     } catch (e) {
       console.error(e);
     }
-    if (!n) {
-      s = await AccountAddress.findOne({
+    if (!s) {
+      n = await AccountAddress.findOne({
         address: e
       });
-      if (!(n = s?.account)) return null;
+      if (!(s = n?.account)) return null;
       try {
-        await t.set(`Account:findByAddressAndChainId:${a}:` + e, n.toString());
+        await t.set(`Account:findByAddressAndChainId:${a}:` + e, s.toString());
       } catch (e) {
         console.error(e);
       }
     }
-    s = await this.findById(n);
-    if (s) return s;
+    n = await this.findById(s);
+    if (n) return n;
     throw new Error(`AccountAddress has a null account for address ${e} and chainId ${a}!`);
   }
   static async findOrCreateByAddressAndChainId({
@@ -176,13 +179,13 @@ class AccountClass {
       chainId: a
     });
     if (!a) throw new Error("Account not found");
-    var n = await AccountNonce.findOne({
+    var s = await AccountNonce.findOne({
       account: a._id
     });
-    if ((await n.decodeAddressBySignature(t)).toLowerCase() !== e.toLowerCase()) throw new Error("Unauthorized");
-    if (n) return {
+    if ((await s.decodeAddressBySignature(t)).toLowerCase() !== e.toLowerCase()) throw new Error("Unauthorized");
+    if (s) return {
       account: a,
-      accountNonce: n
+      accountNonce: s
     };
     throw new Error("AccountNonce not found");
   }
@@ -191,29 +194,29 @@ class AccountClass {
     chainId: a,
     signature: t
   }) {
-    let n, s;
+    let s, n;
     if ("0x0magiclink" == e) {
-      var i = new Magic(process.env.MAGIC_LINK_SECRET), i = (await i.token.validate(t), 
-      await i.users.getMetadataByToken(t));
-      if (!(n = await this.findOne({
-        email: i.email
+      var r = new Magic(process.env.MAGIC_LINK_SECRET), r = (await r.token.validate(t), 
+      await r.users.getMetadataByToken(t));
+      if (!(s = await this.findOne({
+        email: r.email
       }))) throw new Error("Account not found");
-      s = await AccountNonce.findOne({
-        account: n._id
+      n = await AccountNonce.findOne({
+        account: s._id
       });
     } else {
-      i = await Account.verifySignature({
+      r = await Account.verifySignature({
         address: e,
         chainId: a,
         signature: t
       });
-      n = i.account, s = i.accountNonce;
+      s = r.account, n = r.accountNonce;
     }
-    await s.generateNewNonce();
-    e = await generateNewAccessTokenFromAccount(n);
+    await n.generateNewNonce();
+    e = await generateNewAccessTokenFromAccount(s);
     return {
-      account: n,
-      accountNonce: s,
+      account: s,
+      accountNonce: n,
       accessToken: e
     };
   }
@@ -232,7 +235,14 @@ class AccountClass {
     void 0 !== e.bio && (this.bio = new ContentService().makeContent({
       contentRaw: e.bio
     })), void 0 !== e.expoPushToken && ((a = new Set(this.expoPushTokens || [])).add(e.expoPushToken), 
-    this.expoPushTokens = [ ...a ]), this.save();
+    this.expoPushTokens = Array.from(a).filter(Expo.isExpoPushToken), this.expoPushTokens = Array.from(a).slice(-5), 
+    await this.populate("addresses"), e = this.addresses[0].address?.toLowerCase(), 
+    [ a, e ] = await Promise.all([ getFarcasterUserByCustodyAddress(e), getFarcasterUserByFid(e) ]), 
+    a = a || e) && await new _CacheService().set({
+      key: "expoTokens:" + a.fid,
+      value: this.expoPushTokens,
+      expiresAt: null
+    }), this.save();
   }
   get addressId() {
     return get(this, "addresses[0]", null);
