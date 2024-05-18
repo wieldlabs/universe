@@ -31,7 +31,7 @@ async function createContract({
 }) {
   try {
     if (!(e && a && r && o)) throw new Error("Missing required fields!");
-    var c = process.env.FARCAST_KEY;
+    var c = process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY;
     if (!c) throw new Error("Not configured!");
     var s = ethers.Wallet.fromMnemonic(c), m = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), p = s.connect(m), i = await new ethers.Contract(factoryContractAddress, factoryContractAbi.abi, p).deployCappedNFTContract(e, a, r, o, n), f = (console.log("Deploying mint contract"), 
     console.log(i), await i.wait());
@@ -185,7 +185,7 @@ async function mint({
   contractAddress: e
 }) {
   try {
-    var a, r, o = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), n = process.env.FARCAST_KEY;
+    var a, r, o = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), n = process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY;
     if (n) return a = ethers.Wallet.fromMnemonic(n).connect(o), r = await new ethers.Contract(factoryContractAddress, factoryContractAbi.abi, a).mintNftContract(e, t), 
     console.log(`Mint successful for address: ${t}, txHash: ` + r.hash), r;
     throw new Error("Not configured!");

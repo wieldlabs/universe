@@ -21,7 +21,9 @@ const BebRegistryBetaController = require("./abi/beb-controller-abi.json"), BebR
   BASE_CONTROLLER_ADDRESS: "0x0000000000000000000000000000000000000000",
   BASE_CONTROLLER_ABI: BebRegistryBetaController.abi,
   FARCAST_FID: 18548,
+  FARCAST_STAGING_FID: 0,
   FARCAST_KEY: process.env.FARCAST_KEY,
+  FARCAST_STAGING_KEY: process.env.FARCAST_STAGING_KEY,
   MOCK_SIGNER_KEY: "divert visual loan bachelor ready enlist put into tray camera left six"
 }), prod = () => ({
   NODE_URL: process.env.HOMESTEAD_NODE_URL,
@@ -45,6 +47,8 @@ const BebRegistryBetaController = require("./abi/beb-controller-abi.json"), BebR
   REGISTRAR_ABI: BebRegistrar.abi,
   FARCAST_FID: 18548,
   FARCAST_KEY: process.env.FARCAST_KEY,
+  FARCAST_STAGING_FID: 0,
+  FARCAST_STAGING_KEY: process.env.FARCAST_STAGING_KEY,
   MOCK_SIGNER_KEY: "divert visual loan bachelor ready enlist put into tray camera left six"
 }), config = "production" === process.env.NODE_ENV ? prod : dev;
 

@@ -74,7 +74,7 @@ http.createServer(app));
       type: "string",
       default: ".env",
       description: "Path to .env file"
-    }), e.option("bypass-prod-env-check", {
+    }), e.option("bypass-prod-env-check-emergency", {
       type: "boolean",
       default: !1,
       description: "Bypass the production environment check"
@@ -91,7 +91,7 @@ http.createServer(app));
     var t = [ "FARCAST_KEY" ];
     if ("self-hosted" === process.env.MODE ? console.log("Superhub is running in self-hosted mode! 😎") : (console.log("Superhub is running in default mode! 👀"), 
     r = r.concat([ "EXPO_ACCESS_TOKEN", "BEB_FARCASTER_APP_TOKEN", "SENTRY_DSN", "HOMESTEAD_NODE_URL" ])), 
-    "production" !== process.env.NODE_ENV && !e.bypassProdEnvCheck && t.some(e => process.env[e])) return console.error(t.join(", ") + " is set. Remove it from your .env file! Or use --bypass-prod-env-check"), 
+    "production" !== process.env.NODE_ENV && !e.bypassProdEnvCheckEmergency && t.some(e => process.env[e])) return console.error(t.join(", ") + " is set. Remove it from your .env file! Or use --bypass-prod-env-check-emergency"), 
     !0;
     0 < r.filter(e => {
       if (!process.env[e]) return console.error(e + " is not set. Please set it (e.g. .env file)!"), 

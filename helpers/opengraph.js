@@ -20,16 +20,16 @@ const axios = require("axios"), cheerio = require("cheerio"), {
     e(".twitter-tweet a:last-child").attr("href"));
     i && (a.url = i);
     var c, o = e(".twitter-tweet").text().match(/@(\w+)/);
-    return o && (c = o[1], a.title = `@${c}'s tweet`), a.title || (a.title = e(".twitter-tweet a:last-child").text() || "Twitter"), 
-    a.image = "/twitter.png", a.logo = "/twitter.png", a.domain = "twitter.com", 
+    return o && (c = o[1], a.title = `@${c}'s post`), a.title || (a.title = e(".twitter-tweet a:last-child").text() || "X"), 
+    a.image = "https://far.quest/x.png", a.logo = "https://far.quest/x.png", a.domain = "x.com", 
     a;
   } catch (t) {
-    throw new Error("Error extracting Twitter data with cheerio: " + t);
+    throw new Error("Error extracting X data with cheerio: " + t);
   }
 };
 
 async function fetchAndCacheOpenGraphData(t, e) {
-  var a = getMemcachedClient(), e = (t.includes("twitter.com") ? extractTwitterData : extractOpenGraphData)(e);
+  var a = getMemcachedClient(), e = (t.includes("twitter.com") || t.includes("x.com") ? extractTwitterData : extractOpenGraphData)(e);
   try {
     await a.set(getHash("getHtml:ogData:" + t), JSON.stringify(e), {
       lifetime: 86400
@@ -50,7 +50,7 @@ const getHtml = async e => {
   }
   let o;
   try {
-    o = e.includes("twitter.com") || e.includes("x.com") ? (t = (await axios.get("https://publish.twitter.com/oembed?url=" + e.replace("x.com", "twitter.com"), {
+    o = e.includes("twitter.com") || e.includes("x.com") ? (t = (await axios.get("https://publish.x.com/oembed?url=" + e.replace("twitter.com", "x.com"), {
       timeout: MAX_HTML_TIMEOUT,
       maxContentLength: MAX_HTML_CONTENT_LENGTH
     }))["data"], t.html) : (a = e.startsWith("http") ? e : "http://" + e, r = (await axios.get(a, {

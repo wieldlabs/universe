@@ -879,6 +879,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   count: {
     type: Number,
     default: 0
+  },
+  reporters: {
+    type: [ String ]
   }
 }, {
   timestamps: !0

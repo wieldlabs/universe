@@ -617,7 +617,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       name: "deadline",
       type: "uint256"
     } ], c = Math.floor(Date.now() / 1e3) + 86400;
-    return process.env.FARCAST_KEY ? (t = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY)._signTypedData(n, {
+    return process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY ? (t = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY)._signTypedData(n, {
       SignedKeyRequest: o
     }, {
       requestFid: ethers.BigNumber.from(18548),
@@ -1045,7 +1045,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
 }), app.post("/v2/reports", [ heavyLimiter, authContext ], async (e, r) => {
   try {
     if (!e.context.accountId) throw new Error("Unauthorized");
-    await createReport(e.body.fid), r.json({
+    await createReport(e.body.fid, e.context.fid), r.json({
       success: !0
     });
   } catch (e) {
@@ -1170,9 +1170,9 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Casts not found"
     });
     let r = null, t = [];
-    var f, S = v[v.length - 1];
-    return S?.contractAddress && (f = await Promise.allSettled([ fetchAssetMetadata(S.network, S.contractAddress), fetchPriceHistory(S.contractAddress, S.network, i) ]), 
-    r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
+    var S, f = v[v.length - 1];
+    return f?.contractAddress && (S = await Promise.allSettled([ fetchAssetMetadata(f.network, f.contractAddress), fetchPriceHistory(f.contractAddress, f.network, i) ]), 
+    r = "fulfilled" === S[0].status ? S[0].value : null, t = "fulfilled" === S[1].status ? S[1].value : []), 
     s.json({
       result: {
         casts: m,

@@ -9,7 +9,7 @@ class LinkClass {
   static async getHtml(e) {
     let a;
     var t;
-    return a = e.includes("twitter.com") ? (t = (await axios.get("https://publish.twitter.com/oembed?url=" + e, {
+    return a = e.includes("twitter.com") || e.includes("x.com") ? (t = (await axios.get("https://publish.x.com/oembed?url=" + e, {
       timeout: TIMEOUT
     }))["data"], t.html) : (t = (await axios.get(e, {
       headers: {
@@ -29,7 +29,7 @@ class LinkClass {
     if (e.includes(".dmg")) return a?.(null) || null;
     if (e.includes(".zip")) return a?.(null) || null;
     try {
-      var r, i, s, l, n, c, o, m, u, p, d, g, h, f, x, w, k, q;
+      var r, i, s, l, n, c, o, m, u, p, d, g, h, x, f, w, k, q;
       return e.includes("farcaster://") ? (r = process.env.BEB_FARCASTER_APP_TOKEN, 
       s = "https://api.warpcast.com/v2/cast?hash=" + (i = e.split("farcaster://casts/")[1].split("/")[0]), 
       l = (await axios.get(s, {
@@ -54,15 +54,15 @@ class LinkClass {
       {
         description: g,
         image: h,
-        title: f,
-        logo: x,
+        title: x,
+        logo: f,
         url: w,
         iframe: k
       } = (a?.(d), await metascraper({
         html: p,
         url: e
       })), q = k && -1 !== w?.indexOf("twitter") ? cleanIframeHtml(k) : null, d.url = w, 
-      d.title = f, d.description = g, d.image = h, d.logo = x, d.iframe = q, await d.save());
+      d.title = x, d.description = g, d.image = h, d.logo = f, d.iframe = q, await d.save());
     } catch (e) {
       return Sentry.captureException(e), console.error(e), t?.(e), null;
     }

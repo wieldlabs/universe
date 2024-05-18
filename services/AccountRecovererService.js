@@ -145,9 +145,9 @@ class AccountRecovererService {
     var d = getProvider({
       network: 10,
       node: process.env.OPTIMISM_NODE_URL
-    }), o = process.env.FARCAST_KEY;
+    }), o = process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY;
     if (!o) throw new Error("Not configured!");
-    var o = ethers.Wallet.fromMnemonic(o).connect(d), d = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, o), o = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, o), c = bytesToHex(new Uint8Array(Object.values(r))), d = await d.keyDataOf(t, c);
+    var o = ethers.Wallet.fromMnemonic(o).connect(d), d = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, o), o = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, o), c = r, d = await d.keyDataOf(t, c);
     if (1 === d?.state) return r;
     if (0 === d?.state) return 0, console.log({
       custodyAddress: a,
@@ -157,7 +157,11 @@ class AccountRecovererService {
       metadata: n,
       deadline: i,
       fidSignature: s
-    }), await (await o.addFor(a, 1, c, 1, n, i, s)).wait(), r;
+    }), await (await o.addFor(a, 1, c, 1, n, ethers.BigNumber.from(i), s, {
+      gasLimit: 25e4,
+      maxFeePerGas: ethers.utils.parseUnits("0.01", "gwei"),
+      maxPriorityFeePerGas: ethers.utils.parseUnits("0.01", "gwei")
+    })).wait(), r;
     throw new Error("Signer has been removed");
   }
   async getSigners(e, {

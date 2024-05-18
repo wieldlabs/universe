@@ -295,7 +295,7 @@ class AuthService {
       metadata: a.metadata,
       fid: o,
       custodyAddress: e
-    }), n = !1, o) : (n = !0, e), a.recovererAddress), e = {
+    }), n = !1, o.toNumber()) : (n = !0, e), a.recovererAddress), e = {
       id: o,
       type: o ? "FARCASTER_SIGNER" : "FARCASTER_SIGNER_EXTERNAL",
       address: a.recovererAddress
