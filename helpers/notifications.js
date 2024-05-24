@@ -10,9 +10,9 @@ const Expo = require("expo-server-sdk")["Expo"], _CacheService = require("../ser
       key: "expoTokens:" + a
     });
     if (i) {
-      var t = await getFarcasterUserByFid(e);
+      var t = e?.toString() || "", c = await getFarcasterUserByFid(e);
       let a;
-      var c = "fid:" + e.slice(0, 6) + (6 < e.length ? "..." : ""), s = t.displayName ? `${t.displayName} (@${t.username || c})` : "@" + (t.username || c);
+      var o = "fid:" + t.slice(0, 6) + (6 < t.length ? "..." : ""), s = c.displayName ? `${c.displayName} (@${c.username || o})` : "@" + (c.username || o);
       switch (r) {
        case "link":
         a = s + " followed you";

@@ -16,27 +16,24 @@ class CommunityQuestService extends QuestService {
     if (t?.type.includes("FARCASTER_")) {
       await s.account.populate?.("addresses");
       var i = s.account?.addresses?.[0]?.address;
-      for (const d of await new FarcasterServiceV2().getProfilesByAddress(i)) {
+      for (const o of await new FarcasterServiceV2().getProfilesByAddress(i)) {
         if ("FARCASTER_ACCOUNT" === t.type) return !0;
         if (t.type.includes("FARCASTER_CASTS_")) {
           if (parseInt(t.type.replace("FARCASTER_CASTS_", "")) <= await Casts.count({
-            fid: d._id,
+            fid: o._id,
             deletedAt: null
           })) return !0;
         } else if (t.type.includes("FARCASTER_FOLLOWERS_")) {
           var n = parseInt(t.type.replace("FARCASTER_FOLLOWERS_", ""));
-          if (d.followers >= n) return !0;
+          if (o.followers >= n) return !0;
         } else if (t.type.includes("FARCASTER_LIKES_")) {
           if (parseInt(t.type.replace("FARCASTER_LIKES_", "")) <= await Reactions.count({
-            fid: {
-              $ne: d._id
-            },
-            targetFid: d._id,
+            targetFid: o._id,
             reactionType: ReactionType.REACTION_TYPE_LIKE,
             deletedAt: null
           })) return !0;
         } else if ("FARCASTER_FARQUEST_TAGGED" === t.type) if (0 < (await Casts.find({
-          fid: d._id,
+          fid: o._id,
           mentions: {
             $in: [ parseInt(FARQUEST_FID) ]
           },

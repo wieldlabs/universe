@@ -2,7 +2,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   getFarcasterUserAndLinksByFid,
   getFarcasterCastByShortHash,
   getFarcasterCastByHash
-} = require("../helpers/farcaster"), config = require("../helpers/constants/config")["config"], Contract = require("../models/wallet/Contract")["Contract"], Token = require("../models/wallet/Token")["Token"], CacheService = require("../services/cache/CacheService")["Service"], cacheService = new CacheService(), generateImageWithText = require("../helpers/generate-image")["generateImageWithText"], crypto = require("crypto"), getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], Reactions = require("../models/farcaster")["Reactions"], getImageUrlOrUploadImage = require("../helpers/fetch-and-upload-image")["getImageUrlOrUploadImage"], heavyLimiter = rateLimit({
+} = require("../helpers/farcaster"), config = require("../helpers/constants/config")["config"], Contract = require("../models/wallet/Contract")["Contract"], Token = require("../models/wallet/Token")["Token"], CacheService = require("../services/cache/CacheService")["Service"], cacheService = new CacheService(), generateImageWithText = require("../helpers/generate-image")["generateImageWithText"], crypto = require("crypto"), {
+  getMemcachedClient,
+  getHash
+} = require("../connectmemcached"), Reactions = require("../models/farcaster")["Reactions"], getImageUrlOrUploadImage = require("../helpers/fetch-and-upload-image")["getImageUrlOrUploadImage"], heavyLimiter = rateLimit({
   windowMs: 6e4,
   max: 50,
   message: "Too many requests! See docs.far.quest for more info.",
@@ -16,7 +19,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   validate: {
     limit: !1
   }
-}), ACTION_URL = "https://warpcast.com/~/add-cast-action?url=https%3A%2F%2Fbuild.far.quest%2Fwtf%2Fv1%2Fframes%2Fadd-action", MAX_MINT_COUNT = 500, MAX_SET_IMAGES = 5, TEST_HASH = "0x0000000000000000000000000000000000000000", CHANNEL_URL = "https://warpcast.com/~/channel/whoami", factoryContractAddress = "0x831f011B38Fd707229B2D1fCF3C8a1964200c9fe", factoryContractInterfaceType = "WTF1";
+}), ACTION_URL = "https://warpcast.com/~/add-cast-action?url=https%3A%2F%2Fbuild.far.quest%2Fwtf%2Fv1%2Fframes%2Fadd-action", MAX_MINT_COUNT = 500, MAX_SET_IMAGES = 5, ANGRY_MODE_COUNT = 10, TEST_HASH = "0x0000000000000000000000000000000000000000", CHANNEL_URL = "https://warpcast.com/~/channel/whoami", factoryContractAddress = "0x831f011B38Fd707229B2D1fCF3C8a1964200c9fe", factoryContractInterfaceType = "WTF1";
 
 async function findCastImageFromHash(t) {
   return t ? (t = await getFarcasterCastByHash(t))?.embeds?.images?.[0]?.url || t?.embeds?.urls?.[0]?.openGraph?.image || t?.embeds?.urls?.[1]?.openGraph?.image || t?.embeds?.quoteCasts?.[0]?.embeds?.images?.[0]?.url || t?.embeds?.quoteCasts?.[0]?.embeds?.urls?.[0]?.openGraph?.image || t?.embeds?.quoteCasts?.[0]?.embeds?.urls?.[1]?.openGraph?.image || t?.embeds?.quoteCasts?.[1]?.embeds?.images?.[0]?.url || t?.embeds?.quoteCasts?.[1]?.embeds?.urls?.[0]?.openGraph?.image || t?.embeds?.quoteCasts?.[1]?.embeds?.urls?.[1]?.openGraph?.image : null;
@@ -31,7 +34,7 @@ async function createContract({
 }) {
   try {
     if (!(e && a && r && o)) throw new Error("Missing required fields!");
-    var c = process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY;
+    var c = process.env.FARCAST_KEY;
     if (!c) throw new Error("Not configured!");
     var s = ethers.Wallet.fromMnemonic(c), m = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), p = s.connect(m), i = await new ethers.Contract(factoryContractAddress, factoryContractAbi.abi, p).deployCappedNFTContract(e, a, r, o, n), f = (console.log("Deploying mint contract"), 
     console.log(i), await i.wait());
@@ -167,14 +170,22 @@ async function processCastOrImageUrl(e) {
     if (!e) return null;
     var a = e.trim(), r = getMemcachedClient();
     try {
-      var o = await r.get("WTF:processCastOrImageUrl:" + a);
+      var o = await r.get(getHash("WTF:processCastOrImageUrl:" + a));
       if (o) return o.value;
-    } catch (t) {}
+    } catch (t) {
+      console.error(t);
+    }
     let t;
-    return a.startsWith("https://client.warpcast.com/v2/cast-image") || a.startsWith("https://imagedelivery.net") ? a : (t = isWarpcastOrFarquestCastHash(a) ? await returnCastImageOrImage(a) : await getImageUrlOrUploadImage(a), 
-    await r.set("WTF:processCastOrImageUrl:" + a, t, {
-      lifetime: 86400
-    }), t);
+    if (a.startsWith("https://client.warpcast.com/v2/cast-image") || a.startsWith("https://imagedelivery.net")) return a;
+    t = isWarpcastOrFarquestCastHash(a) ? await returnCastImageOrImage(a) : await getImageUrlOrUploadImage(a);
+    try {
+      await r.set(getHash("WTF:processCastOrImageUrl:" + a), t, {
+        lifetime: 86400
+      });
+    } catch (t) {
+      console.error(t);
+    }
+    return t;
   } catch (t) {
     return Sentry.captureException(t), console.error(t), config().DEFAULT_URI + ("/contracts/v1/images?image=" + encodeURIComponent(e));
   }
@@ -185,7 +196,7 @@ async function mint({
   contractAddress: e
 }) {
   try {
-    var a, r, o = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), n = process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY;
+    var a, r, o = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), n = process.env.FARCAST_KEY;
     if (n) return a = ethers.Wallet.fromMnemonic(n).connect(o), r = await new ethers.Contract(factoryContractAddress, factoryContractAbi.abi, a).mintNftContract(e, t), 
     console.log(`Mint successful for address: ${t}, txHash: ` + r.hash), r;
     throw new Error("Not configured!");
@@ -327,7 +338,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           fid: i
         }
       }) ]), e = y, t = y.isFollowing && (l.isFollowing || "274" === i.toString()) && (g.isFollowing || "251" === i.toString()));
-      y = r.query.count ? parseInt(r.query.count) : 0, l = 5 <= y;
+      y = r.query.count ? parseInt(r.query.count) : 0, l = y >= ANGRY_MODE_COUNT;
       if (!t && !l) {
         c = "https://i.imgur.com/Bvfd03f.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${y + 1}&mustFollow=` + o + (n ? "&mustLikeAndRecast=" + n : ""), 
         m = `

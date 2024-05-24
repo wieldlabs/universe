@@ -720,30 +720,6 @@ const getSyncedChannelById = async e => {
     console.error(e);
   }
   return getFarcasterCastByHash(s, a);
-}, getFarcasterAllCastsInThread = async (e, t) => {
-  var a = getMemcachedClient();
-  let r;
-  try {
-    var s = await a.get("getFarcasterAllCastsInThread:" + e);
-    s && (r = JSON.parse(s.value).map(e => new Casts(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!r) {
-    r = await Casts.find({
-      threadHash: e,
-      deletedAt: null
-    }).sort({
-      timestamp: -1
-    }).limit(250);
-    try {
-      await a.set("getFarcasterAllCastsInThread:" + e, JSON.stringify(r));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  s = await Promise.all(r.map(e => getFarcasterCastByHash(e.hash, t)));
-  return [ await getFarcasterCastByHash(e, t), ...s ];
 }, getFarcasterCastsInThread = async ({
   threadHash: e,
   parentHash: t,
@@ -774,7 +750,9 @@ const getSyncedChannelById = async e => {
       timestamp: -1
     }).limit(a);
     try {
-      await i.set(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r, JSON.stringify(c));
+      await i.set(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r, JSON.stringify(c), {
+        lifetime: 60
+      });
     } catch (e) {
       console.error(e);
     }
@@ -1310,7 +1288,7 @@ const getSyncedChannelById = async e => {
     deadline: t
   });
   if (e.message) return (async e => {
-    var t = config().FARCAST_KEY || config().FARCAST_STAGING_KEY || config().MOCK_SIGNER_KEY;
+    var t = config().FARCAST_KEY || config().MOCK_SIGNER_KEY;
     if (t) return t = ethers.Wallet.fromMnemonic(t), e = {
       domain: e.domain,
       types: e.types,
@@ -1465,7 +1443,6 @@ module.exports = {
   getFarcasterUserByFid: getFarcasterUserByFid,
   getFarcasterUserByUsername: getFarcasterUserByUsername,
   getFarcasterCastByHash: getFarcasterCastByHash,
-  getFarcasterAllCastsInThread: getFarcasterAllCastsInThread,
   getFarcasterCastsInThread: getFarcasterCastsInThread,
   getFarcasterCasts: getFarcasterCasts,
   getFarcasterFollowing: getFarcasterFollowing,

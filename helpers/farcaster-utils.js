@@ -97,17 +97,26 @@ const frameContext = async (a, e, t) => {
     connectedAddress: a.body?.untrustedData?.fid
   }, t();
   try {
-    var r, s, n = Message.decode(Buffer.from(a.body.trustedData.messageBytes, "hex")), d = {
+    var r = Message.decode(Buffer.from(a.body.trustedData.messageBytes, "hex")), s = {
       ...a.context || {},
-      frameData: n.data,
+      frameData: r.data,
       untrustedData: a.body.untrustedData,
       verifiedFrameData: !0
     };
-    ethers.utils.isAddress(a.body.untrustedData?.fid) ? (d.isExternal = !0, d.connectedAddress = a.body?.untrustedData?.fid) : (r = await getConnectedAddressForFid(n.data.fid), 
-    d.isExternal = !1, (d.connectedAddress = r) || (s = await getCustodyAddressByFid(n.data.fid), 
-    d.connectedAddress = s)), a.context = d;
+    if (ethers.utils.isAddress(a.body.untrustedData?.fid)) s.isExternal = !0, s.connectedAddress = a.body?.untrustedData?.fid; else {
+      if (!r.data?.fid) throw new Error("FID is missing, no fallback external FID: " + JSON.stringify(r.data));
+      var n, d = await getConnectedAddressForFid(r.data.fid);
+      s.isExternal = !1, (s.connectedAddress = d) || (n = await getCustodyAddressByFid(r.data.fid), 
+      s.connectedAddress = n);
+    }
+    a.context = s;
   } catch (e) {
-    console.error(e), Sentry.captureException(e), a.context = {
+    console.error(e), Sentry.captureException(e, {
+      extra: {
+        body: a.body,
+        context: a.context
+      }
+    }), a.context = {
       ...a.context || {},
       frameData: a.body.untrustedData,
       untrustedData: a.body.untrustedData,

@@ -94,6 +94,11 @@ schema.index({
   factoryInterfaceType: 1,
   tokenCount: 1,
   createdAt: 1
+}), schema.index({
+  createdAt: -1
+}), schema.index({
+  tokenCount: -1,
+  createdAt: -1
 }), module.exports = {
   schema: schema
 };

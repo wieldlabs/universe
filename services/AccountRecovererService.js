@@ -7,34 +7,11 @@ const _CacheService = require("../services/cache/CacheService")["Service"], gene
   abi: idRegistrarAbi,
   address: idRegistrarAddress,
   gateway_registry_address: idGatewayRegistryAddress
-} = require("../helpers/abi/id-registrar"), getProvider = require("../helpers/alchemy-provider")["getProvider"], getFlags = require("../helpers/flags")["getFlags"];
-
-function bytesToHex(e) {
-  if (void 0 !== e) return null === e ? null : "0x" + Buffer.from(e).toString("hex");
-}
-
-const KEY_METADATA_TYPE_1 = [ {
-  components: [ {
-    internalType: "uint256",
-    name: "requestFid",
-    type: "uint256"
-  }, {
-    internalType: "address",
-    name: "requestSigner",
-    type: "address"
-  }, {
-    internalType: "bytes",
-    name: "signature",
-    type: "bytes"
-  }, {
-    internalType: "uint256",
-    name: "deadline",
-    type: "uint256"
-  } ],
-  internalType: "struct SignedKeyRequestValidator.SignedKeyRequestMetadata",
-  name: "metadata",
-  type: "tuple"
-} ];
+} = require("../helpers/abi/id-registrar"), getProvider = require("../helpers/alchemy-provider")["getProvider"], {
+  Alchemy,
+  Network,
+  Utils
+} = require("alchemy-sdk"), getFlags = require("../helpers/flags")["getFlags"];
 
 class AccountRecovererService {
   _accepableRecovererTypes = [ "PASSKEY", "FARCASTER_SIGNER", "FARCASTER_SIGNER_EXTERNAL" ];
@@ -49,10 +26,10 @@ class AccountRecovererService {
     try {
       var t = JSON.parse(e), a = t.response.clientDataJSON, s = t.response.attestationObject, i = this.bufferToAB(base64url.toBuffer(t.id)), {
         id: n,
-        type: d
+        type: o
       } = t;
-      if ("public-key" !== d) throw new Error("Invalid PassKey type");
-      var o = new fido2.Fido2Lib({
+      if ("public-key" !== o) throw new Error("Invalid PassKey type");
+      var d = new fido2.Fido2Lib({
         timeout: 6e4,
         challengeSize: 52,
         rpId: "production" === process.env.NODE_ENV ? "Wield" : "localhost",
@@ -63,7 +40,7 @@ class AccountRecovererService {
         factor: "either"
       };
       return {
-        ...await o.attestationResult({
+        ...await d.attestationResult({
           rawId: i,
           id: i,
           response: {
@@ -142,25 +119,31 @@ class AccountRecovererService {
     deadline: i,
     metadata: n
   }) {
-    var d = getProvider({
+    var o = getProvider({
       network: 10,
       node: process.env.OPTIMISM_NODE_URL
-    }), o = process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY;
-    if (!o) throw new Error("Not configured!");
-    var o = ethers.Wallet.fromMnemonic(o).connect(d), d = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, o), o = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, o), c = r, d = await d.keyDataOf(t, c);
-    if (1 === d?.state) return r;
-    if (0 === d?.state) return 0, console.log({
+    }), d = await new Alchemy({
+      apiKey: process.env.OPTIMISM_NODE_URL,
+      network: Network.OPT_MAINNET
+    }).core.getGasPrice(), d = Utils.formatUnits(d, "gwei"), c = ethers.utils.parseUnits(d, "gwei"), g = ethers.utils.parseUnits("0.1", "gwei");
+    if (c.gt(g)) throw new Error(`Gas price is too high: ${d} gwei`);
+    g = process.env.FARCAST_KEY;
+    if (!g) throw new Error("Not configured!");
+    d = ethers.Wallet.fromMnemonic(g).connect(o), g = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, d), 
+    o = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, d), d = r, g = await g.keyDataOf(t, d);
+    if (1 === g?.state) return r;
+    if (0 === g?.state) return 0, console.log({
       custodyAddress: a,
       keyType: 1,
-      key: c,
+      key: d,
       metadataType: 1,
       metadata: n,
       deadline: i,
       fidSignature: s
-    }), await (await o.addFor(a, 1, c, 1, n, ethers.BigNumber.from(i), s, {
+    }), await (await o.addFor(a, 1, d, 1, n, ethers.BigNumber.from(i), s, {
       gasLimit: 25e4,
-      maxFeePerGas: ethers.utils.parseUnits("0.01", "gwei"),
-      maxPriorityFeePerGas: ethers.utils.parseUnits("0.01", "gwei")
+      maxFeePerGas: c,
+      maxPriorityFeePerGas: c
     })).wait(), r;
     throw new Error("Signer has been removed");
   }

@@ -221,11 +221,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   reactionType: 1,
   deletedAt: 1
 }), reactionsSchema.index({
-  targetFid: 1,
-  fid: 1,
-  reactionType: 1,
-  deletedAt: 1
-}), reactionsSchema.index({
   reactionType: 1,
   fid: 1,
   targetHash: 1,
@@ -613,7 +608,7 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   partialFilterExpression: {
     external: !1
   },
-  expireAfterSeconds: 7776e3
+  expireAfterSeconds: 2592e3
 }), notificationsSchema.index({
   "payload.castHash": 1,
   notificationType: 1,

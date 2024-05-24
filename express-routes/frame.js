@@ -154,8 +154,8 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     } catch (e) {
       console.error(e), t.imageContent = I, t.imageType = "svg";
     } else if ("jpg" === n) try {
-      var _ = await getJpgFromSvg(I);
-      t.imageContent = _, t.imageType = "jpg";
+      var A = await getJpgFromSvg(I);
+      t.imageContent = A, t.imageType = "jpg";
     } catch (e) {
       console.error(e), t.imageContent = I, t.imageType = "svg";
     } else t.imageContent = I, t.imageType = "svg";
@@ -372,7 +372,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
 };
 
 function getQuestTitle() {
-  var e = new Date("2024-02-17"), t = new Date(), t = Math.floor((t - e) / 864e5);
+  var e = new Date(config().FARSCHOOL_START_DATE), t = new Date(), t = Math.floor((t - e) / 864e5);
   return "Lesson " + Math.min(t + 1, 90);
 }
 
@@ -433,7 +433,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     step: a
   } = t.query;
   if (r) return e.redirect(302, "https://far.quest/school");
-  var n = "development" === process.env.NODE_ENV ? "62d30b3ec39cdc68e8074539" : "62d1ff4eb684dfa85287e0e7", r = getQuestTitle(), o = await Quest.findOne({
+  var n = config().FARSCHOOL_COMMUNITY_ID, r = getQuestTitle(), o = await Quest.findOne({
     community: n,
     title: r
   }), r = o.requirements?.[0]?.data || [], i = r.find(e => "answers" === e.key)?.value.split(";"), s = r?.find(e => "correctAnswer" === e.key)?.value, c = i?.map((e, t) => `<meta property="fc:frame:button:${t + 1}" content="${abcToIndex[t + 1]}" />`);
@@ -451,8 +451,8 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
         e = parseInt(t.body?.untrustedData?.buttonIndex);
       } catch (e) {}
       var f = e - 1 == s;
-      l = f ? (p = config().FARQUEST_URI + "/og/farschool4.gif", m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", 
-      `
+      l = f ? (p = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}.gif`, 
+      m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", `
          <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="✅ spin now!" />
       `) : (p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&isCorrectAnswer=false", 
@@ -494,8 +494,8 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
 
          <meta property="fc:frame:button:3:action" content="post" />
         <meta property="fc:frame:button:3" content="${`Spin again (${d ? d - 1 : 0} left)`}" />
-      `) : (p = config().FARQUEST_URI + "/og/farschool4-spins.gif", m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", 
-    `
+      `) : (p = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}-spins.gif`, 
+    m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", `
         <meta property="fc:frame:button:1" content="Mint .cast" />
         <meta property="fc:frame:button:1:action" content="link" />
         <meta property="fc:frame:button:1:target" content="https://far.quest" />
@@ -505,8 +505,8 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     break;
 
    case STEPS.REWARD:
-    p = config().FARQUEST_URI + "/og/farschool4.gif", m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", 
-    l = `
+    p = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}.gif`, 
+    m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", l = `
          <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="✅ spin now!" />
       `;

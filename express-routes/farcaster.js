@@ -5,7 +5,6 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getFarcasterUserByConnectedAddress,
   getFarcasterCastByHash,
   getFarcasterCastsInThread,
-  getFarcasterAllCastsInThread,
   getFarcasterCasts,
   getFarcasterFollowing,
   getFarcasterFollowers,
@@ -100,7 +99,7 @@ const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.
     r.context = {
       ...r.context || {},
       accountId: n.payload.id,
-      fid: c,
+      fid: c?.toString().toLowerCase(),
       account: o,
       hubClient: a
     };
@@ -164,22 +163,6 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       source: "v2"
     })) : r.status(400).json({
       error: "Missing hash or username"
-    });
-  } catch (e) {
-    return Sentry.captureException(e), console.error(e), r.status(500).json({
-      error: "Internal Server Error"
-    });
-  }
-}), app.get("/v2/all-casts-in-thread", [ authContext, limiter ], async (e, r) => {
-  try {
-    var t, a = e.query.threadHash;
-    return a ? (t = await getFarcasterAllCastsInThread(a, e.context), r.json({
-      result: {
-        casts: t
-      },
-      source: "v2"
-    })) : r.status(400).json({
-      error: "Missing threadHash"
     });
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({
@@ -316,6 +299,23 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     })) : r.status(400).json({
       error: "fid is invalid"
     });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/user-by-address", [ limiter ], async (e, r) => {
+  try {
+    var t, a, s, n = (e.query.address || "").toLowerCase();
+    return !n || n.length < 10 ? r.status(400).json({
+      error: "address is invalid"
+    }) : ([ t, a ] = await Promise.all([ getFarcasterUserByCustodyAddress(n), getFarcasterUserByFid(n) ]), 
+    s = t || a, r.json({
+      result: {
+        user: s
+      },
+      source: "v2"
+    }));
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({
       error: "Internal Server Error"
@@ -483,7 +483,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         accountId: r.context.accountId
       }
     });
-    e = e || new Date();
+    e = e || new Date(Date.now() - 6048e5);
     var a = await getFarcasterUnseenNotificationsCount({
       lastSeen: e,
       context: r.context
@@ -617,7 +617,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       name: "deadline",
       type: "uint256"
     } ], c = Math.floor(Date.now() / 1e3) + 86400;
-    return process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY ? (t = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY || process.env.FARCAST_STAGING_KEY)._signTypedData(n, {
+    return process.env.FARCAST_KEY ? (t = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY)._signTypedData(n, {
       SignedKeyRequest: o
     }, {
       requestFid: ethers.BigNumber.from(18548),
@@ -1170,9 +1170,9 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Casts not found"
     });
     let r = null, t = [];
-    var S, f = v[v.length - 1];
-    return f?.contractAddress && (S = await Promise.allSettled([ fetchAssetMetadata(f.network, f.contractAddress), fetchPriceHistory(f.contractAddress, f.network, i) ]), 
-    r = "fulfilled" === S[0].status ? S[0].value : null, t = "fulfilled" === S[1].status ? S[1].value : []), 
+    var f, S = v[v.length - 1];
+    return S?.contractAddress && (f = await Promise.allSettled([ fetchAssetMetadata(S.network, S.contractAddress), fetchPriceHistory(S.contractAddress, S.network, i) ]), 
+    r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
         casts: m,
