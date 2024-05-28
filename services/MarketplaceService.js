@@ -216,7 +216,9 @@ class MarketplaceService {
     if (!t) {
       t = await Fids.count();
       try {
-        await e.set("MarketplaceService:latestFid", t);
+        await e.set("MarketplaceService:latestFid", t, {
+          lifetime: 3600
+        });
       } catch (e) {
         console.error(e);
       }

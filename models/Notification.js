@@ -13,8 +13,11 @@ class NotificationClass {
     })).modifiedCount;
   }
   static async updateLastSeen(t) {
-    t = await this.findById(t);
-    return t ? (t.lastSeen = new Date(), t.save) : null;
+    return this.findByIdAndUpdate(t, {
+      lastSeen: new Date()
+    }, {
+      new: !0
+    });
   }
   static async createForReceiver({
     initiatorId: t,

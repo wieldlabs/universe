@@ -9,13 +9,16 @@ class KeyValueCacheClass {
     value: a,
     expiresAt: s
   }) {
-    var c = await this.findOne({
+    return this.findOneAndUpdate({
       key: e
-    });
-    return c ? (c.value = a, c.expiresAt = s, c.save()) : this.create({
-      key: e,
-      value: a,
-      expiresAt: s
+    }, {
+      $set: {
+        value: a,
+        expiresAt: s
+      }
+    }, {
+      new: !0,
+      upsert: !0
     });
   }
 }

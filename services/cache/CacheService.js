@@ -10,28 +10,32 @@ class CacheService extends NormalizeCacheService {
     value: r,
     expiresAt: t
   }) {
-    var i = getMemcachedClient();
+    var i = getMemcachedClient(), e = this.normalize({
+      key: e,
+      params: a
+    });
     try {
-      await i.delete(getHash(this.normalize({
-        key: e,
-        params: a
-      })), {
+      await i.delete(getHash(e), {
         noreply: !0
       });
     } catch (e) {
       console.error(e);
     }
-    i = this.normalize({
+    a = await KeyValueCache.create({
       key: e,
-      params: a
-    });
-    return KeyValueCache.create({
-      key: i,
       value: JSON.stringify({
         value: r
       }),
       expiresAt: t
     });
+    try {
+      await i.set(getHash(e), a.value, t ? {
+        lifetime: Math.floor((t - new Date()) / 1e3)
+      } : {});
+    } catch (e) {
+      console.error(e);
+    }
+    return a;
   }
   async set({
     key: e,
@@ -39,59 +43,60 @@ class CacheService extends NormalizeCacheService {
     value: r,
     expiresAt: t
   }) {
-    var i = getMemcachedClient();
+    var i = getMemcachedClient(), e = this.normalize({
+      key: e,
+      params: a
+    });
     try {
-      await i.delete(getHash(this.normalize({
-        key: e,
-        params: a
-      })), {
+      await i.delete(getHash(e), {
         noreply: !0
       });
     } catch (e) {
       console.error(e);
     }
-    i = this.normalize({
+    a = await KeyValueCache.updateOrCreate({
       key: e,
-      params: a
-    });
-    return KeyValueCache.updateOrCreate({
-      key: i,
       value: JSON.stringify({
         value: r
       }),
       expiresAt: t
     });
+    try {
+      await i.set(getHash(e), a.value, t ? {
+        lifetime: Math.floor((t - new Date()) / 1e3)
+      } : {});
+    } catch (e) {
+      console.error(e);
+    }
+    return a;
   }
   async get({
     key: e,
     params: a
   }) {
-    var r = getMemcachedClient();
+    e = this.normalize({
+      key: e,
+      params: a
+    }), a = getMemcachedClient();
     try {
-      var t = await r.get(getHash(this.normalize({
-        key: e,
-        params: a
-      })));
-      if (t) return JSON.parse(t.value).value;
+      var r = await a.get(getHash(e));
+      if (r) return JSON.parse(r.value).value;
     } catch (e) {
       console.error(e);
     }
-    t = this.normalize({
-      key: e,
-      params: a
-    }), e = await KeyValueCache.findOne({
-      key: t
-    }), a = e?.expiresAt > new Date() || !e?.expiresAt;
-    if (e && a) {
+    var r = await KeyValueCache.findOne({
+      key: e
+    }), t = r?.expiresAt > new Date() || !r?.expiresAt;
+    if (r && t) {
       try {
-        var i = e.expiresAt ? {
-          lifetime: Math.floor((e.expiresAt - new Date()) / 1e3)
+        var i = r.expiresAt ? {
+          lifetime: Math.floor((r.expiresAt - new Date()) / 1e3)
         } : {};
-        await r.set(getHash(t), e.value, i);
+        await a.set(getHash(e), r.value, i);
       } catch (e) {
         console.error(e);
       }
-      return JSON.parse(e.value).value;
+      return JSON.parse(r.value).value;
     }
     return null;
   }
@@ -100,23 +105,30 @@ class CacheService extends NormalizeCacheService {
     params: a,
     afterDate: r
   }) {
-    var t = getMemcachedClient();
+    e = this.normalize({
+      key: e,
+      params: a
+    }), a = getMemcachedClient();
     try {
-      var i = await t.get(getHash(this.normalize({
-        key: e,
-        params: a
-      })));
-      if (i) return JSON.parse(i.value).value;
+      var t = await a.get(getHash(e));
+      if (t) return JSON.parse(t.value).value;
     } catch (e) {
       console.error(e);
     }
-    t = this.normalize({
-      key: e,
-      params: a
-    }), i = await KeyValueCache.findOne({
-      key: t
-    }), e = i?.expiresAt > r || !i?.expiresAt;
-    return i && e ? JSON.parse(i.value).value : null;
+    t = await KeyValueCache.findOne({
+      key: e
+    }), r = t?.expiresAt > r || !t?.expiresAt;
+    if (t && r) {
+      try {
+        await a.set(getHash(e), t.value, t.expiresAt ? {
+          lifetime: Math.floor((t.expiresAt - new Date()) / 1e3)
+        } : {});
+      } catch (e) {
+        console.error(e);
+      }
+      return JSON.parse(t.value).value;
+    }
+    return null;
   }
   async getOrCallbackAndSet(e, {
     key: a,
@@ -141,27 +153,44 @@ class CacheService extends NormalizeCacheService {
     }), i;
   }
   async find(a) {
+    var r = getMemcachedClient();
     const {
       key: e,
-      params: r,
-      sort: t,
-      limit: i,
-      ...s
+      params: t,
+      sort: i,
+      limit: s,
+      ...c
     } = a;
-    a = this.normalize({
+    var l = this.normalize({
       key: e,
-      params: r
+      params: t
     });
     try {
+      try {
+        var n = await r.get(getHash(JSON.stringify(a)));
+        if (n) return JSON.parse(n.value);
+      } catch (e) {
+        console.error(e);
+      }
       let e = KeyValueCache.find({
-        key: a,
-        ...s
+        key: l,
+        ...c
       });
-      t && (e = e.sort(t));
-      var l = await (e = i ? e.limit(i) : e);
-      if (l) return l.map(e => JSON.parse(e.value).value);
+      i && (e = e.sort(i));
+      var o = await (e = s ? e.limit(s) : e);
+      if (o) {
+        var h = o.map(e => JSON.parse(e.value).value);
+        try {
+          await r.set(getHash(JSON.stringify(a)), JSON.stringify(h), {
+            lifetime: 300
+          });
+        } catch (e) {
+          console.error(e);
+        }
+        return h;
+      }
     } catch (e) {
-      console.error("Error finding record with key: " + a, e);
+      console.error("Error finding record with key: " + l, e);
     }
     return null;
   }

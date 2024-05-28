@@ -152,21 +152,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   deletedAt: 1,
   timestamp: -1
 }), castsSchema.index({
-  threadHash: 1,
-  deletedAt: 1
-}), castsSchema.index({
-  text: "text",
-  deletedAt: 1,
-  timestamp: -1
-}), castsSchema.index({
   parentUrl: 1,
   deletedAt: 1,
   timestamp: -1,
   globalScore: 1
 }), castsSchema.index({
-  external: 1,
+  timestamp: 1,
   _id: 1,
-  timestamp: 1
+  external: 1
 }), castsSchema.index({
   deletedAt: 1
 }, {
@@ -184,6 +177,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   tag: 1,
   deletedAt: 1,
   timestamp: -1
+}), castsSchema.index({
+  external: 1,
+  _id: 1,
+  timestamp: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -211,9 +208,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   timestamps: !0
 })), signersSchema = (reactionsSchema.index({
   targetHash: 1,
-  deletedAt: 1
-}), reactionsSchema.index({
-  targetHash: 1,
   reactionType: 1,
   deletedAt: 1
 }), reactionsSchema.index({
@@ -234,10 +228,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   },
   expireAfterSeconds: 0
 }), reactionsSchema.index({
-  fid: 1,
-  targetFid: 1,
   reactionType: 1,
-  deletedAt: 1
+  fid: 1,
+  targetUrl: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -413,6 +406,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     external: !1
   },
   expireAfterSeconds: 0
+}), userDataSchema.index({
+  external: 1,
+  deletedAt: 1,
+  value: 1
 }), new mongoose.Schema({
   fid: {
     type: String,
@@ -506,18 +503,26 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   timestamps: !0
 })), storageSchema = (linksSchema.index({
   fid: 1,
-  type: 1,
-  deletedAt: 1,
-  timestamp: -1
-}), linksSchema.index({
-  targetFid: 1,
-  type: 1,
-  deletedAt: 1,
-  timestamp: -1
-}), linksSchema.index({
-  fid: 1,
   targetFid: 1,
   type: 1
+}), linksSchema.index({
+  fid: 1,
+  type: 1,
+  deletedAt: 1
+}), linksSchema.index({
+  fid: 1,
+  type: 1,
+  deletedAt: 1,
+  timestamp: -1
+}), linksSchema.index({
+  targetFid: 1,
+  type: 1,
+  deletedAt: 1,
+  timestamp: -1
+}), linksSchema.index({
+  targetFid: 1,
+  type: 1,
+  deletedAt: 1
 }), linksSchema.index({
   deletedAt: 1
 }, {
@@ -863,6 +868,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   title: 1
 }), framesSchema.index({
   createdAt: 1
+}, {
+  name: "expireFrames",
+  expireAfterSeconds: 2592e3
 }), new mongoose.Schema({
   fid: {
     type: String,

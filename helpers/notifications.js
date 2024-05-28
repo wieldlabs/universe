@@ -1,37 +1,46 @@
 const Expo = require("expo-server-sdk")["Expo"], _CacheService = require("../services/cache/CacheService")["Service"], getFarcasterUserByFid = require("./farcaster")["getFarcasterUserByFid"], Sentry = require("@sentry/node"), expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN
-}), CacheService = new _CacheService(), sendNotification = async ({
+}), getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], CacheService = new _CacheService(), sendNotification = async ({
   fromFid: e,
-  toFid: a,
+  toFid: t,
   notificationType: r
 }) => {
   try {
-    var i = await CacheService.get({
-      key: "expoTokens:" + a
+    var c = getMemcachedClient();
+    let a = 1;
+    try {
+      var i = await c.get("getFarcasterUnseenNotificationsCount:" + t);
+      i ? a = i.value : await c.set("getFarcasterUnseenNotificationsCount:" + t, a);
+    } catch (e) {
+      console.error(e);
+    }
+    var o = await CacheService.get({
+      key: "expoTokens:" + t
     });
-    if (i) {
-      var t = e?.toString() || "", c = await getFarcasterUserByFid(e);
-      let a;
-      var o = "fid:" + t.slice(0, 6) + (6 < t.length ? "..." : ""), s = c.displayName ? `${c.displayName} (@${c.username || o})` : "@" + (c.username || o);
+    if (o) {
+      var n = e?.toString() || "", s = await getFarcasterUserByFid(e);
+      let t;
+      var d = "fid:" + n.slice(0, 6) + (6 < n.length ? "..." : ""), y = s.displayName ? `${s.displayName} (@${s.username || d})` : "@" + (s.username || d);
       switch (r) {
        case "link":
-        a = s + " followed you";
+        t = y + " followed you";
         break;
 
        case "reply":
-        a = s + " replied to your cast";
+        t = y + " replied to your cast";
         break;
 
        case "reaction":
-        a = s + " reacted to your cast";
+        t = y + " reacted to your cast";
         break;
 
        case "mention":
-        a = s + " mentioned you in a cast";
+        t = y + " mentioned you in a cast";
       }
-      a && await expo.sendPushNotificationsAsync([ ...i.map(e => ({
+      t && expo.sendPushNotificationsAsync([ ...o.map(e => ({
         to: e,
-        title: a
+        title: t,
+        badge: a
       })) ]);
     }
   } catch (e) {

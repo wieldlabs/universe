@@ -3,8 +3,11 @@ const Sentry = require("@sentry/node"), rateLimit = require("express-rate-limit"
   getHash
 } = require("../connectmemcached"), apiKeyCache = new Map(), getLimit = n => async (e, t) => {
   var i = e.header("API-KEY");
-  if (!i) return r = "Missing API-KEY header! Returning 0 for " + e.url, Sentry.captureMessage(r), 
-  0;
+  if (!i) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
+    tags: {
+      url: e.url
+    }
+  }), 0;
   var r = getMemcachedClient();
   let a;
   if (apiKeyCache.has(i)) a = apiKeyCache.get(i); else try {

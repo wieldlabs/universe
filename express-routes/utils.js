@@ -143,7 +143,8 @@ app.get("/recent-users", heavyLimiter, async (e, r) => {
   try {
     var s = await Fids.find({}).sort({
       createdAt: -1
-    }).limit(750), t = (s.sort(() => Math.random() - .5), []);
+    }).limit(750).read("secondaryPreferred"), t = (s.sort(() => Math.random() - .5), 
+    []);
     for (let e = 0; e < s.length; e++) {
       var a = await filteredUser(s[e].fid);
       if (a && t.push(a), 3 <= t.length) break;

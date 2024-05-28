@@ -1,7 +1,7 @@
 const Magic = require("@magic-sdk/admin")["Magic"], fido2 = require("fido2-lib"), bufferToHex = require("ethereumjs-util")["bufferToHex"], recoverPersonalSignature = require("@metamask/eth-sig-util")["recoverPersonalSignature"], base64url = require("base64url"), mongoose = require("mongoose"), axios = require("axios").default, Account = require("../models/Account")["Account"], AccountAddress = require("../models/AccountAddress")["AccountAddress"], AccountCommunity = require("../models/AccountCommunity")["AccountCommunity"], AccountNonce = require("../models/AccountNonce")["AccountNonce"], {
   getCustodyAddress,
   getCurrentUser
-} = require("../helpers/warpcast"), getFidByCustodyAddress = require("../helpers/farcaster")["getFidByCustodyAddress"], _AccountRecovererService = require("./AccountRecovererService")["Service"], generateNewAccessTokenFromAccount = require("../helpers/jwt")["generateNewAccessTokenFromAccount"], bufferToAB = e => {
+} = require("../helpers/warpcast"), getFidByCustodyAddress = require("../helpers/farcaster")["getFidByCustodyAddress"], _AccountRecovererService = require("./AccountRecovererService")["Service"], generateNewAccessTokenFromAccount = require("../helpers/jwt")["generateNewAccessTokenFromAccount"], SignedKeyRequest = require("../models/SignedKeyRequest")["SignedKeyRequest"], bufferToAB = e => {
   for (var r = new ArrayBuffer(e.length), t = new Uint8Array(r), a = 0; a < e.length; ++a) t[a] = e[a];
   return r;
 };
@@ -114,6 +114,34 @@ class AuthService {
       email: r.email
     });
   }
+  async authBySignedKeyRequest({
+    token: e
+  }) {
+    let r = 0, t;
+    for (;r < 60; ) {
+      r += 1, await new Promise(e => setTimeout(e, 1e3));
+      var a = await SignedKeyRequest.findOne({
+        token: e
+      });
+      if (!a) throw new Error("Signed key request not found");
+      if ("signed" === a?.status) {
+        t = a;
+        break;
+      }
+    }
+    if (60 <= r) throw new Error("Timeout");
+    return this.authenticateWithSigner({
+      address: t.address.toLowerCase(),
+      chainId: t.chainId,
+      signature: t.signature,
+      signerData: {
+        recovererAddress: t.signerData.key,
+        deadline: t.signerData.deadline,
+        metadata: t.signerData.metadata,
+        signature: t.signerData.signature
+      }
+    });
+  }
   async authByWarpcast({
     address: t,
     token: a,
@@ -138,18 +166,18 @@ class AuthService {
       var o = (await getCustodyAddress({
         fid: l,
         token: process.env.FARQUEST_FARCASTER_APP_TOKEN
-      }))["custodyAddress"], c = await Account.findOrCreateByAddressAndChainId({
+      }))["custodyAddress"], d = await Account.findOrCreateByAddressAndChainId({
         address: o,
         chainId: n,
         creationOrigin: "WARPCAST"
       });
-      if (c?.deleted) throw new Error("Account is deleted");
-      var d, u = c.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type && e.pubKey === t && e.id === l);
-      return u ? [ c, u ] : [ d = await new _AccountRecovererService().addRecoverer(c, {
+      if (d?.deleted) throw new Error("Account is deleted");
+      var c, u = d.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type && e.pubKey === t && e.id === l);
+      return u ? [ d, u ] : [ c = await new _AccountRecovererService().addRecoverer(d, {
         type: "FARCASTER_SIGNER",
         address: t,
         id: l
-      }), this._getRecoverer(d, {
+      }), this._getRecoverer(c, {
         id: l,
         type: "FARCASTER_SIGNER",
         address: t
@@ -172,16 +200,16 @@ class AuthService {
       }))["account"];
       if (n?.deleted) throw new Error("Account is deleted");
       var i, s, o = new _AccountRecovererService();
-      const c = await o.verifyFarcasterSignerAndGetFid(n, {
+      const d = await o.verifyFarcasterSignerAndGetFid(n, {
         signerAddress: r,
         custodyAddress: e
       });
-      if (c) return (i = n.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type && e.pubKey === r && e.id === c.toString())) ? [ n, i ] : [ s = await o.addRecoverer(n, {
+      if (d) return (i = n.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type && e.pubKey === r && e.id === d.toString())) ? [ n, i ] : [ s = await o.addRecoverer(n, {
         type: "FARCASTER_SIGNER",
         address: r,
-        id: c
+        id: d
       }), this._getRecoverer(s, {
-        id: c.toString(),
+        id: d.toString(),
         type: "FARCASTER_SIGNER",
         address: r
       }) ];
@@ -202,10 +230,10 @@ class AuthService {
       if (A) throw new Error("Account already exists");
       var a = JSON.parse(e), n = a.response.clientDataJSON, i = a.response.attestationObject, s = bufferToAB(base64url.toBuffer(a.id)), {
         id: o,
-        type: c
+        type: d
       } = a;
-      if ("public-key" !== c) throw new Error("Invalid PassKey type");
-      var d = new fido2.Fido2Lib({
+      if ("public-key" !== d) throw new Error("Invalid PassKey type");
+      var c = new fido2.Fido2Lib({
         timeout: 6e4,
         challengeSize: 52,
         rpId: "production" === process.env.NODE_ENV ? "beb.lol" : "localhost",
@@ -214,7 +242,7 @@ class AuthService {
         challenge: "Y2hhbGxlbmdlIGNoYWxsZW5nZSBjaGFsbGVuZ2UgY2hhbGxlbmdl",
         origin: "production" === process.env.NODE_ENV ? "https://beb.lol" : "http://localhost:5678",
         factor: "either"
-      }, l = await d.attestationResult({
+      }, l = await c.attestationResult({
         rawId: s,
         id: s,
         response: {
@@ -226,10 +254,10 @@ class AuthService {
         address: l.authnrData.get("credentialPublicKeyPem"),
         chainId: t,
         email: r
-      }), h = await AccountAddress.findOne({
+      }), g = await AccountAddress.findOne({
         account: A._id
       });
-      return h.counter = l.authnrData.get("counter"), h.passKeyId = o, await h.save(), 
+      return g.counter = l.authnrData.get("counter"), g.passKeyId = o, await g.save(), 
       A;
     } catch (e) {
       throw console.error(e), new Error("Could not parse PassKey signature");
@@ -243,6 +271,9 @@ class AuthService {
     id: n
   }) {
     let i = null, s = !0, o = null;
+    if ("SIGNED_KEY_REQUEST" === a) return this.authBySignedKeyRequest({
+      token: t
+    });
     "PASSKEY" === a ? i = await this.authByPassKey({
       signature: t,
       email: e,

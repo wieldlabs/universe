@@ -213,6 +213,7 @@ enum AuthType {
   MAGIC_LINK
   WARPCAST
   FID
+  SIGNED_KEY_REQUEST
 }
 
 type Mutation {

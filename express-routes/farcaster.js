@@ -44,8 +44,11 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getHash
 } = require("../connectmemcached"), apiKeyCache = new Map(), getLimit = o => async (e, r) => {
   var t = e.header("API-KEY");
-  if (!t) return a = "Missing API-KEY header! Returning 0 for " + e.url, Sentry.captureMessage(a), 
-  0;
+  if (!t) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
+    tags: {
+      url: e.url
+    }
+  }), 0;
   var a = getMemcachedClient();
   let s;
   if (apiKeyCache.has(t)) s = apiKeyCache.get(t); else try {
@@ -87,20 +90,25 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
 let _hubClient;
 
 const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), authContext = async (r, e, t) => {
-  var a = getHubClient();
+  var a = getHubClient(), s = getMemcachedClient();
   try {
     if (r.context && r.context.accountId && r.context.hubClient) return t();
-    var s = new _FarcasterHubService(), n = await requireAuth(r.headers.authorization || "");
-    if (!n.payload.id) throw new Error("jwt must be provided");
-    var o = await Account.findById(n.payload.id);
-    if (!o) throw new Error(`Account id ${n.payload.id} not found`);
-    if (o.deleted) throw new Error(`Account id ${n.payload.id} deleted`);
-    var c = n.payload.signerId || await s.getFidByAccount(o, n.payload.isExternal);
+    var n = new _FarcasterHubService(), o = await requireAuth(r.headers.authorization || "");
+    if (!o.payload.id) throw new Error("jwt must be provided");
+    var c = await Account.findById(o.payload.id);
+    if (!c) throw new Error(`Account id ${o.payload.id} not found`);
+    if (c.deleted) throw new Error(`Account id ${o.payload.id} deleted`);
+    var i = (o.payload.signerId || await n.getFidByAccount(c, o.payload.isExternal))?.toString().toLowerCase();
+    try {
+      await s.set("enableNotifications_" + i, "1");
+    } catch (e) {
+      console.error(e);
+    }
     r.context = {
       ...r.context || {},
-      accountId: n.payload.id,
-      fid: c?.toString().toLowerCase(),
-      account: o,
+      accountId: o.payload.id,
+      fid: i,
+      account: c,
       hubClient: a
     };
   } catch (e) {
@@ -570,28 +578,6 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       bodyOverrides: e.body.bodyOverrides
     });
     t.json(a);
-  } catch (e) {
-    Sentry.captureException(e), console.error(e);
-    let r = "Internal Server Error";
-    e?.message?.includes("no storage") ? r = "No active storage for this FID, buy a storage unit at far.quest!" : e?.message?.includes("invalid signer") && (r = "Invalid signer! If this error persists, try logging out and logging in again."), 
-    t.status(500).json({
-      error: r
-    });
-  }
-}), app.post("/v3/message", [ heavyLimiter ], async (e, t) => {
-  var r = getHubClient(), a = e.body.fid;
-  try {
-    var s = await postMessage({
-      isExternal: e.body.isExternal || a.startsWith("0x") || !1,
-      externalFid: a,
-      messageJSON: e.body.message,
-      hubClient: r,
-      errorHandler: e => {
-        Sentry.captureException(e), console.error(e);
-      },
-      bodyOverrides: e.body.bodyOverrides
-    });
-    t.json(s);
   } catch (e) {
     Sentry.captureException(e), console.error(e);
     let r = "Internal Server Error";
