@@ -1,35 +1,21 @@
 const Sentry = require("@sentry/node"), rateLimit = require("express-rate-limit"), Account = require("../models/Account")["Account"], ApiKey = require("../models/ApiKey")["ApiKey"], requireAuth = require("../helpers/auth-middleware")["requireAuth"], {
-  getMemcachedClient,
+  memcache,
   getHash
-} = require("../connectmemcached"), apiKeyCache = new Map(), getLimit = n => async (e, t) => {
-  var i = e.header("API-KEY");
-  if (!i) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
+} = require("../connectmemcache"), apiKeyCache = new Map(), getLimit = o => async (e, t) => {
+  var i, a = e.header("API-KEY");
+  if (!a) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
     tags: {
       url: e.url
     }
   }), 0;
-  var r = getMemcachedClient();
-  let a;
-  if (apiKeyCache.has(i)) a = apiKeyCache.get(i); else try {
-    var o = await r.get(getHash("WalletApiKey_getLimit:" + i));
-    o && (a = new ApiKey(JSON.parse(o.value)), apiKeyCache.set(i, a));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!a && (a = await ApiKey.findOne({
-    key: i
-  }))) {
-    apiKeyCache.set(i, a);
-    try {
-      await r.set(getHash("WalletApiKey_getLimit:" + i), JSON.stringify(a), {
-        lifetime: 3600
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return a ? Math.ceil(n * a.multiplier) : (o = `API-KEY ${i} not found! Returning 0 for ` + e.url, 
-  console.error(o), Sentry.captureMessage(o), 0);
+  let r;
+  return apiKeyCache.has(a) ? r = apiKeyCache.get(a) : (i = await memcache.get(getHash("WalletApiKey_getLimit:" + a))) && (r = new ApiKey(JSON.parse(i.value)), 
+  apiKeyCache.set(a, r)), r || (r = await ApiKey.findOne({
+    key: a
+  })) && (apiKeyCache.set(a, r), await memcache.set(getHash("WalletApiKey_getLimit:" + a), JSON.stringify(r), {
+    lifetime: 3600
+  })), r ? Math.ceil(o * r.multiplier) : (i = `API-KEY ${a} not found! Returning 0 for ` + e.url, 
+  console.error(i), Sentry.captureMessage(i), 0);
 }, limiter = rateLimit({
   windowMs: 3e3,
   max: getLimit(2.5),
@@ -47,15 +33,15 @@ const Sentry = require("@sentry/node"), rateLimit = require("express-rate-limit"
 }), authContext = async (t, e, i) => {
   try {
     if (t.context && t.context.accountId) return i();
-    var r = await requireAuth(t.headers.authorization || "");
-    if (!r.payload.id) throw new Error("jwt must be provided");
-    var a = await Account.findById(r.payload.id);
-    if (!a) throw new Error(`Account id ${r.payload.id} not found`);
-    if (a.deleted) throw new Error(`Account id ${r.payload.id} deleted`);
+    var a = await requireAuth(t.headers.authorization || "");
+    if (!a.payload.id) throw new Error("jwt must be provided");
+    var r = await Account.findById(a.payload.id);
+    if (!r) throw new Error(`Account id ${a.payload.id} not found`);
+    if (r.deleted) throw new Error(`Account id ${a.payload.id} deleted`);
     t.context = {
       ...t.context || {},
-      accountId: r.payload.id,
-      account: a
+      accountId: a.payload.id,
+      account: r
     };
   } catch (e) {
     e.message.includes("jwt must be provided") || e.message.includes("jwt malformed") || (Sentry.captureException(e), 

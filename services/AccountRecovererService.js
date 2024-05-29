@@ -11,7 +11,7 @@ const _CacheService = require("../services/cache/CacheService")["Service"], gene
   Alchemy,
   Network,
   Utils
-} = require("alchemy-sdk"), getFlags = require("../helpers/flags")["getFlags"];
+} = require("alchemy-sdk"), getFlags = require("../helpers/flags")["getFlags"], memcache = require("../connectmemcache")["memcache"];
 
 class AccountRecovererService {
   _accepableRecovererTypes = [ "PASSKEY", "FARCASTER_SIGNER", "FARCASTER_SIGNER_EXTERNAL" ];
@@ -26,10 +26,10 @@ class AccountRecovererService {
     try {
       var t = JSON.parse(e), a = t.response.clientDataJSON, s = t.response.attestationObject, i = this.bufferToAB(base64url.toBuffer(t.id)), {
         id: n,
-        type: o
+        type: d
       } = t;
-      if ("public-key" !== o) throw new Error("Invalid PassKey type");
-      var d = new fido2.Fido2Lib({
+      if ("public-key" !== d) throw new Error("Invalid PassKey type");
+      var o = new fido2.Fido2Lib({
         timeout: 6e4,
         challengeSize: 52,
         rpId: "production" === process.env.NODE_ENV ? "Wield" : "localhost",
@@ -40,7 +40,7 @@ class AccountRecovererService {
         factor: "either"
       };
       return {
-        ...await d.attestationResult({
+        ...await o.attestationResult({
           rawId: i,
           id: i,
           response: {
@@ -119,28 +119,28 @@ class AccountRecovererService {
     deadline: i,
     metadata: n
   }) {
-    var o = getProvider({
+    var d = getProvider({
       network: 10,
       node: process.env.OPTIMISM_NODE_URL
-    }), d = await new Alchemy({
+    }), o = await new Alchemy({
       apiKey: process.env.OPTIMISM_NODE_URL,
       network: Network.OPT_MAINNET
-    }).core.getGasPrice(), d = Utils.formatUnits(d, "gwei"), c = ethers.utils.parseUnits(d, "gwei"), g = ethers.utils.parseUnits("0.1", "gwei");
-    if (c.gt(g)) throw new Error(`Gas price is too high: ${d} gwei`);
+    }).core.getGasPrice(), o = Utils.formatUnits(o, "gwei"), c = ethers.utils.parseUnits(o, "gwei"), g = ethers.utils.parseUnits("0.1", "gwei");
+    if (c.gt(g)) throw new Error(`Gas price is too high: ${o} gwei`);
     g = process.env.FARCAST_KEY;
     if (!g) throw new Error("Not configured!");
-    d = ethers.Wallet.fromMnemonic(g).connect(o), g = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, d), 
-    o = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, d), d = r, g = await g.keyDataOf(t, d);
+    o = ethers.Wallet.fromMnemonic(g).connect(d), g = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, o), 
+    d = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, o), o = r, g = await g.keyDataOf(t, o);
     if (1 === g?.state) return r;
     if (0 === g?.state) return 0, console.log({
       custodyAddress: a,
       keyType: 1,
-      key: d,
+      key: o,
       metadataType: 1,
       metadata: n,
       deadline: i,
       fidSignature: s
-    }), await (await o.addFor(a, 1, d, 1, n, ethers.BigNumber.from(i), s, {
+    }), await (await d.addFor(a, 1, o, 1, n, ethers.BigNumber.from(i), s, {
       gasLimit: 25e4,
       maxFeePerGas: c,
       maxPriorityFeePerGas: c
@@ -193,7 +193,9 @@ class AccountRecovererService {
         if (e.recoverers.find(e => e.id === r.id && e.pubKey === r.pubKey)) return e;
         e.recoverers.push(r);
       } else e.recoverers = [ r ];
-      return await e.save();
+      var n = await e.save();
+      return await Promise.all([ memcache.delete("Account:findById:" + e._id), memcache.delete(`FarcasterHubService:getFidByAccountId:${e._id}:false`), memcache.delete(`FarcasterHubService:getFidByAccountId:${e._id}:true`) ]), 
+      n;
     } catch (e) {
       throw console.error(e), new Error("Could not add recoverer: " + e.message);
     }

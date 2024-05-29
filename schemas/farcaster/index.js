@@ -110,7 +110,8 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   parentFid: String,
   parentUrl: String,
   text: {
-    type: String
+    type: String,
+    default: ""
   },
   embeds: String,
   mentions: [ String ],
@@ -870,7 +871,7 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   createdAt: 1
 }, {
   name: "expireFrames",
-  expireAfterSeconds: 2592e3
+  expireAfterSeconds: 604800
 }), new mongoose.Schema({
   fid: {
     type: String,

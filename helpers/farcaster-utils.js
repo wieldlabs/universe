@@ -14,7 +14,7 @@ const {
   MessageType,
   UserDataType,
   ReactionType
-} = require("@farcaster/hub-nodejs"), getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], prod = require("../helpers/registrar")["prod"], _AlchemyService = require("../services/AlchemyService")["Service"], {
+} = require("@farcaster/hub-nodejs"), memcache = require("../connectmemcache")["memcache"], prod = require("../helpers/registrar")["prod"], _AlchemyService = require("../services/AlchemyService")["Service"], {
   postMessage,
   getConnectedAddressForFid,
   getCustodyAddressByFid
@@ -22,28 +22,27 @@ const {
 
 async function getAddressPasses(e, a) {
   if (!e || e.length < 10) throw new Error("address is invalid");
-  var t = getMemcachedClient();
-  let r = null, s = [];
+  let t = null, r = [];
   try {
-    var n = "getAddressPasses:" + e, d = "getAddressPasses_isHolder:" + e, i = await t.get(n), o = await t.get(d), {
-      AlchemyService: c,
-      OptimismAlchemyService: m
+    var s = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, d = await memcache.get(s), i = await memcache.get(n), {
+      AlchemyService: o,
+      OptimismAlchemyService: c
     } = setupAlchemyServices();
-    if (i ? (s = JSON.parse(i.value), r = !0) : o ? r = JSON.parse(o.value) : (r = await checkIsHolderWithFallback(c, m, e), 
-    await t.set(d, JSON.stringify(r), {
-      lifetime: r ? 86400 : 10
+    if (d ? (r = JSON.parse(d.value), t = !0) : i ? t = JSON.parse(i.value) : (t = await checkIsHolderWithFallback(o, c, e), 
+    await memcache.set(n, JSON.stringify(t), {
+      lifetime: t ? 86400 : 10
     })), a) return {
-      isHolder: r
+      isHolder: t
     };
-    r && !i && (s = await fetchAndProcessNFTs(c, m, e), await t.set(n, JSON.stringify(s), {
+    t && !d && (r = await fetchAndProcessNFTs(o, c, e), await memcache.set(s, JSON.stringify(r), {
       lifetime: 60
     }));
   } catch (e) {
     throw console.error(e), new Error("Failed to retrieve address passes");
   }
   return {
-    passes: s,
-    isHolder: r
+    passes: r,
+    isHolder: t
   };
 }
 

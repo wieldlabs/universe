@@ -1,7 +1,7 @@
 const app = require("express").Router(), Sentry = require("@sentry/node"), Quest = require("../models/quests/Quest")["Quest"], Account = require("../models/Account")["Account"], {
   Reactions,
   Links
-} = require("../models/farcaster"), CommunityQuest = require("../models/quests/CommunityQuest")["CommunityQuest"], _QuestService = require("../services/QuestService")["Service"], _CacheService = require("../services/cache/CacheService")["Service"], _CommunityQuestMutationService = require("../services/mutationServices/CommunityQuestMutationService")["Service"], sharp = require("sharp"), config = require("../helpers/constants/config")["config"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], satori = require("satori").default, fs = require("fs").promises, path = require("path"), {
+} = require("../models/farcaster"), CommunityQuest = require("../models/quests/CommunityQuest")["CommunityQuest"], _QuestService = require("../services/QuestService")["Service"], _CacheService = require("../services/cache/CacheService")["Service"], _CommunityQuestMutationService = require("../services/mutationServices/CommunityQuestMutationService")["Service"], sharp = require("sharp"), config = require("../helpers/constants/config")["config"], memcache = require("../connectmemcache")["memcache"], satori = require("satori").default, fs = require("fs").promises, path = require("path"), {
   frameContext,
   getAddressPasses
 } = require("../helpers/farcaster-utils"), isFollowingChannel = require("../helpers/farcaster")["isFollowingChannel"], fetch = require("node-fetch"), axios = require("axios"), fetchAndCacheOpenGraphData = require("../helpers/opengraph")["fetchAndCacheOpenGraphData"], {
@@ -65,17 +65,12 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   } = t.query;
   if (t.query.reward) return r();
   try {
-    var i = getMemcachedClient(), s = `API:frame:generateSchoolImageMiddleware:${a}:${n}:` + o;
-    try {
-      var c = await i.get(s);
-      if (c) return t.imageContent = c.value, t.imageType = n, r();
-    } catch (e) {
-      console.error(e);
-    }
-    var p = await Quest.findById(a), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), l = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), f = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ d, u, g ] = await Promise.all([ fs.readFile(m), fs.readFile(l), fs.readFile(f) ]), h = (t.quest = p).requirements?.[0]?.data || [], y = h.find(e => "question" === e.key)?.value, w = h.find(e => "answers" === e.key)?.value.split(";"), v = "false" !== o, S = [ {
+    var i = `API:frame:generateSchoolImageMiddleware:${a}:${n}:` + o, s = await memcache.get(i);
+    if (s) return t.imageContent = s.value, t.imageType = n, r();
+    var c = await Quest.findById(a), p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), l = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ f, d, u ] = await Promise.all([ fs.readFile(p), fs.readFile(m), fs.readFile(l) ]), g = (t.quest = c).requirements?.[0]?.data || [], h = g.find(e => "question" === e.key)?.value, y = g.find(e => "answers" === e.key)?.value.split(";"), w = "false" !== o, v = [ {
       type: "text",
       props: {
-        children: y,
+        children: h,
         style: {
           marginLeft: 16,
           marginRight: 16,
@@ -86,7 +81,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           fontFamily: "Inter"
         }
       }
-    }, w.map((e, t) => ({
+    }, y.map((e, t) => ({
       type: "text",
       props: {
         children: abcToIndex[t + 1] + ". " + e,
@@ -100,7 +95,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           textAlign: "center"
         }
       }
-    })) ], I = (v || S.push({
+    })) ], S = (w || v.push({
       type: "text",
       props: {
         children: "Try again",
@@ -117,7 +112,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }), await satori({
       type: "div",
       props: {
-        children: S,
+        children: v,
         style: {
           display: "flex",
           flexDirection: "column",
@@ -133,40 +128,35 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       height: 800,
       fonts: [ {
         name: "Inter",
-        data: d,
+        data: f,
         weight: 400,
         style: "normal"
       }, {
         name: "Inter",
-        data: u,
+        data: d,
         weight: 800,
         style: "extrabold"
       }, {
         name: "Silkscreen",
-        data: g,
+        data: u,
         weight: 400,
         style: "normal"
       } ]
     }));
     if ("png" === n) try {
-      var C = await getPngFromSvg(I);
-      t.imageContent = C, t.imageType = "png";
+      var I = await getPngFromSvg(S);
+      t.imageContent = I, t.imageType = "png";
     } catch (e) {
-      console.error(e), t.imageContent = I, t.imageType = "svg";
+      console.error(e), t.imageContent = S, t.imageType = "svg";
     } else if ("jpg" === n) try {
-      var A = await getJpgFromSvg(I);
+      var A = await getJpgFromSvg(S);
       t.imageContent = A, t.imageType = "jpg";
     } catch (e) {
-      console.error(e), t.imageContent = I, t.imageType = "svg";
-    } else t.imageContent = I, t.imageType = "svg";
-    try {
-      await i.set(s, t.imageContent, {
-        lifetime: 86400
-      });
-    } catch (e) {
-      console.error(e);
-    }
-    r();
+      console.error(e), t.imageContent = S, t.imageType = "svg";
+    } else t.imageContent = S, t.imageType = "svg";
+    await memcache.set(i, t.imageContent, {
+      lifetime: 86400
+    }), r();
   } catch (e) {
     Sentry.captureException(e), console.error(e), t.error = e, r();
   }
@@ -177,17 +167,17 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   } = t.query;
   if (!a) return r();
   try {
-    var o = JSON.parse(a), i = getMemcachedClient(), s = `API:frame:generateRewardImageMiddleware:${o._id}:` + n;
+    var o = JSON.parse(a), i = `API:frame:generateRewardImageMiddleware:${o._id}:` + n;
     try {
-      var c = await i.get(s);
-      if (c) return t.imageContent = c.value, t.imageType = n, r();
+      var s = await memcache.get(i);
+      if (s) return t.imageContent = s.value, t.imageType = n, r();
     } catch (e) {
       console.error(e);
     }
-    var p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), l = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , f ] = await Promise.all([ fs.readFile(p), fs.readFile(m), fs.readFile(l) ]), d = await new _QuestService().getQuestReward(o), u = getRewardImage(o, d), g = getRewardRarity(o, d), h = o?.quantity || 0, y = o?.title || "Reward", w = [ {
+    var c = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), m = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , l ] = await Promise.all([ fs.readFile(c), fs.readFile(p), fs.readFile(m) ]), f = await new _QuestService().getQuestReward(o), d = getRewardImage(o, f), u = getRewardRarity(o, f), g = o?.quantity || 0, h = o?.title || "Reward", y = [ {
       type: "img",
       props: {
-        src: await convertImageToBase64(u, "image/png"),
+        src: await convertImageToBase64(d, "image/png"),
         style: {
           width: 100,
           height: 100
@@ -196,12 +186,12 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }, {
       type: "text",
       props: {
-        children: g,
+        children: u,
         style: {
           marginLeft: 16,
           marginRight: 16,
           textAlign: "center",
-          color: getTextColorByRarity(g),
+          color: getTextColorByRarity(u),
           fontSize: 16,
           fontWeight: 400,
           fontFamily: "Silkscreen"
@@ -210,7 +200,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }, {
       type: "text",
       props: {
-        children: y + " x " + h,
+        children: h + " x " + g,
         style: {
           marginLeft: 16,
           marginRight: 16,
@@ -221,10 +211,10 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           fontFamily: "Silkscreen"
         }
       }
-    } ], v = await satori({
+    } ], w = await satori({
       type: "div",
       props: {
-        children: w,
+        children: y,
         style: {
           display: "flex",
           flexDirection: "column",
@@ -241,30 +231,25 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       height: 400,
       fonts: [ {
         name: "Silkscreen",
-        data: f,
+        data: l,
         weight: 400,
         style: "normal"
       } ]
     });
     if ("png" === n) try {
-      var S = await getPngFromSvg(v);
-      t.imageContent = S, t.imageType = "png";
+      var v = await getPngFromSvg(w);
+      t.imageContent = v, t.imageType = "png";
     } catch (e) {
-      console.error(e), t.imageContent = v, t.imageType = "svg";
+      console.error(e), t.imageContent = w, t.imageType = "svg";
     } else if ("jpg" === n) try {
-      var I = await getJpgFromSvg(v);
-      t.imageContent = I, t.imageType = "jpg";
+      var S = await getJpgFromSvg(w);
+      t.imageContent = S, t.imageType = "jpg";
     } catch (e) {
-      console.error(e), t.imageContent = v, t.imageType = "svg";
-    } else t.imageContent = v, t.imageType = "svg";
-    try {
-      await i.set(s, t.imageContent, {
-        lifetime: 86400
-      });
-    } catch (e) {
-      console.error(e);
-    }
-    r();
+      console.error(e), t.imageContent = w, t.imageType = "svg";
+    } else t.imageContent = w, t.imageType = "svg";
+    await memcache.set(i, t.imageContent, {
+      lifetime: 86400
+    }), r();
   } catch (e) {
     Sentry.captureException(e), console.error(e), t.error = e, r();
   }
@@ -296,19 +281,14 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   verifiedFrameData: n = !1,
   isExternal: o
 } = {}) => {
-  var i = getMemcachedClient(), o = o ? t : r;
-  let s = 0, c = 0;
-  try {
-    var p = await i.get(`API:frame:checkCanSpin:${t}:` + e);
-    p && (s = p.value, c = p.value);
-  } catch (e) {
-    console.error(e);
-  }
-  if (!s) {
-    s = t && (r = (await getAddressPasses(t, !0))["isHolder"], r) ? 6 : n ? 1 : 0;
+  o = o ? t : r;
+  let i = 0, s = 0;
+  var r = await memcache.get(`API:frame:checkCanSpin:${t}:` + e);
+  if (r && (i = r.value, s = r.value), !i) {
+    i = t && (r = (await getAddressPasses(t, !0))["isHolder"], r) ? 6 : n ? 1 : 0;
     let e;
     a?.castId?.hash && (e = "0x" + Buffer.from(a?.castId?.hash).toString("hex"));
-    var [ p, r, n, a ] = await Promise.all([ Reactions.exists({
+    var [ r, n, a, o ] = await Promise.all([ Reactions.exists({
       targetHash: e,
       deletedAt: null,
       fid: o,
@@ -329,22 +309,18 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       type: "follow",
       deletedAt: null
     }) ]);
-    s = (s = s + (p ? 1 : 0) + (r ? 1 : 0)) + (n ? 1 : 0) + (a ? 1 : 0);
+    i = (i = i + (r ? 1 : 0) + (n ? 1 : 0)) + (a ? 1 : 0) + (o ? 1 : 0);
   }
-  if (s !== c) try {
-    await i.set(`API:frame:checkCanSpin:${t}:` + e, s, {
-      lifetime: 15
-    });
-  } catch (e) {
-    console.error(e);
-  }
-  let m = 0;
+  i !== s && await memcache.set(`API:frame:checkCanSpin:${t}:` + e, i, {
+    lifetime: 15
+  });
+  let c = 0;
   try {
-    var l = await getSpinCount({
+    var p = await getSpinCount({
       address: t,
       questId: e
     });
-    null !== l ? m = l : await incrSpinCount({
+    null !== p ? c = p : await incrSpinCount({
       address: t,
       questId: e,
       overrideValue: 0
@@ -352,7 +328,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
   } catch (e) {
     console.error(e);
   }
-  return [ 0 < s - m, s - m ];
+  return [ 0 < i - c, i - c ];
 }, getRandomReward = async ({
   communityId: e,
   questId: t,

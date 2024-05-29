@@ -1,6 +1,6 @@
 const getGraphQLRateLimiter = require("graphql-rate-limit")["getGraphQLRateLimiter"], rateLimiter = getGraphQLRateLimiter({
   identifyContext: e => e.id
-}), RATE_LIMIT_MAX = 1e4, unauthorizedErrorOrAccount = require("../../../helpers/auth-middleware")["unauthorizedErrorOrAccount"], CommunityQuestService = require("../../../services/CommunityQuestService")["Service"], CommunityQuest = require("../../../models/quests/CommunityQuest")["CommunityQuest"], Account = require("../../../models/Account")["Account"], CommunityReward = require("../../../models/quests/CommunityReward")["CommunityReward"], Score = require("../../../models/Score")["Score"], getMemcachedClient = require("../../../connectmemcached")["getMemcachedClient"], resolvers = {
+}), RATE_LIMIT_MAX = 1e4, unauthorizedErrorOrAccount = require("../../../helpers/auth-middleware")["unauthorizedErrorOrAccount"], CommunityQuestService = require("../../../services/CommunityQuestService")["Service"], CommunityQuest = require("../../../models/quests/CommunityQuest")["CommunityQuest"], Account = require("../../../models/Account")["Account"], CommunityReward = require("../../../models/quests/CommunityReward")["CommunityReward"], Score = require("../../../models/Score")["Score"], memcache = require("../../../connectmemcache")["memcache"], resolvers = {
   CommunityQuestQuery: {
     getCommunityQuestStatus: async (e, t, r, i) => {
       i = await rateLimiter({
@@ -38,35 +38,20 @@ const getGraphQLRateLimiter = require("graphql-rate-limit")["getGraphQLRateLimit
         window: "10s"
       });
       if (e) throw new Error(e);
-      i = `resolvers:CommunityQuestQuery:checkIfCommunityQuestClaimedByAddress:${t.communityId}:${t.address}:` + t.questId, 
-      e = getMemcachedClient();
-      try {
-        var u = await e.get(i);
-        if (u) return "true" === u.value;
-      } catch (e) {
-        console.error(e);
-      }
-      u = await Account.findByAddressAndChainId({
+      var m, i = `resolvers:CommunityQuestQuery:checkIfCommunityQuestClaimedByAddress:${t.communityId}:${t.address}:` + t.questId, e = await memcache.get(i);
+      return e ? "true" === e.value : !!(e = await Account.findByAddressAndChainId({
         address: t.address,
         chainId: 1
-      });
-      if (!u) return !1;
-      var o = await CommunityQuest.findOne({
+      })) && (m = await CommunityQuest.findOne({
         community: t.communityId,
         quest: t.questId
-      }), o = await new CommunityQuestService().checkIfCommunityQuestClaimedByAddress(o, {
+      }), (m = await new CommunityQuestService().checkIfCommunityQuestClaimedByAddress(m, {
         communityId: t.communityId,
         questId: t.questId
       }, {
         ...r,
-        account: u
-      });
-      if (o) try {
-        await e.set(i, "true");
-      } catch (e) {
-        console.error(e);
-      }
-      return o;
+        account: e
+      })) && await memcache.set(i, "true"), m);
     },
     getCommunityQuestStatusByAddress: async (e, t, r, i) => {
       e = await rateLimiter({
@@ -79,35 +64,22 @@ const getGraphQLRateLimiter = require("graphql-rate-limit")["getGraphQLRateLimit
         window: "10s"
       });
       if (e) throw new Error(e);
-      i = `resolvers:CommunityQuestQuery:getCommunityQuestStatusByAddress:${t.communityId}:${t.address}:` + t.questId, 
-      e = getMemcachedClient();
-      try {
-        var u = await e.get(i);
-        if (u) return u.value;
-      } catch (e) {
-        console.error(e);
-      }
-      var u = await Account.findOrCreateByAddressAndChainId({
+      var m, i = `resolvers:CommunityQuestQuery:getCommunityQuestStatusByAddress:${t.communityId}:${t.address}:` + t.questId, e = await memcache.get(i);
+      return e ? e.value : (e = await Account.findOrCreateByAddressAndChainId({
         address: t.address,
         chainId: 1
-      }), o = await CommunityQuest.findOne({
+      }), m = await CommunityQuest.findOne({
         community: t.communityId,
         quest: t.questId
-      }), o = await new CommunityQuestService().getQuestStatus(o, {
+      }), m = await new CommunityQuestService().getQuestStatus(m, {
         communityId: t.communityId,
         questId: t.questId
       }, {
         ...r,
-        account: u
-      });
-      try {
-        await e.set(i, o, {
-          lifetime: 30
-        });
-      } catch (e) {
-        console.error(e);
-      }
-      return o;
+        account: e
+      }), await memcache.set(i, m, {
+        lifetime: 30
+      }), m);
     },
     getCommunityQuest: async (e, t, r, i) => {
       i = await rateLimiter({

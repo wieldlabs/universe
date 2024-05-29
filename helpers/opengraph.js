@@ -1,7 +1,7 @@
 const axios = require("axios"), cheerio = require("cheerio"), {
-  getMemcachedClient,
+  memcache,
   getHash
-} = require("../connectmemcached"), MAX_HTML_TIMEOUT = 5e3, MAX_HTML_CONTENT_LENGTH = 5242880, extractOpenGraphData = t => {
+} = require("../connectmemcache"), MAX_HTML_TIMEOUT = 5e3, MAX_HTML_CONTENT_LENGTH = 5242880, extractOpenGraphData = t => {
   try {
     const i = cheerio.load(t), c = {};
     return i("meta").each((t, e) => {
@@ -29,28 +29,18 @@ const axios = require("axios"), cheerio = require("cheerio"), {
 };
 
 async function fetchAndCacheOpenGraphData(t, e) {
-  var a = getMemcachedClient(), e = (t.includes("twitter.com") || t.includes("x.com") ? extractTwitterData : extractOpenGraphData)(e);
-  try {
-    await a.set(getHash("getHtml:ogData:" + t), JSON.stringify(e), {
-      lifetime: 86400
-    });
-  } catch (t) {
-    console.error(t);
-  }
-  return e;
+  e = (t.includes("twitter.com") || t.includes("x.com") ? extractTwitterData : extractOpenGraphData)(e);
+  return await memcache.set(getHash("getHtml:ogData:" + t), JSON.stringify(e), {
+    lifetime: 86400
+  }), e;
 }
 
 const getHtml = async e => {
-  var t, a, r, i = getMemcachedClient();
+  var t, a, r, i = await memcache.get(getHash("getHtml:ogData:" + e));
+  if (i) return JSON.parse(i.value);
+  let c;
   try {
-    var c = await i.get(getHash("getHtml:ogData:" + e));
-    if (c) return JSON.parse(c.value);
-  } catch (t) {
-    console.error(t);
-  }
-  let o;
-  try {
-    o = e.includes("twitter.com") || e.includes("x.com") ? (t = (await axios.get("https://publish.x.com/oembed?url=" + e.replace("twitter.com", "x.com"), {
+    c = e.includes("twitter.com") || e.includes("x.com") ? (t = (await axios.get("https://publish.x.com/oembed?url=" + e.replace("twitter.com", "x.com"), {
       timeout: MAX_HTML_TIMEOUT,
       maxContentLength: MAX_HTML_CONTENT_LENGTH
     }))["data"], t.html) : (a = e.startsWith("http") ? e : "http://" + e, r = (await axios.get(a, {
@@ -65,19 +55,13 @@ const getHtml = async e => {
       maxContentLength: MAX_HTML_CONTENT_LENGTH
     }))["data"], r);
   } catch (t) {
-    console.error("caching getHTML error to prevent server overload");
-    try {
-      await i.set(getHash("getHtml:ogData:" + e), JSON.stringify({
-        getHtmlError: "Error fetching HTML"
-      }), {
-        lifetime: 3600
-      });
-    } catch (t) {
-      console.error(t);
-    }
-    throw t;
+    throw console.error("caching getHTML error to prevent server overload"), await memcache.set(getHash("getHtml:ogData:" + e), JSON.stringify({
+      getHtmlError: "Error fetching HTML"
+    }), {
+      lifetime: 3600
+    }), t;
   }
-  return await fetchAndCacheOpenGraphData(e, o);
+  return await fetchAndCacheOpenGraphData(e, c);
 };
 
 module.exports = {

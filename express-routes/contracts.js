@@ -1,49 +1,36 @@
 const app = require("express").Router(), Contract = require("../models/wallet/Contract")["Contract"], {
-  getMemcachedClient,
+  memcache,
   getHash
-} = require("../connectmemcached"), axios = (app.get("/v1/", async (r, a) => {
+} = require("../connectmemcache"), axios = (app.get("/v1/", async (r, a) => {
   try {
     var s, {
       factoryInterfaceType: n,
-      contractDeployer: o,
-      cursor: c,
+      contractDeployer: c,
+      cursor: o,
       sort: i = "createdAt",
       limit: l = 10,
       filters: d
-    } = r.query, g = getMemcachedClient(), [ u, m ] = c ? c.split("-") : [ null, null ], f = n ? {
+    } = r.query, [ m, u ] = o ? o.split("-") : [ null, null ], g = n ? {
       factoryInterfaceType: n
-    } : {}, p = (f.createdAt = {
-      $lt: u || Date.now()
-    }, f.id = {
-      $lt: m || Number.MAX_SAFE_INTEGER
-    }, o && (f.contractDeployer = o), d && (s = JSON.parse(d)).createdAt && (s.createdAt.startsWith("-") ? f.createdAt = {
+    } : {}, f = (g.createdAt = {
+      $lt: m || Date.now()
+    }, g.id = {
+      $lt: u || Number.MAX_SAFE_INTEGER
+    }, c && (g.contractDeployer = c), d && (s = JSON.parse(d)).createdAt && (s.createdAt.startsWith("-") ? g.createdAt = {
       $lt: s.createdAt.slice(1)
-    } : f.createdAt = {
+    } : g.createdAt = {
       $gt: s.createdAt
     }), {
       sort: i,
       limit: parseInt(l, 10)
     });
     let e;
-    var h, y = `getContracts:${JSON.stringify(f)}:${l}:` + c;
-    try {
-      var v = await g.get(y);
-      v && (e = JSON.parse(v.value));
-    } catch (e) {
-      console.error(e);
-    }
-    if (!e) {
-      e = await Contract.find(f, null, p);
-      try {
-        c && await g.set(y, JSON.stringify(e), {
-          lifetime: 60
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    var p, h = `getContracts:${JSON.stringify(g)}:${l}:` + o, y = await memcache.get(h);
+    (e = y ? JSON.parse(y.value) : e) || (e = await Contract.find(g, null, f), o && await memcache.set(h, JSON.stringify(e), {
+      lifetime: 60
+    }));
     let t = null;
-    return e.length === l && (h = e[e.length - 1], t = h.createdAt.getTime() + "-" + h._id), 
+    return e.length === l && (p = e[e.length - 1], t = p.createdAt.getTime() + "-" + p._id), 
     a.json({
       success: !0,
       contracts: e,
@@ -119,8 +106,8 @@ async function fetchDirectImageUrl(e) {
   try {
     var a = await axios.get(e, {
       signal: t.signal
-    }), s = (clearTimeout(r), a.data), n = cheerio.load(s), o = n('meta[property="og:image"]').attr("content"), c = n("img").first().attr("src");
-    return o || c || e;
+    }), s = (clearTimeout(r), a.data), n = cheerio.load(s), c = n('meta[property="og:image"]').attr("content"), o = n("img").first().attr("src");
+    return c || o || e;
   } catch (e) {
     return clearTimeout(r), console.error("Error fetching direct image URL: " + e), 
     null;

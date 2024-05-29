@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"), schema = require("../schemas/score")["schema"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], padWithZeros = e => {
+const mongoose = require("mongoose"), schema = require("../schemas/score")["schema"], memcache = require("../connectmemcache")["memcache"], padWithZeros = e => {
   for (;e.length < 32; ) e = "0" + e;
   return e;
 };
@@ -8,14 +8,13 @@ class ScoreClass {
     console.log("model: ScoreClass");
   }
   static async getLeaderboard(e, o = 10) {
-    var c = getMemcachedClient();
     try {
-      var r = await c.get(`ScoreClass:getLeaderboard:${e}:` + o);
-      if (r) return JSON.parse(r.value);
+      var c = await memcache.get(`ScoreClass:getLeaderboard:${e}:` + o);
+      if (c) return JSON.parse(c.value);
     } catch (e) {
       console.error(e);
     }
-    r = (await Score.aggregate([ {
+    c = (await Score.aggregate([ {
       $match: {
         scoreType: e
       }
@@ -62,14 +61,9 @@ class ScoreClass {
       ...e,
       score: e.score.replace(/^0+/, "")
     }));
-    try {
-      await c.set(`ScoreClass:getLeaderboard:${e}:` + o, JSON.stringify(r), {
-        lifetime: 3600
-      });
-    } catch (e) {
-      console.error(e);
-    }
-    return JSON.parse(JSON.stringify(r));
+    return await memcache.set(`ScoreClass:getLeaderboard:${e}:` + o, JSON.stringify(c), {
+      lifetime: 3600
+    }), JSON.parse(JSON.stringify(c));
   }
 }
 

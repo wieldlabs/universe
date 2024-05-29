@@ -3,9 +3,9 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   getFarcasterCastByShortHash,
   getFarcasterCastByHash
 } = require("../helpers/farcaster"), config = require("../helpers/constants/config")["config"], Contract = require("../models/wallet/Contract")["Contract"], Token = require("../models/wallet/Token")["Token"], CacheService = require("../services/cache/CacheService")["Service"], cacheService = new CacheService(), generateImageWithText = require("../helpers/generate-image")["generateImageWithText"], crypto = require("crypto"), {
-  getMemcachedClient,
+  memcache,
   getHash
-} = require("../connectmemcached"), Reactions = require("../models/farcaster")["Reactions"], getImageUrlOrUploadImage = require("../helpers/fetch-and-upload-image")["getImageUrlOrUploadImage"], heavyLimiter = rateLimit({
+} = require("../connectmemcache"), Reactions = require("../models/farcaster")["Reactions"], getImageUrlOrUploadImage = require("../helpers/fetch-and-upload-image")["getImageUrlOrUploadImage"], heavyLimiter = rateLimit({
   windowMs: 6e4,
   max: 50,
   message: "Too many requests! See docs.far.quest for more info.",
@@ -168,24 +168,13 @@ async function handleCreateContractRequest(t) {
 async function processCastOrImageUrl(e) {
   try {
     if (!e) return null;
-    var a = e.trim(), r = getMemcachedClient();
-    try {
-      var o = await r.get(getHash("WTF:processCastOrImageUrl:" + a));
-      if (o) return o.value;
-    } catch (t) {
-      console.error(t);
-    }
+    var a = e.trim(), r = await memcache.get(getHash("WTF:processCastOrImageUrl:" + a));
+    if (r) return r.value;
     let t;
-    if (a.startsWith("https://client.warpcast.com/v2/cast-image") || a.startsWith("https://imagedelivery.net")) return a;
-    t = isWarpcastOrFarquestCastHash(a) ? await returnCastImageOrImage(a) : await getImageUrlOrUploadImage(a);
-    try {
-      await r.set(getHash("WTF:processCastOrImageUrl:" + a), t, {
-        lifetime: 86400
-      });
-    } catch (t) {
-      console.error(t);
-    }
-    return t;
+    return a.startsWith("https://client.warpcast.com/v2/cast-image") || a.startsWith("https://imagedelivery.net") ? a : (t = isWarpcastOrFarquestCastHash(a) ? await returnCastImageOrImage(a) : await getImageUrlOrUploadImage(a), 
+    await memcache.set(getHash("WTF:processCastOrImageUrl:" + a), t, {
+      lifetime: 86400
+    }), t);
   } catch (t) {
     return Sentry.captureException(t), console.error(t), config().DEFAULT_URI + ("/contracts/v1/images?image=" + encodeURIComponent(e));
   }
@@ -252,17 +241,11 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
     message: "Unauthorized"
   });
   let f;
-  var u = getMemcachedClient(), a = "contract:" + r.params.contractId;
-  try {
-    var d = await u.get(a);
-    d ? f = JSON.parse(d.value) : (f = await Contract.findById(r.params.contractId), 
-    await u.set(a, JSON.stringify(f), {
-      lifetime: 604800
-    }));
-  } catch (t) {
-    f = await Contract.findById(r.params.contractId);
-  }
-  if (!f || !f.metadata?.frame) return t.status(404).json({
+  var a = "contract:" + r.params.contractId, u = await memcache.get(a);
+  if (u ? f = JSON.parse(u.value) : (f = await Contract.findById(r.params.contractId), 
+  await memcache.set(a, JSON.stringify(f), {
+    lifetime: 604800
+  })), !f || !f.metadata?.frame) return t.status(404).json({
     success: !1,
     message: "No Contract Frame found"
   });
@@ -287,7 +270,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
       });
       if (l && "development" !== process.env.NODE_ENV) {
         c = "https://i.imgur.com/yByoglU.png", s = "";
-        var y = "https://far.quest/contracts/degen/" + f.slug, y = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + y)}&embeds[]=${y}&rand=` + Math.random().toString().slice(0, 7);
+        var d = "https://far.quest/contracts/degen/" + f.slug, d = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + d)}&embeds[]=${d}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -295,7 +278,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
 
           <meta property="fc:frame:button:2" content="Share Mint" />
           <meta property="fc:frame:button:2:action" content="link" />
-          <meta property="fc:frame:button:2:target" content="${y}" />
+          <meta property="fc:frame:button:2:target" content="${d}" />
       
       
           <meta property="fc:frame:button:3" content="Install Action" />
@@ -309,7 +292,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         break;
       }
       var l = "Wtf:Frame:MintedOut:" + f._id;
-      if ("1" === (await u.get(l))?.value) {
+      if ("1" === (await memcache.get(l))?.value) {
         c = "https://i.imgur.com/zSqLZoV.png", m = `
           <meta property="fc:frame:button:1" content="Install Action" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -322,7 +305,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         break;
       }
       let t = !0, e = {};
-      o && o.toString() !== i.toString() && ([ y, l, g ] = await Promise.all([ getFarcasterUserAndLinksByFid({
+      o && o.toString() !== i.toString() && ([ d, l, y ] = await Promise.all([ getFarcasterUserAndLinksByFid({
         fid: o,
         context: {
           fid: i
@@ -337,10 +320,10 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         context: {
           fid: i
         }
-      }) ]), e = y, t = y.isFollowing && (l.isFollowing || "274" === i.toString()) && (g.isFollowing || "251" === i.toString()));
-      y = r.query.count ? parseInt(r.query.count) : 0, l = y >= ANGRY_MODE_COUNT;
+      }) ]), e = d, t = d.isFollowing && (l.isFollowing || "274" === i.toString()) && (y.isFollowing || "251" === i.toString()));
+      d = r.query.count ? parseInt(r.query.count) : 0, l = d >= ANGRY_MODE_COUNT;
       if (!t && !l) {
-        c = "https://i.imgur.com/Bvfd03f.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${y + 1}&mustFollow=` + o + (n ? "&mustLikeAndRecast=" + n : ""), 
+        c = "https://i.imgur.com/Bvfd03f.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${d + 1}&mustFollow=` + o + (n ? "&mustLikeAndRecast=" + n : ""), 
         m = `
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="https://warpcast.com/${e.username}" />
@@ -360,7 +343,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
       let a;
       if (r.context.frameData?.frameActionBody?.castId?.hash && (a = "0x" + Buffer.from(r.context.frameData?.frameActionBody?.castId?.hash).toString("hex")), 
       n && a && a !== TEST_HASH && !l) {
-        var [ g, l ] = await Promise.all([ Reactions.exists({
+        var [ y, l ] = await Promise.all([ Reactions.exists({
           targetHash: a,
           deletedAt: null,
           fid: i,
@@ -371,8 +354,8 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           reactionType: 2,
           fid: i
         }) ]);
-        if (!g || !l) {
-          c = "https://i.imgur.com/3urlLNk.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${y + 1}&mustLikeAndRecast=` + n, 
+        if (!y || !l) {
+          c = "https://i.imgur.com/3urlLNk.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${d + 1}&mustLikeAndRecast=` + n, 
           m = `
           <meta property="fc:frame:button:1:action" content="post" />
           <meta property="fc:frame:button:1" content="Mint ➡️" />
@@ -383,18 +366,18 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         }
       }
       try {
-        var h = await mint({
+        var g = await mint({
           to: p,
           contractAddress: f.address
-        }), b = h?.hash;
+        }), h = g?.hash;
         if (c = "https://i.imgur.com/MfWeABe.png", f.isSet) {
-          var w = ((await h.wait()).events?.find(t => "Transfer" === t.event))?.args?.[2];
-          if (w) try {
-            var C = await createContractSetToken({
+          var b = ((await g.wait()).events?.find(t => "Transfer" === t.event))?.args?.[2];
+          if (b) try {
+            var w = await createContractSetToken({
               contract: f,
-              tokenId: w.toString()
+              tokenId: b.toString()
             });
-            c = C?.metadata?.rawImageUrl || C?.metadata?.imageUrl || c;
+            c = w?.metadata?.rawImageUrl || w?.metadata?.imageUrl || c;
           } catch (t) {
             console.error(t);
           }
@@ -405,18 +388,18 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
             connectedAddress: p,
             contractId: f._id
           },
-          value: b,
+          value: h,
           expiresAt: null
         }) ]), s = "";
-        var I = "https://explorer.degen.tips/tx/" + b, A = "https://far.quest/contracts/degen/" + f.slug, v = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + A)}&embeds[]=${A}&rand=` + Math.random().toString().slice(0, 7);
+        var C = "https://explorer.degen.tips/tx/" + h, I = "https://far.quest/contracts/degen/" + f.slug, A = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + I)}&embeds[]=${I}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View Tx" />
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="${I}" />
+          <meta property="fc:frame:button:1:target" content="${C}" />
 
           <meta property="fc:frame:button:2" content="Share Mint" />
           <meta property="fc:frame:button:2:action" content="link" />
-          <meta property="fc:frame:button:2:target" content="${v}" />
+          <meta property="fc:frame:button:2:target" content="${A}" />
 
              
           <meta property="fc:frame:button:3" content="Install Action" />
@@ -429,11 +412,11 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           <meta property="fc:frame:button:4:target" content="${CHANNEL_URL}" />
         `;
       } catch (t) {
-        t.message?.includes?.("execution reverted: Total cap reached") ? (await u.set("Wtf:Frame:MintedOut:" + f._id, "1", {
+        t.message?.includes?.("execution reverted: Total cap reached") ? (await memcache.set("Wtf:Frame:MintedOut:" + f._id, "1", {
           lifetime: 604800,
           noreply: !0
         }), c = "https://i.imgur.com/zSqLZoV.png") : (c = "https://i.imgur.com/dDh20zB.png", 
-        Sentry.captureException(t)), s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${y + 1}&mustLikeAndRecast=` + n, 
+        Sentry.captureException(t)), s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${d + 1}&mustLikeAndRecast=` + n, 
         m = `
           <meta property="fc:frame:button:1" content="Install Action" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -457,7 +440,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         <meta property="fc:frame:button:1" content="Mint" />
       `;
   }
-  d = `
+  u = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -468,7 +451,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         ${m}
       </head>
     </html>`;
-  t.setHeader("Content-Type", "text/html"), t.send(d);
+  t.setHeader("Content-Type", "text/html"), t.send(u);
 }), app.get("/v1/frames/image", async (t, e) => {
   var {
     text: t,
@@ -603,15 +586,15 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
       break;
 
      case "fillName":
-      var u = e.query.mustFollow, d = 1 === parseInt(e.body?.untrustedData?.buttonIndex) || e.query.mustLikeAndRecast ? "true" : null;
+      var u = e.query.mustFollow, l = 1 === parseInt(e.body?.untrustedData?.buttonIndex) || e.query.mustLikeAndRecast ? "true" : null;
       try {
         s = await processCastOrImageUrl(r);
       } catch (t) {
         console.error(t), s = r;
       }
       if (s?.startsWith("https://client.warpcast.com/v2/cast-image")) try {
-        var l = await findCastImageFromHash(new URL(s).searchParams.get("castHash"));
-        if (l) {
+        var d = await findCastImageFromHash(new URL(s).searchParams.get("castHash"));
+        if (d) {
           c = `
         <meta property="fc:frame:input:text" content="Name (Optional)" />
         <meta property="fc:frame:button:1" content="Start Over" />
@@ -620,11 +603,11 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
 
           <meta property="fc:frame:button:2" content="Use post's image" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:button:2:post_url" content="${p}?step=fillName${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(l)}"/>
+          <meta property="fc:frame:button:2:post_url" content="${p}?step=fillName${u ? "&mustFollow=" + u : ""}${l ? "&mustLikeAndRecast=" + l : ""}&image=${encodeURIComponent(d)}"/>
 
         <meta property="fc:frame:button:3" content="Create Free Mint ✨" />
           <meta property="fc:frame:button:3:action" content="post" />
-          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(s)}" />
+          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${l ? "&mustLikeAndRecast=" + l : ""}&image=${encodeURIComponent(s)}" />
         `;
           break;
         }
@@ -639,7 +622,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
 
         <meta property="fc:frame:button:2" content="Create Free Mint ✨" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(s)}" />
+          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${l ? "&mustLikeAndRecast=" + l : ""}&image=${encodeURIComponent(s)}" />
         `;
       break;
 

@@ -1,4 +1,4 @@
-const ethers = require("ethers"), axios = require("axios"), Sentry = require("@sentry/node"), getProvider = require("../helpers/alchemy-provider")["getProvider"], config = require("../helpers/marketplace")["config"], validateAndConvertAddress = require("../helpers/validate-and-convert-address")["validateAndConvertAddress"], getMemcachedClient = require("../connectmemcached")["getMemcachedClient"], {
+const ethers = require("ethers"), axios = require("axios"), Sentry = require("@sentry/node"), getProvider = require("../helpers/alchemy-provider")["getProvider"], config = require("../helpers/marketplace")["config"], validateAndConvertAddress = require("../helpers/validate-and-convert-address")["validateAndConvertAddress"], memcache = require("../connectmemcache")["memcache"], {
   Listings,
   ListingLogs,
   Fids,
@@ -38,24 +38,12 @@ class MarketplaceService {
   async ethToUsd(e) {
     if (!e) return "0";
     try {
-      var t = getMemcachedClient();
-      try {
-        var r = await t.get("MarketplaceService_ethToUsd");
-        if (r) return ethers.BigNumber.from(r.value).mul(e).toString();
-      } catch (e) {
-        console.error(e);
-      }
-      var a = `
-    https://api.etherscan.io/api?module=stats&action=ethprice&apikey=` + process.env.ETHERSCAN_API_KEY, i = (await axios.get(a)).data.result?.ethusd;
-      if (!i) return "0";
-      try {
-        await t.set("MarketplaceService_ethToUsd", parseInt(i).toString(), {
-          lifetime: 1800
-        });
-      } catch (e) {
-        console.error(e);
-      }
-      return ethers.BigNumber.from(parseInt(i)).mul(e).toString();
+      var t, r, a = await memcache.get("MarketplaceService_ethToUsd");
+      return a ? ethers.BigNumber.from(a.value).mul(e).toString() : (t = `
+    https://api.etherscan.io/api?module=stats&action=ethprice&apikey=` + process.env.ETHERSCAN_API_KEY, 
+      (r = (await axios.get(t)).data.result?.ethusd) ? (await memcache.set("MarketplaceService_ethToUsd", parseInt(r).toString(), {
+        lifetime: 1800
+      }), ethers.BigNumber.from(parseInt(r)).mul(e).toString()) : "0");
     } catch (e) {
       return console.error(e), Sentry.captureException(e), "0";
     }
@@ -67,61 +55,37 @@ class MarketplaceService {
   async getBestOffer({
     fid: e
   }) {
-    var t = getMemcachedClient();
-    let r;
-    try {
-      var a = await t.get("getBestOffer:" + e);
-      a && (r = new Offers(JSON.parse(a.value)));
-    } catch (e) {
-      console.error(e);
-    }
-    if (!r && (r = await Offers.findOne({
+    let t;
+    var r = await memcache.get("getBestOffer:" + e);
+    return (t = r ? new Offers(JSON.parse(r.value)) : t) || (t = await Offers.findOne({
       canceledAt: null,
       fid: e
     }).sort({
       amount: -1
-    }))) try {
-      await t.set("getBestOffer:" + e, JSON.stringify(r));
-    } catch (e) {
-      console.error(e);
-    }
-    return r ? ([ a, t ] = await Promise.all([ this.fetchUserData(e), this.ethToUsd(r.amount) ]), 
-    e = this.usdFormatter.format(ethers.utils.formatEther(t)), {
-      ...JSON.parse(JSON.stringify(r)),
+    })) && await memcache.set("getBestOffer:" + e, JSON.stringify(t)), t ? ([ r, e ] = await Promise.all([ this.fetchUserData(e), this.ethToUsd(t.amount) ]), 
+    e = this.usdFormatter.format(ethers.utils.formatEther(e)), {
+      ...JSON.parse(JSON.stringify(t)),
       usd: e,
-      user: a
+      user: r
     }) : null;
   }
   async getListing({
     fid: e
   }) {
-    var t = getMemcachedClient();
-    let r;
-    try {
-      var a = await t.get("Listing:" + e);
-      a && (r = new Listings(JSON.parse(a.value)));
-    } catch (e) {
-      console.error(e);
-    }
-    if (!r) {
-      var a = {
-        fid: e,
-        canceledAt: null,
-        deadline: {
-          $gt: Math.floor(Date.now() / 1e3)
-        }
-      };
-      if (r = (r = await Listings.findOne(a)) ? r._doc : null) try {
-        await t.set("Listing:" + e, JSON.stringify(r));
-      } catch (e) {
-        console.error(e);
+    let t;
+    var r = await memcache.get("Listing:" + e);
+    return !(t = r ? new Listings(JSON.parse(r.value)) : t) && (r = {
+      fid: e,
+      canceledAt: null,
+      deadline: {
+        $gt: Math.floor(Date.now() / 1e3)
       }
-    }
-    return r ? ([ a, t ] = await Promise.all([ this.fetchUserData(e), this.ethToUsd(r.minFee) ]), 
-    e = this.usdFormatter.format(ethers.utils.formatEther(t)), {
-      ...JSON.parse(JSON.stringify(r)),
+    }, t = (t = await Listings.findOne(r)) ? t._doc : null) && await memcache.set("Listing:" + e, JSON.stringify(t)), 
+    t ? ([ r, e ] = await Promise.all([ this.fetchUserData(e), this.ethToUsd(t.minFee) ]), 
+    e = this.usdFormatter.format(ethers.utils.formatEther(e)), {
+      ...JSON.parse(JSON.stringify(t)),
       usd: e,
-      user: a
+      user: r
     }) : null;
   }
   async fetchUserData(e) {
@@ -152,40 +116,24 @@ class MarketplaceService {
     cursor: r = "",
     filters: a = {}
   }) {
-    var i = getMemcachedClient();
-    let s;
-    var n = 0 < Object.keys(a).length;
-    try {
-      var o = await i.get(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (n ? ":" + JSON.stringify(a) : ""));
-      o && (s = JSON.parse(o.value).map(e => new Listings(e)));
-    } catch (e) {
-      console.error(e);
-    }
-    const [ c, l ] = r ? r.split("-") : [ "0", null ];
-    o = parseInt(c);
-    if (!s) {
-      var f = {
-        id: "-" !== e[0] ? {
-          $lt: l || Number.MAX_SAFE_INTEGER
-        } : {
-          $gt: l || 0
-        },
-        deadline: {
-          $gt: Math.floor(Date.now() / 1e3)
-        },
-        canceledAt: null
-      };
-      a.collection && (g = this._getFidCollectionQuery(a.collection)) && (f.fid = g), 
-      s = await Listings.find(f).limit(t).skip(o).sort(e + " _id");
-      try {
-        r ? await i.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (n ? ":" + JSON.stringify(a) : ""), JSON.stringify(s)) : await i.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (n ? ":" + JSON.stringify(a) : ""), JSON.stringify(s), {
-          lifetime: 60
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    var g = await Promise.all(s.map(async e => {
+    let i;
+    var s = 0 < Object.keys(a).length, n = await memcache.get(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""));
+    n && (i = JSON.parse(n.value).map(e => new Listings(e)));
+    const [ o, c ] = r ? r.split("-") : [ "0", null ];
+    var l, n = parseInt(o), f = (i || (l = {
+      id: "-" !== e[0] ? {
+        $lt: c || Number.MAX_SAFE_INTEGER
+      } : {
+        $gt: c || 0
+      },
+      deadline: {
+        $gt: Math.floor(Date.now() / 1e3)
+      },
+      canceledAt: null
+    }, a.collection && (f = this._getFidCollectionQuery(a.collection)) && (l.fid = f), 
+    i = await Listings.find(l).limit(t).skip(n).sort(e + " _id"), r ? await memcache.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""), JSON.stringify(i)) : await memcache.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""), JSON.stringify(i), {
+      lifetime: 60
+    })), await Promise.all(i.map(async e => {
       var [ t, r ] = await Promise.all([ this.fetchUserData(e.fid), this.ethToUsd(e.minFee) ]), r = this.usdFormatter.format(ethers.utils.formatEther(r));
       return {
         fid: e.fid,
@@ -196,34 +144,20 @@ class MarketplaceService {
           user: t
         }
       };
-    }));
+    })));
     let h = null;
-    if (g.length >= t) {
-      const l = g[g.length - 1].listing._id;
-      h = o + g.length + "-" + l.toString();
+    if (f.length >= t) {
+      const c = f[f.length - 1].listing._id;
+      h = n + f.length + "-" + c.toString();
     }
-    return [ g.slice(0, t), h ];
+    return [ f.slice(0, t), h ];
   }
   async latestFid() {
-    var e = getMemcachedClient();
-    let t;
-    try {
-      var r = await e.get("MarketplaceService:latestFid");
-      r && (t = r.value);
-    } catch (e) {
-      console.error(e);
-    }
-    if (!t) {
-      t = await Fids.count();
-      try {
-        await e.set("MarketplaceService:latestFid", t, {
-          lifetime: 3600
-        });
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return t;
+    let e;
+    var t = await memcache.get("MarketplaceService:latestFid");
+    return (e = t ? t.value : e) || (e = await Fids.count(), await memcache.set("MarketplaceService:latestFid", e, {
+      lifetime: 3600
+    })), e;
   }
   async searchListings({
     limit: e = 20,
@@ -287,16 +221,10 @@ class MarketplaceService {
   }) {
     if (!t || !r) return null;
     try {
-      var a = getMemcachedClient();
       let e;
-      try {
-        var i = await a.get(`MarketplaceService:getProxyAddress:${t}:` + r);
-        i && (e = JSON.parse(i.value));
-      } catch (e) {
-        console.error(e);
-      }
-      return e || (e = await this.marketplace.getAddress(validateAndConvertAddress(t), r), 
-      await a.set(`MarketplaceService:getProxyAddress:${t}:` + r, JSON.stringify(e))), 
+      var a = await memcache.get(`MarketplaceService:getProxyAddress:${t}:` + r);
+      return (e = a ? JSON.parse(a.value) : e) || (e = await this.marketplace.getAddress(validateAndConvertAddress(t), r), 
+      await memcache.set(`MarketplaceService:getProxyAddress:${t}:` + r, JSON.stringify(e))), 
       e;
     } catch (e) {
       return Sentry.captureException(e), null;
@@ -361,15 +289,9 @@ class MarketplaceService {
           txHash: e
         }, {
           upsert: !0
+        }), await memcache.delete("Listing:" + n, {
+          noreply: !0
         });
-        var c = getMemcachedClient();
-        try {
-          await c.delete("Listing:" + n, {
-            noreply: !0
-          });
-        } catch (e) {
-          console.error(e);
-        }
         break;
       }
     } catch (e) {
@@ -379,37 +301,20 @@ class MarketplaceService {
     throw new Error("FID not listed");
   }
   async getHighestSale() {
-    var e = getMemcachedClient();
-    try {
-      var t = await e.get("MarketplaceService:stats:highestSale");
-      if (t) return t.value;
-    } catch (e) {
-      console.error(e);
-    }
-    t = await ListingLogs.findOne({
+    var e = await memcache.get("MarketplaceService:stats:highestSale");
+    return e ? e.value : (e = await ListingLogs.findOne({
       eventType: {
         $in: [ "Bought", "OfferApproved" ]
       }
     }).sort({
       price: -1
-    });
-    if (t) try {
-      return await e.set("MarketplaceService:stats:highestSale", t.price, {
-        lifetime: 60
-      }), t.price;
-    } catch (e) {
-      console.error(e);
-    }
+    })) ? (await memcache.set("MarketplaceService:stats:highestSale", e.price, {
+      lifetime: 60
+    }), e.price) : void 0;
   }
   async getTotalVolume() {
-    var e = getMemcachedClient();
-    try {
-      var t = await e.get("MarketplaceService:stats:totalVolume");
-      if (t) return t.value;
-    } catch (e) {
-      console.error(e);
-    }
-    t = await ListingLogs.aggregate([ {
+    var e = await memcache.get("MarketplaceService:stats:totalVolume");
+    return e ? e.value : (e = await ListingLogs.aggregate([ {
       $match: {
         eventType: {
           $in: [ "Bought", "OfferApproved" ]
@@ -422,62 +327,44 @@ class MarketplaceService {
           $sum: "$price"
         }
       }
-    } ]);
-    if (t.length) try {
-      return await e.set("MarketplaceService:stats:totalVolume", t[0].total, {
-        lifetime: 60
-      }), t[0].total;
-    } catch (e) {
-      console.error(e);
-    }
+    } ])).length ? (await memcache.set("MarketplaceService:stats:totalVolume", e[0].total, {
+      lifetime: 60
+    }), e[0].total) : void 0;
   }
   async getStats() {
     try {
-      var t = getMemcachedClient();
       let e;
-      try {
-        var r = await t.get("MarketplaceService:getStats");
-        r && (e = JSON.parse(r.value));
-      } catch (e) {
-        console.error(e);
-      }
-      if (!e) {
-        var [ a, i, s, n, o ] = await Promise.all([ Listings.findOne({
-          canceledAt: null
-        }).sort({
-          minFee: 1
-        }), Offers.findOne({
-          canceledAt: null
-        }).sort({
-          amount: -1
-        }), this.getHighestSale(), this.ethToUsd(1), this.latestFid() ]), c = s || "0";
-        e = {
-          stats: {
-            floor: {
-              usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(a.minFee).mul(n))),
-              wei: a.minFee
-            },
-            lastFid: {
-              value: "#" + o || "0"
-            },
-            highestOffer: {
-              usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(i?.amount || "0").mul(n))),
-              wei: i?.amount || "0"
-            },
-            highestSale: {
-              usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(c).mul(n))),
-              wei: c
-            }
+      var t, r, a, i, s, n, o = await memcache.get("MarketplaceService:getStats");
+      return (e = o ? JSON.parse(o.value) : e) || ([ t, r, a, i, s ] = await Promise.all([ Listings.findOne({
+        canceledAt: null
+      }).sort({
+        minFee: 1
+      }), Offers.findOne({
+        canceledAt: null
+      }).sort({
+        amount: -1
+      }), this.getHighestSale(), this.ethToUsd(1), this.latestFid() ]), n = a || "0", 
+      e = {
+        stats: {
+          floor: {
+            usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(t.minFee).mul(i))),
+            wei: t.minFee
           },
-          success: !0
-        };
-        try {
-          await t.set("MarketplaceService:getStats", JSON.stringify(e));
-        } catch (e) {
-          console.error(e);
-        }
-      }
-      return e;
+          lastFid: {
+            value: "#" + s || "0"
+          },
+          highestOffer: {
+            usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(r?.amount || "0").mul(i))),
+            wei: r?.amount || "0"
+          },
+          highestSale: {
+            usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(n).mul(i))),
+            wei: n
+          }
+        },
+        success: !0
+      }, await memcache.set("MarketplaceService:getStats", JSON.stringify(e))), 
+      e;
     } catch (e) {
       return console.error(e), Sentry.captureException(e), {
         success: !1,
@@ -490,31 +377,25 @@ class MarketplaceService {
   }) {
     var t, e = await this.getReceipt({
       txHash: e
-    }), r = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI), a = getMemcachedClient();
+    }), r = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     for (t of e.logs) try {
-      var i = r.parseLog(t);
-      if ("Listed" === i.name) {
-        try {
-          var s = (await a.get("MarketplaceService:stats:floor"))?.value, n = !s || ethers.BigNumber.from(i.args.amount).lt(ethers.BigNumber.from(s)) ? i.args.amount.toString() : s;
-          await a.set("MarketplaceService:stats:floor", n);
-        } catch (e) {
-          console.error(e);
-        }
+      var a = r.parseLog(t);
+      if ("Listed" === a.name) {
+        var i = (await memcache.get("MarketplaceService:stats:floor"))?.value, s = !i || ethers.BigNumber.from(a.args.amount).lt(ethers.BigNumber.from(i)) ? a.args.amount.toString() : i;
+        await memcache.set("MarketplaceService:stats:floor", s);
         break;
       }
-      if ("Bought" === i.name) {
-        try {
-          var [ o, c ] = await Promise.all([ a.get("MarketplaceService:stats:highestSale"), a.get("MarketplaceService:stats:totalVolume") ]), l = o?.value, f = c?.value, g = i.args.amount.toString(), h = (l && !ethers.BigNumber.from(g).gt(ethers.BigNumber.from(l)) || await a.set("MarketplaceService:stats:highestSale", g), 
-          f ? ethers.BigNumber.from(f).add(ethers.BigNumber.from(g)).toString() : g);
-          await a.set("MarketplaceService:stats:totalVolume", h), await a.delete("MarketplaceService:getStats", {
-            noreply: !0
-          });
-        } catch (e) {
-          console.error(e);
-        }
+      if ("Bought" === a.name) {
+        var [ n, o ] = await Promise.all([ memcache.get("MarketplaceService:stats:highestSale"), memcache.get("MarketplaceService:stats:totalVolume") ]), c = n?.value, l = o?.value, f = a.args.amount.toString(), h = (c && !ethers.BigNumber.from(f).gt(ethers.BigNumber.from(c)) || await memcache.set("MarketplaceService:stats:highestSale", f), 
+        l ? ethers.BigNumber.from(l).add(ethers.BigNumber.from(f)).toString() : f);
+        await memcache.set("MarketplaceService:stats:totalVolume", h), await memcache.delete("MarketplaceService:getStats", {
+          noreply: !0
+        });
         break;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   }
   async list({
     txHash: e
@@ -556,13 +437,7 @@ class MarketplaceService {
           txHash: e
         }, {
           upsert: !0
-        });
-        var c = getMemcachedClient();
-        try {
-          await c.set("Listing:" + n, JSON.stringify(i));
-        } catch (e) {
-          console.error(e);
-        }
+        }), await memcache.set("Listing:" + n, JSON.stringify(i));
         break;
       }
     } catch (e) {}
@@ -588,31 +463,24 @@ class MarketplaceService {
     var r, a = new ethers.utils.Interface(config().FID_MARKETPLACE_ABI);
     let i = null, s = null;
     for (r of t.logs) try {
-      var n = a.parseLog(r);
-      if ("Bought" === n.name) {
-        var o = n.args.fid.toNumber(), c = {
-          fid: o
-        }, l = (i = await Listings.findOneAndUpdate(c, {
-          txHash: e,
-          canceledAt: new Date()
-        }, {
-          upsert: !0,
-          new: !0
-        }), s = {
-          eventType: "Bought",
-          fid: o,
-          from: n.args.buyer,
-          price: this._padWithZeros(n.args.amount.toString()),
-          txHash: e
-        }, getMemcachedClient());
-        try {
-          await l.set("Listing:" + n.args.fid, JSON.stringify(i));
-        } catch (e) {
-          console.error(e);
-        }
-      } else "Referred" === n.name && (s = {
+      var n, o, c = a.parseLog(r);
+      "Bought" === c.name ? (o = {
+        fid: n = c.args.fid.toNumber()
+      }, i = await Listings.findOneAndUpdate(o, {
+        txHash: e,
+        canceledAt: new Date()
+      }, {
+        upsert: !0,
+        new: !0
+      }), s = {
+        eventType: "Bought",
+        fid: n,
+        from: c.args.buyer,
+        price: this._padWithZeros(c.args.amount.toString()),
+        txHash: e
+      }, await memcache.set("Listing:" + c.args.fid, JSON.stringify(i))) : "Referred" === c.name && (s = {
         ...s || {},
-        referrer: n.args.referrer
+        referrer: c.args.referrer
       });
     } catch (e) {}
     if (s && await ListingLogs.updateOne({
@@ -645,7 +513,8 @@ class MarketplaceService {
         var n = s.args.fid.toString(), o = {
           fid: n,
           buyerAddress: s.args.buyer
-        }, c = (i = await Offers.findOneAndUpdate(o, {
+        };
+        i = await Offers.findOneAndUpdate(o, {
           fid: n,
           txHash: e,
           buyerAddress: s.args.buyer,
@@ -664,14 +533,9 @@ class MarketplaceService {
           txHash: e
         }, {
           upsert: !0
-        }), getMemcachedClient());
-        try {
-          await c.delete("getBestOffer:" + s.args.fid, {
-            noreply: !0
-          });
-        } catch (e) {
-          console.error(e);
-        }
+        }), await memcache.delete("getBestOffer:" + s.args.fid, {
+          noreply: !0
+        });
         break;
       }
     } catch (e) {}
@@ -701,7 +565,8 @@ class MarketplaceService {
         var n = s.args.fid.toNumber(), o = {
           fid: n,
           buyerAddress: s.args.buyer
-        }, c = (i = await Offers.findOneAndUpdate(o, {
+        };
+        i = await Offers.findOneAndUpdate(o, {
           fid: n,
           txHash: e,
           canceledAt: new Date()
@@ -717,14 +582,9 @@ class MarketplaceService {
           txHash: e
         }, {
           upsert: !0
-        }), getMemcachedClient());
-        try {
-          await c.delete("getBestOffer:" + s.args.fid, {
-            noreply: !0
-          });
-        } catch (e) {
-          console.error(e);
-        }
+        }), await memcache.delete("getBestOffer:" + s.args.fid, {
+          noreply: !0
+        });
         break;
       }
     } catch (e) {}
@@ -754,7 +614,8 @@ class MarketplaceService {
         var n = s.args.fid.toNumber(), o = {
           fid: n,
           buyerAddress: s.args.buyer
-        }, c = (i = await Offers.findOneAndUpdate(o, {
+        };
+        i = await Offers.findOneAndUpdate(o, {
           txHash: e,
           canceledAt: new Date()
         }, {
@@ -775,16 +636,11 @@ class MarketplaceService {
           txHash: e
         }, {
           upsert: !0
-        }), getMemcachedClient());
-        try {
-          await c.delete("getBestOffer:" + s.args.fid, {
-            noreply: !0
-          }), await c.delete("Listing:" + n, {
-            noreply: !0
-          });
-        } catch (e) {
-          console.error(e);
-        }
+        }), await Promise.all([ memcache.delete("getBestOffer:" + s.args.fid, {
+          noreply: !0
+        }), memcache.delete("Listing:" + n, {
+          noreply: !0
+        }) ]);
         break;
       }
     } catch (e) {}
@@ -802,42 +658,25 @@ class MarketplaceService {
     limit: s = 20,
     cursor: n
   }) {
-    var o = getMemcachedClient();
-    let c = `MarketplaceService:getActivities:${e}:${t}:${r}:${a}:` + n + s;
-    i && (c = c + ":" + i);
-    let l;
-    try {
-      var f = await o.get(c);
-      f && (l = JSON.parse(f.value).map(e => new ListingLogs(e)));
-    } catch (e) {
-      console.error(e);
-    }
-    var [ f, g ] = n ? n.split("-") : [ Date.now(), null ];
-    if (!l) {
-      f = {
-        createdAt: {
-          $lt: f
-        },
-        id: {
-          $lt: g || Number.MAX_SAFE_INTEGER
-        }
-      };
-      e && "all" !== e && "Bought" === (f.eventType = e) && (f.eventType = {
-        $in: [ "Bought", "OfferApproved" ]
-      }), t ? f.fid = t : a && (g = this._getFidCollectionQuery(a)) && (f.fid = g), 
-      r && (f.from = r), i && (f.referrer = i), l = await ListingLogs.find(f).limit(s).sort({
-        createdAt: -1
-      });
-      try {
-        n ? await o.set(c, JSON.stringify(l)) : await o.set(c, JSON.stringify(l), {
-          lifetime: 60
-        });
-      } catch (e) {
-        console.error(e);
+    let o = `MarketplaceService:getActivities:${e}:${t}:${r}:${a}:` + n + s;
+    i && (o = o + ":" + i);
+    let c;
+    var l = await memcache.get(o), [ l, f ] = (l && (c = JSON.parse(l.value).map(e => new ListingLogs(e))), 
+    n ? n.split("-") : [ Date.now(), null ]), e = (c || (l = {
+      createdAt: {
+        $lt: l
+      },
+      id: {
+        $lt: f || Number.MAX_SAFE_INTEGER
       }
-    }
-    let h = null;
-    return [ await Promise.all(l.map(async e => {
+    }, e && "all" !== e && "Bought" === (l.eventType = e) && (l.eventType = {
+      $in: [ "Bought", "OfferApproved" ]
+    }), t ? l.fid = t : a && (f = this._getFidCollectionQuery(a)) && (l.fid = f), 
+    r && (l.from = r), i && (l.referrer = i), c = await ListingLogs.find(l).limit(s).sort({
+      createdAt: -1
+    }), n ? await memcache.set(o, JSON.stringify(c)) : await memcache.set(o, JSON.stringify(c), {
+      lifetime: 60
+    })), await Promise.all(c.map(async e => {
       var [ t, r ] = await Promise.all([ this.fetchUserData(e.fid), this.ethToUsd(e.price) ]), a = this.usdFormatter.format(ethers.utils.formatEther(r)), a = {
         ...e._doc,
         usd: a,
@@ -845,7 +684,9 @@ class MarketplaceService {
       };
       return e.referrer && (a.referrerUsd = this.usdFormatter.format(config().FID_MARKETPLACE_REF_PERCENTAGE * ethers.utils.formatEther(r) / 100)), 
       a;
-    })), h = l.length === s ? l[l.length - 1].createdAt.getTime() + "-" + l[l.length - 1].id : h ];
+    })));
+    let h = null;
+    return [ e, h = c.length === s ? c[c.length - 1].createdAt.getTime() + "-" + c[c.length - 1].id : h ];
   }
   async getOffers({
     fid: e,

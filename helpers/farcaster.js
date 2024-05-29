@@ -22,9 +22,9 @@ const {
   config,
   prod
 } = require("../helpers/registrar"), getHexTokenIdFromLabel = require("../helpers/get-token-id-from-label")["getHexTokenIdFromLabel"], ethers = require("ethers")["ethers"], {
-  getMemcachedClient,
+  memcache,
   getHash
-} = require("../connectmemcached"), {
+} = require("../connectmemcache"), {
   Message,
   fromFarcasterTime
 } = require("@farcaster/hub-nodejs"), bs58 = require("bs58"), axios = require("axios");
@@ -56,109 +56,95 @@ function bytesToHex(e) {
   if (void 0 !== e) return null === e ? null : "0x" + Buffer.from(e).toString("hex");
 }
 
+function escapeRegExp(e) {
+  return e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 const getSyncedChannelById = async e => {
-  if (!e) return null;
-  var t = getMemcachedClient(), a = "syncedChannel:" + e;
-  try {
-    var r, s = await t.get(a);
-    return s ? JSON.parse(s.value) : ((r = await SyncedChannels.findOne({
-      channelId: e
-    })) && await t.set(a, JSON.stringify(r), {
-      lifetime: 21600
-    }), r);
-  } catch (e) {
-    return console.error("Failed to get synced channel by ID: " + e), null;
-  }
+  var t, a;
+  return e ? (t = "syncedChannel:" + e, (a = await memcache.get(t)) ? JSON.parse(a.value) : ((a = await SyncedChannels.findOne({
+    channelId: e
+  })) && await memcache.set(t, JSON.stringify(a), {
+    lifetime: 21600
+  }), a)) : null;
 }, getSyncedChannelByUrl = async e => {
-  if (!e) return null;
-  var t = getMemcachedClient(), a = "syncedChannel:" + e;
-  try {
-    var r, s = await t.get(a);
-    return s ? JSON.parse(s.value) : ((r = await SyncedChannels.findOne({
-      url: e
-    })) && await t.set(a, JSON.stringify(r), {
-      lifetime: 21600
-    }), r);
-  } catch (e) {
-    return console.error("Failed to get synced channel by ID: " + e), null;
-  }
+  var t, a;
+  return e ? (t = "syncedChannel:" + e, (a = await memcache.get(t)) ? JSON.parse(a.value) : ((a = await SyncedChannels.findOne({
+    url: e
+  })) && await memcache.set(t, JSON.stringify(a), {
+    lifetime: 21600
+  }), a)) : null;
 }, searchChannels = async e => {
-  if (!e) return [];
-  var t = getMemcachedClient(), a = "searchChannels:" + e;
-  try {
-    var r, s = await t.get(a);
-    return s ? JSON.parse(s.value) : (0 < (r = await SyncedChannels.aggregate([ {
-      $match: {
-        channelId: {
-          $regex: new RegExp("^" + e, "i")
-        }
+  var t, a;
+  return e ? (t = "searchChannels:" + e, (a = await memcache.get(t)) ? JSON.parse(a.value) : (0 < (a = await SyncedChannels.aggregate([ {
+    $match: {
+      channelId: {
+        $regex: new RegExp("^" + escapeRegExp(e), "i")
       }
-    }, {
-      $addFields: {
-        channelIdLength: {
-          $strLenCP: "$channelId"
-        }
+    }
+  }, {
+    $addFields: {
+      channelIdLength: {
+        $strLenCP: "$channelId"
       }
-    }, {
-      $sort: {
-        channelIdLength: 1
-      }
-    }, {
-      $limit: 10
-    } ])).length && await t.set(a, JSON.stringify(r), {
-      lifetime: 21600
-    }), r);
-  } catch (e) {
-    return console.error("Failed to search channels: " + e), [];
-  }
+    }
+  }, {
+    $sort: {
+      channelIdLength: 1
+    }
+  }, {
+    $limit: 10
+  } ])).length && await memcache.set(t, JSON.stringify(a), {
+    lifetime: 21600
+  }), a)) : [];
 }, postMessage = async ({
   isExternal: a = !1,
   externalFid: r,
   messageJSON: s,
-  hubClient: n,
+  hubClient: i,
   errorHandler: t = e => console.error(e),
-  bodyOverrides: i
+  bodyOverrides: n
 }) => {
   try {
     let e = a, t = Message.fromJSON(s);
-    var c, o;
-    if (!e && [ MessageType.MESSAGE_TYPE_CAST_ADD, MessageType.MESSAGE_TYPE_CAST_REMOVE ].includes(t.type) && (t.data.type == MessageType.MESSAGE_TYPE_CAST_ADD && t.data.castAddBody.parentCastId ? (c = await Casts.findOne({
+    var l, c;
+    if (!e && [ MessageType.MESSAGE_TYPE_CAST_ADD, MessageType.MESSAGE_TYPE_CAST_REMOVE ].includes(t.type) && (t.data.type == MessageType.MESSAGE_TYPE_CAST_ADD && t.data.castAddBody.parentCastId ? (l = await Casts.findOne({
       hash: bytesToHex(t.data.castAddBody.parentCastId.hash)
-    }), e = c?.external || e) : t.data.type == MessageType.MESSAGE_TYPE_CAST_REMOVE && (o = await Casts.findOne({
+    }), e = l?.external || e) : t.data.type == MessageType.MESSAGE_TYPE_CAST_REMOVE && (c = await Casts.findOne({
       hash: bytesToHex(t.data.castRemoveBody.targetHash)
-    }), e = o?.external || e)), e && t.data.type === MessageType.MESSAGE_TYPE_USER_DATA_ADD && t.data.userDataBody.type === UserDataType.USER_DATA_TYPE_USERNAME) {
-      var l = new _AlchemyService({
+    }), e = c?.external || e)), e && t.data.type === MessageType.MESSAGE_TYPE_USER_DATA_ADD && t.data.userDataBody.type === UserDataType.USER_DATA_TYPE_USERNAME) {
+      var d = new _AlchemyService({
         apiKey: prod().NODE_URL,
         chain: prod().NODE_NETWORK
-      }), d = new _AlchemyService({
+      }), o = new _AlchemyService({
         apiKey: prod().OPTIMISM_NODE_URL,
         chain: prod().OPTIMISM_NODE_NETWORK
       });
       let e = Buffer.from(t.data.userDataBody.value).toString("ascii").replace(".beb", "").replace(".cast", "");
       e.includes(".op") && (e = "op_" + e.replace(".op", ""));
-      var g = getHexTokenIdFromLabel(e), [ u, h ] = await Promise.all([ l.getNFTs({
+      var g = getHexTokenIdFromLabel(e), [ m, u ] = await Promise.all([ d.getNFTs({
         owner: r,
         contractAddresses: [ prod().REGISTRAR_ADDRESS ]
-      }), d.getNFTs({
+      }), o.getNFTs({
         owner: r,
         contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
-      }) ]), y = (u?.ownedNfts || []).concat(h?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
-      if (!y.includes(g)) {
-        var f = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + y;
-        if ("production" === process.env.NODE_ENV) throw new Error(f);
-        console.error(f);
+      }) ]), h = (m?.ownedNfts || []).concat(u?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
+      if (!h.includes(g)) {
+        var y = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + h;
+        if ("production" === process.env.NODE_ENV) throw new Error(y);
+        console.error(y);
       }
     }
     if (!e) {
-      var m = await n.submitMessage(t), F = m.unwrapOr(null);
-      if (!F) throw new Error("Could not send message: " + m?.error);
+      var f = await i.submitMessage(t), F = f.unwrapOr(null);
+      if (!F) throw new Error("Could not send message: " + f?.error);
       t = {
         ...F,
         hash: F.hash,
         signer: F.signer
       };
     }
-    var p = new Date(), C = {
+    var p = new Date(), w = {
       fid: e ? r : t.data.fid,
       createdAt: p,
       updatedAt: p,
@@ -172,31 +158,26 @@ const getSyncedChannelById = async e => {
       raw: bytesToHex(Message.encode(t).finish()),
       external: e,
       unindexed: !0,
-      bodyOverrides: i
+      bodyOverrides: n
     };
     try {
-      await Messages.create(C);
+      await Messages.create(w);
     } catch (e) {
       if (11e3 !== (e?.code || 0)) throw e;
       console.error("Message with this hash already exists, skipping!");
     }
     return {
-      result: C,
+      result: w,
       source: "v2"
     };
   } catch (e) {
     throw t(e), e;
   }
 }, GLOBAL_SCORE_THRESHOLD = 50, GLOBAL_SCORE_THRESHOLD_CHANNEL = 5, getFarcasterUserByFid = async e => {
-  var t = getMemcachedClient();
-  try {
-    var a = await t.get("getFarcasterUserByFid:" + e);
-    if (a) return JSON.parse(a.value);
-  } catch (e) {
-    console.error(e);
-  }
+  var t = await memcache.get("getFarcasterUserByFid:" + e);
+  if (t) return JSON.parse(t.value);
   if (!e) return null;
-  var [ a, r, s, n, i, c ] = await Promise.all([ getFarcasterFollowingCount(e), getFarcasterFollowersCount(e), UserData.find({
+  var [ t, a, r, s, i, n ] = await Promise.all([ getFarcasterFollowingCount(e), getFarcasterFollowersCount(e), UserData.find({
     fid: e,
     deletedAt: null
   }).sort({
@@ -204,10 +185,10 @@ const getSyncedChannelById = async e => {
   }), Fids.findOne({
     fid: e,
     deletedAt: null
-  }), getConnectedAddressForFid(e), getConnectedAddressesForFid(e) ]), o = {
+  }), getConnectedAddressForFid(e), getConnectedAddressesForFid(e) ]), l = {
     fid: e,
-    followingCount: a,
-    followerCount: r,
+    followingCount: t,
+    followerCount: a,
     pfp: {
       url: "",
       verified: !1
@@ -217,47 +198,42 @@ const getSyncedChannelById = async e => {
       mentions: []
     },
     external: !1,
-    custodyAddress: n?.custodyAddress,
+    custodyAddress: s?.custodyAddress,
     connectedAddress: i,
-    allConnectedAddresses: c
+    allConnectedAddresses: n
   };
-  let l = n?.timestamp;
+  let c = s?.timestamp;
   var d = {};
-  for (const f of s) {
-    f.external && (o.external = !0), l = l || f.createdAt, f.createdAt < l && (l = f.createdAt);
-    var g = f.value.startsWith("0x") ? f.value.slice(2) : f.value, u = Buffer.from(g, "hex").toString("utf8");
-    switch (f.type) {
+  for (const h of r) {
+    h.external && (l.external = !0), c = c || h.createdAt, h.createdAt < c && (c = h.createdAt);
+    var o = h.value.startsWith("0x") ? h.value.slice(2) : h.value, g = Buffer.from(o, "hex").toString("utf8");
+    switch (h.type) {
      case UserDataType.USER_DATA_TYPE_USERNAME:
-      d.username || (o.username = u, d.username = !0);
+      d.username || (l.username = g, d.username = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_DISPLAY:
-      d.displayName || (o.displayName = u, d.displayName = !0);
+      d.displayName || (l.displayName = g, d.displayName = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_PFP:
-      d.pfp || (o.pfp.url = u, d.pfp = !0);
+      d.pfp || (l.pfp.url = g, d.pfp = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_BIO:
       if (!d.bio) {
-        o.bio.text = u;
-        for (var h, y = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; h = y.exec(u); ) o.bio.mentions.push(h[1]);
+        l.bio.text = g;
+        for (var m, u = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; m = u.exec(g); ) l.bio.mentions.push(m[1]);
         d.bio = !0;
       }
       break;
 
      case UserDataType.USER_DATA_TYPE_URL:
-      d.url || (o.url = u, d.url = !0);
+      d.url || (l.url = g, d.url = !0);
     }
   }
-  o.registeredAt = l?.getTime();
-  try {
-    await t.set("getFarcasterUserByFid:" + e, JSON.stringify(o));
-  } catch (e) {
-    console.error(e);
-  }
-  return o;
+  return l.registeredAt = c?.getTime(), await memcache.set("getFarcasterUserByFid:" + e, JSON.stringify(l)), 
+  l;
 }, getFarcasterUserAndLinksByFid = async ({
   fid: e,
   context: t
@@ -265,39 +241,25 @@ const getSyncedChannelById = async e => {
   var a = await getFarcasterUserByFid(e);
   if (!t.fid || e === t.fid) return a;
   if (!a) return null;
-  var r = getMemcachedClient();
-  let s;
-  try {
-    var n = await r.get(`getFarcasterUserAndLinksByFid_${t.fid}:` + e);
-    n && (s = JSON.parse(n.value));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!s) {
-    var [ n, i ] = await Promise.all([ Links.exists({
-      fid: t.fid,
-      targetFid: e,
-      type: "follow",
-      deletedAt: null
-    }), Links.exists({
-      fid: e,
-      targetFid: t.fid,
-      type: "follow",
-      deletedAt: null
-    }) ]);
-    s = {
-      isFollowing: n,
-      isFollowedBy: i
-    };
-    try {
-      await r.set(`getFarcasterUserAndLinksByFid_${t.fid}:` + e, JSON.stringify(s));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return {
+  let r;
+  var s, i = await memcache.get(`getFarcasterUserAndLinksByFid_${t.fid}:` + e);
+  return (r = i ? JSON.parse(i.value) : r) || ([ i, s ] = await Promise.all([ Links.exists({
+    fid: t.fid,
+    targetFid: e,
+    type: "follow",
+    deletedAt: null
+  }), Links.exists({
+    fid: e,
+    targetFid: t.fid,
+    type: "follow",
+    deletedAt: null
+  }) ]), r = {
+    isFollowing: i,
+    isFollowedBy: s
+  }, await memcache.set(`getFarcasterUserAndLinksByFid_${t.fid}:` + e, JSON.stringify(r))), 
+  {
     ...a,
-    ...s
+    ...r
   };
 }, getFarcasterUserByCustodyAddress = async e => {
   return (e = e && await Fids.findOne({
@@ -306,27 +268,21 @@ const getSyncedChannelById = async e => {
   })) ? getFarcasterUserByFid(e.fid) : null;
 }, getFarcasterFidByCustodyAddress = async e => {
   if (!e) return null;
-  var t = getMemcachedClient();
   try {
-    var a = await t.get("getFarcasterFidByCustodyAddress:" + e);
-    if (a) return a.value;
+    var t = await memcache.get("getFarcasterFidByCustodyAddress:" + e);
+    if (t) return "" === t.value ? null : t.value;
   } catch (e) {
     console.error(e);
   }
-  return (await Fids.findOne({
+  t = (await Fids.findOne({
     custodyAddress: e,
     deletedAt: null
   }))?.fid || null;
+  return await memcache.set("getFarcasterFidByCustodyAddress:" + e, t || ""), t;
 }, getFarcasterUserByConnectedAddress = async t => {
-  var e = getMemcachedClient();
   let a = null;
-  try {
-    var r = await e.get("getFarcasterUserByConnectedAddress_fid:" + t);
-    r && (a = r.value);
-  } catch (e) {
-    console.error(e);
-  }
-  if (!a) {
+  var r = await memcache.get("getFarcasterUserByConnectedAddress_fid:" + t);
+  if (!(a = r ? r.value : a)) {
     r = "0x" === t.slice(0, 2);
     let e = t.toLowerCase();
     if (!r) try {
@@ -340,22 +296,10 @@ const getSyncedChannelById = async e => {
     });
     a = r ? r.fid : "0";
   }
-  try {
-    await e.set("getFarcasterUserByConnectedAddress_fid:" + t, a);
-  } catch (e) {
-    console.error(e);
-  }
-  return "0" !== a ? getFarcasterUserByFid(a) : null;
+  return await memcache.set("getFarcasterUserByConnectedAddress_fid:" + t, a), "0" !== a ? getFarcasterUserByFid(a) : null;
 }, getConnectedAddressForFid = async e => {
-  if (!e) return null;
-  var t = getMemcachedClient();
-  try {
-    var a = await t.get("getConnectedAddressForFid:" + e);
-    if (a) return a.value;
-  } catch (e) {
-    console.error(e);
-  }
-  a = await Verifications.findOne({
+  var t;
+  return e ? (t = await memcache.get("getConnectedAddressForFid:" + e)) ? t.value : (t = await Verifications.findOne({
     fid: e,
     deletedAt: null,
     $or: [ {
@@ -367,26 +311,13 @@ const getSyncedChannelById = async e => {
     } ]
   }).sort({
     timestamp: 1
-  });
-  if (!a) return null;
-  a = a.claimObj || JSON.parse(a.claim);
-  if (!a) return null;
-  try {
-    await t.set("getConnectedAddressForFid:" + e, a.address.toLowerCase());
-  } catch (e) {
-    console.error(e);
-  }
-  return a.address;
+  })) && (t = t.claimObj || JSON.parse(t.claim)) ? (await memcache.set("getConnectedAddressForFid:" + e, t.address.toLowerCase()), 
+  t.address) : null : null;
 }, getConnectedAddressesForFid = async e => {
   if (!e) return [];
-  var t = getMemcachedClient();
-  try {
-    var a = await t.get("getConnectedAddressesForFid:" + e);
-    if (a) return JSON.parse(a.value);
-  } catch (e) {
-    console.error(e);
-  }
-  a = (await Verifications.find({
+  var t = await memcache.get("getConnectedAddressesForFid:" + e);
+  if (t) return JSON.parse(t.value);
+  t = (await Verifications.find({
     fid: e,
     deletedAt: null
   })).map(t => {
@@ -399,74 +330,36 @@ const getSyncedChannelById = async e => {
     }
     return [ "ethereum", t.address.toLowerCase() ];
   });
-  const r = {
+  const a = {
     ethereum: new Set(),
     solana: new Set()
   };
-  a.forEach(e => {
-    r[e[0]].add(e[1]);
-  }), Object.keys(r).forEach(e => {
-    r[e] = Array.from(r[e]);
-  });
-  try {
-    await t.set("getConnectedAddressesForFid:" + e, JSON.stringify(r));
-  } catch (e) {
-    console.error(e);
-  }
-  return r;
+  return t.forEach(e => {
+    a[e[0]].add(e[1]);
+  }), Object.keys(a).forEach(e => {
+    a[e] = Array.from(a[e]);
+  }), await memcache.set("getConnectedAddressesForFid:" + e, JSON.stringify(a)), 
+  a;
 }, getCustodyAddressByFid = async e => {
-  if (!e) return null;
-  var t = getMemcachedClient();
-  try {
-    const a = await t.get("getCustodyAddressByFid:" + e);
-    if (a) return a.value;
-  } catch (e) {
-    console.error(e);
-  }
-  const a = await Fids.findOne({
+  var t;
+  return e ? (t = await memcache.get("getCustodyAddressByFid:" + e)) ? t.value : (t = await Fids.findOne({
     fid: e,
     deletedAt: null
-  }).read("secondaryPreferred");
-  if (!a) return null;
-  try {
-    await t.set("getCustodyAddressByFid:" + e, a.custodyAddress);
-  } catch (e) {
-    console.error(e);
-  }
-  return a.custodyAddress;
+  })) ? (await memcache.set("getCustodyAddressByFid:" + e, t.custodyAddress), t.custodyAddress) : null : null;
 }, getFidByCustodyAddress = async e => {
-  if (!e) return null;
-  var t = getMemcachedClient();
-  try {
-    var a = await t.get("getFidByCustodyAddress:" + e);
-    if (a) return a.value;
-  } catch (e) {
-    console.error(e);
-  }
-  a = await Fids.findOne({
+  var t;
+  return e ? (t = await memcache.get("getFidByCustodyAddress:" + e)) ? t.value : (t = await Fids.findOne({
     custodyAddress: e,
     deletedAt: null
-  }).read("secondaryPreferred");
-  if (!a) return null;
-  try {
-    await t.set("getFidByCustodyAddress:" + e, a.fid);
-  } catch (e) {
-    console.error(e);
-  }
-  return a.fid;
+  })) ? (await memcache.set("getFidByCustodyAddress:" + e, t.fid), t.fid) : null : null;
 }, searchFarcasterUserByMatch = async (e, t = 10, a = "value", r = !0) => {
   if (!e) return [];
   var s = "0x" + Buffer.from(e.toLowerCase(), "ascii").toString("hex");
-  let n = "searchFarcasterUserByMatch:" + e;
-  r || (n += ":noExternal");
-  var i = getMemcachedClient();
-  try {
-    var c = await i.get(getHash(n));
-    if (c) return JSON.parse(c.value);
-  } catch (e) {
-    console.error(e);
-  }
-  c = {
+  let i = "searchFarcasterUserByMatch:" + e;
+  r || (i += ":noExternal");
+  var n = await memcache.get(getHash(i));
+  if (n) return JSON.parse(n.value);
+  n = {
     $or: [ {
       value: {
         $regex: "^" + s
@@ -481,187 +374,133 @@ const getSyncedChannelById = async e => {
       deletedAt: null
     }, {
       fid: e?.startsWith("0x") ? {
-        $regex: "^" + e
+        $regex: "^" + escapeRegExp(e)
       } : "" + e,
       deletedAt: null
     } ]
-  }, r || (c.external = !1), s = await UserData.find(c).read("secondaryPreferred").limit(t).sort(a);
-  const o = {};
-  e = s.map(e => o[e.fid] ? null : (o[e.fid] = !0, e.fid)).filter(e => null !== e), 
+  }, r || (n.external = !1), s = await UserData.find(n).read("secondaryPreferred").limit(t).sort(a);
+  const l = {};
+  e = s.map(e => l[e.fid] ? null : (l[e.fid] = !0, e.fid)).filter(e => null !== e), 
   r = await Promise.all(e.map(e => getFarcasterUserByFid(e)));
-  try {
-    await i.set(getHash(n), JSON.stringify(r), {
-      lifetime: 300
-    });
-  } catch (e) {
-    console.error(e);
-  }
-  return r;
+  return await memcache.set(getHash(i), JSON.stringify(r), {
+    lifetime: 300
+  }), r;
 }, getFarcasterUserByUsername = async (e, t = 0) => {
   var a = "0x" + Buffer.from(e, "ascii").toString("hex");
   let r;
-  var s = getMemcachedClient();
-  try {
-    var n = await s.get("getFarcasterUserByUsername_fid:" + e);
-    n && (r = n.value);
-  } catch (e) {
-    console.error(e);
-  }
-  if (r || (n = await UserData.findOne({
+  var s = await memcache.get("getFarcasterUserByUsername_fid:" + e);
+  return (r = s ? s.value : r) || (s = await UserData.findOne({
     value: a,
     type: UserDataType.USER_DATA_TYPE_USERNAME,
     deletedAt: null
-  }), r = n?.fid), r) {
-    try {
-      await s.set("getFarcasterUserByUsername_fid:" + e, r);
-    } catch (e) {
-      console.error(e);
-    }
-    return getFarcasterUserByFid(r);
-  }
-  return null;
+  }), r = s?.fid), r ? (await memcache.set("getFarcasterUserByUsername_fid:" + e, r), 
+  getFarcasterUserByFid(r)) : null;
 }, getFarcasterUserAndLinksByUsername = async ({
   username: e,
   context: t
 }) => {
   var a = "0x" + Buffer.from(e, "ascii").toString("hex");
   let r;
-  var s = getMemcachedClient();
-  try {
-    var n = await s.get(getHash("getFarcasterUserAndLinksByUsername_fid:" + e));
-    n && (r = n.value);
-  } catch (e) {
-    console.error(e);
-  }
-  if (r || (n = await UserData.findOne({
+  var s = await memcache.get(getHash("getFarcasterUserAndLinksByUsername_fid:" + e));
+  return (r = s ? s.value : r) || (s = await UserData.findOne({
     value: a,
     type: UserDataType.USER_DATA_TYPE_USERNAME,
     deletedAt: null
-  }), r = n?.fid), r) {
-    try {
-      await s.set(getHash("getFarcasterUserAndLinksByUsername_fid:" + e), r);
-    } catch (e) {
-      console.error(e);
-    }
-    return getFarcasterUserAndLinksByFid({
-      fid: r,
-      context: t
-    });
-  }
-  return null;
-}, getFarcasterCastByHash = async (t, a = {}, e = {}) => {
-  var r = getMemcachedClient();
-  let s, n;
-  if (a.fid) {
-    try {
-      const T = await r.get(`getFarcasterCastByHash_${a.fid}:` + t);
-      T && (s = JSON.parse(T.value));
-    } catch (e) {
-      console.error(e);
-    }
-    if (!s) {
-      if (!(n = await Casts.findOne({
-        hash: t,
-        deletedAt: null
-      }).read("secondaryPreferred"))) return null;
-      var [ i, c ] = await Promise.all([ Reactions.exists({
-        targetHash: n.hash,
-        fid: a.fid,
+  }), r = s?.fid), r ? (await memcache.set(getHash("getFarcasterUserAndLinksByUsername_fid:" + e), r), 
+  getFarcasterUserAndLinksByFid({
+    fid: r,
+    context: t
+  })) : null;
+}, getFarcasterCastByHash = async (e, t = {}, a = {}) => {
+  let r, s;
+  if (t.fid) {
+    var i = await memcache.get(`getFarcasterCastByHash_${t.fid}:` + e);
+    if (!(r = i ? JSON.parse(i.value) : r)) {
+      if (!(s = await Casts.findOne({
+        hash: e
+      })) || s.deletedAt) return null;
+      var [ i, n ] = await Promise.all([ Reactions.exists({
+        targetHash: s.hash,
+        fid: t.fid,
         reactionType: ReactionType.REACTION_TYPE_LIKE,
         deletedAt: null
       }), Reactions.exists({
-        targetHash: n.hash,
-        fid: a.fid,
+        targetHash: s.hash,
+        fid: t.fid,
         reactionType: ReactionType.REACTION_TYPE_RECAST,
         deletedAt: null
       }) ]);
-      s = {
+      r = {
         isSelfLike: i,
-        isSelfRecast: c
-      };
-      try {
-        await r.set(`getFarcasterCastByHash_${a.fid}:` + t, JSON.stringify(s));
-      } catch (e) {
-        console.error(e);
-      }
+        isSelfRecast: n
+      }, await memcache.set(`getFarcasterCastByHash_${t.fid}:` + e, JSON.stringify(r));
     }
   }
-  try {
-    const T = await r.get("getFarcasterCastByHash:" + t);
-    if (T) return (l = JSON.parse(T.value)).author && (l.author = await getFarcasterUserAndLinksByFid({
-      fid: l.author.fid,
-      context: a
-    })), {
-      ...l,
-      ...s
-    };
-  } catch (e) {
-    console.error(e);
-  }
-  if (!(n = n || await Casts.findOne({
-    hash: t,
+  i = await memcache.get("getFarcasterCastByHash:" + e);
+  if (i) return (n = JSON.parse(i.value)).author && (n.author = await getFarcasterUserAndLinksByFid({
+    fid: n.author.fid,
+    context: t
+  })), {
+    ...n,
+    ...r
+  };
+  if (!(s = s || await Casts.findOne({
+    hash: e
+  })) || s.deletedAt) return null;
+  let l;
+  a.includeReply && (l = (l = await Casts.findOne({
+    parentHash: s.hash,
     deletedAt: null
-  }))) return null;
-  let o;
-  e.includeReply && (o = (o = await Casts.findOne({
-    parentHash: n.hash,
-    deletedAt: null
-  })) && await getFarcasterCastByHash(o.hash, a, !1));
-  var i = [ getFarcasterRepliesCount(n.hash), getFarcasterReactionsCount(n.hash, ReactionType.REACTION_TYPE_LIKE), getFarcasterReactionsCount(n.hash, ReactionType.REACTION_TYPE_RECAST), getFarcasterUserByFid(n.parentFid), getFarcasterUserAndLinksByFid({
-    fid: n.fid,
-    context: a
-  }), getSyncedChannelByUrl(n.parentUrl), Promise.all(n.mentions.map(e => getFarcasterUserByFid(e))) ], c = JSON.parse(n.embeds), l = c.urls?.filter(e => "castId" === e.type && !a.quotedCasts?.[e.hash]).map(e => getFarcasterCastByHash(e.hash, {
-    ...a,
+  })) && await getFarcasterCastByHash(l.hash, t, !1));
+  var i = [ getFarcasterRepliesCount(s.hash), getFarcasterReactionsCount(s.hash, ReactionType.REACTION_TYPE_LIKE), getFarcasterReactionsCount(s.hash, ReactionType.REACTION_TYPE_RECAST), getFarcasterUserByFid(s.parentFid), getFarcasterUserAndLinksByFid({
+    fid: s.fid,
+    context: t
+  }), getSyncedChannelByUrl(s.parentUrl), Promise.all(s.mentions.map(e => getFarcasterUserByFid(e))) ], n = JSON.parse(s.embeds), a = n.urls?.filter(e => "castId" === e.type && !t.quotedCasts?.[e.hash]).map(e => getFarcasterCastByHash(e.hash, {
+    ...t,
     quotedCasts: {
       [e.hash]: !0
     }
-  })) || [], [ e, l, i, d, g, u, h, y ] = (i.push(Promise.all(l)), await Promise.all(i)), f = n.text;
-  let m = 0;
-  var F, p, C, w, A, S = [];
-  let v = Buffer.from(f, "utf-8");
-  for (let e = 0; e < h.length; e++) h[e] && (C = n.mentionsPositions[e], F = h[e].username || "fid:" + h[e].fid, 
-  F = Buffer.from("@" + F, "utf-8"), p = h[e].originalMention || "", p = Buffer.from(p, "utf-8").length, 
-  C = C + m, w = v.slice(0, C), A = v.slice(C + p), v = Buffer.concat([ w, F, A ]), 
-  m += F.length - p, S.push(C));
-  f = v.toString("utf-8");
-  const T = {
-    hash: n.hash,
-    parentHash: n.parentHash,
-    parentFid: n.parentFid,
-    parentUrl: n.parentUrl,
-    threadHash: n.threadHash,
-    text: f,
+  })) || [], [ a, i, c, d, o, g, m, u ] = (i.push(Promise.all(a)), await Promise.all(i)), h = s.text || "";
+  let y = 0;
+  var f, F, p, w, A, C = [];
+  let S = Buffer.from(h, "utf-8");
+  for (let e = 0; e < m.length; e++) m[e] && (p = s.mentionsPositions[e], f = m[e].username || "fid:" + m[e].fid, 
+  f = Buffer.from("@" + f, "utf-8"), F = m[e].originalMention || "", F = Buffer.from(F, "utf-8").length, 
+  p = p + y, w = S.slice(0, p), A = S.slice(p + F), S = Buffer.concat([ w, f, A ]), 
+  y += f.length - F, C.push(p));
+  h = S.toString("utf-8"), h = {
+    hash: s.hash,
+    parentHash: s.parentHash,
+    parentFid: s.parentFid,
+    parentUrl: s.parentUrl,
+    threadHash: s.threadHash,
+    text: h,
     embeds: {
-      ...c,
-      quoteCasts: y
+      ...n,
+      quoteCasts: u
     },
-    mentions: h,
-    mentionsPositions: S,
-    external: n.external,
-    author: g,
+    mentions: m,
+    mentionsPositions: C,
+    external: s.external,
+    author: o,
     parentAuthor: d,
-    timestamp: n.timestamp.getTime(),
+    timestamp: s.timestamp.getTime(),
     replies: {
-      count: e,
-      reply: o
+      count: a,
+      reply: l
     },
     reactions: {
-      count: l
-    },
-    recasts: {
       count: i
     },
-    channel: u,
-    deletedAt: n.deletedAt
+    recasts: {
+      count: c
+    },
+    channel: g,
+    deletedAt: s.deletedAt
   };
-  try {
-    await r.set("getFarcasterCastByHash:" + t, JSON.stringify(T));
-  } catch (e) {
-    console.error("getFarcasterCastByHash:" + t, e);
-  }
-  return {
-    ...T,
-    ...s
+  return await memcache.set("getFarcasterCastByHash:" + e, JSON.stringify(h)), {
+    ...h,
+    ...r
   };
 }, getFarcasterFeedCastByHash = async (e, t = {}) => {
   var a = await getFarcasterCastByHash(e, t);
@@ -677,31 +516,20 @@ const getSyncedChannelById = async e => {
 }, getFarcasterCastByShortHash = async (e, t, a = {}) => {
   t = await getFarcasterUserByUsername(t);
   if (!t) return null;
-  var r = getMemcachedClient();
-  let s;
-  try {
-    var n = await r.get("getFarcasterCastByShortHash:" + e);
-    n && (s = n.value);
-  } catch (e) {
-    console.error(e);
-  }
-  if (!s) {
-    n = await Casts.findOne({
+  let r;
+  var s = await memcache.get("getFarcasterCastByShortHash:" + e);
+  if (!(r = s ? s.value : r)) {
+    s = await Casts.findOne({
       hash: {
         $regex: "^" + e
       },
       fid: t.fid,
       deletedAt: null
     });
-    if (!n) return null;
-    s = n.hash;
+    if (!s) return null;
+    r = s.hash;
   }
-  try {
-    await r.set("getFarcasterCastByShortHash:" + e, s);
-  } catch (e) {
-    console.error(e);
-  }
-  return getFarcasterCastByHash(s, a);
+  return await memcache.set("getFarcasterCastByShortHash:" + e, r), getFarcasterCastByHash(r, a);
 }, getFarcasterCastsInThread = async ({
   threadHash: e,
   parentHash: t,
@@ -709,37 +537,23 @@ const getSyncedChannelById = async e => {
   cursor: r,
   context: s
 }) => {
-  var n = getMemcachedClient(), [ i, c ] = r ? r.split("-") : [ null, null ];
-  let o;
-  try {
-    var l = await n.get(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r);
-    l && (o = JSON.parse(l.value).map(e => new Casts(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  l = {
+  var [ i, n ] = r ? r.split("-") : [ null, null ];
+  let l;
+  var c = await memcache.get(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r), c = (c && (l = JSON.parse(c.value).map(e => new Casts(e))), 
+  {
     threadHash: e,
     deletedAt: null,
     timestamp: {
       $lt: i || Date.now()
     },
     id: {
-      $lt: c || Number.MAX_SAFE_INTEGER
+      $lt: n || Number.MAX_SAFE_INTEGER
     }
-  };
-  if (t && (l.parentHash = t), !o) {
-    o = await Casts.find(l).sort({
-      timestamp: -1
-    }).limit(a);
-    try {
-      await n.set(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r, JSON.stringify(o), {
-        lifetime: 60
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  i = await Promise.all(o.map(async e => {
+  }), i = (t && (c.parentHash = t), l || (l = await Casts.find(c).sort({
+    timestamp: -1
+  }).limit(a), await memcache.set(`getFarcasterCastsInThread:${e}:${t}:${a}:` + r, JSON.stringify(l), {
+    lifetime: 60
+  })), await Promise.all(l.map(async e => {
     e = await getFarcasterCastByHash(e.hash, s, {
       includeReply: !0
     });
@@ -747,98 +561,70 @@ const getSyncedChannelById = async e => {
       ...e,
       childrenCasts: e.replies?.reply ? [ e.replies.reply ] : []
     } : null;
-  })), c = await getFarcasterCastByHash(e, s);
+  }))), n = await getFarcasterCastByHash(e, s);
   let d = t;
-  for (var g = []; d && d !== e; ) {
-    var u = await getFarcasterCastByHash(d, s);
-    if (!u) break;
-    g.push(u), d = u.parentHash;
+  for (var o = []; d && d !== e; ) {
+    var g = await getFarcasterCastByHash(d, s);
+    if (!g) break;
+    o.push(g), d = g.parentHash;
   }
-  let h = null;
-  o.length === a && (h = o[o.length - 1].timestamp.getTime() + "-" + o[o.length - 1].id);
-  const y = new Map();
-  return [ c, ...g, ...i ].forEach(e => {
-    e && !y.has(e.hash) && y.set(e.hash, e);
-  }), [ Array.from(y.values()), h ];
+  let m = null;
+  l.length === a && (m = l[l.length - 1].timestamp.getTime() + "-" + l[l.length - 1].id);
+  const u = new Map();
+  return [ n, ...o, ...i ].forEach(e => {
+    e && !u.has(e.hash) && u.set(e.hash, e);
+  }), [ Array.from(u.values()), m ];
 }, getFarcasterCasts = async ({
   fid: e,
   parentChain: t,
   limit: a,
   cursor: r,
   context: s,
-  explore: n = !1,
-  filters: i = {}
+  explore: i = !1,
+  filters: n = {}
 }) => {
-  var [ c, o ] = r ? r.split("-") : [ null, null ], l = getMemcachedClient(), c = {
+  var [ l, c ] = r ? r.split("-") : [ null, null ], l = {
     timestamp: {
-      $lt: c || Date.now()
+      $lt: l || Date.now()
     },
     id: {
-      $lt: o || Number.MAX_SAFE_INTEGER
+      $lt: c || Number.MAX_SAFE_INTEGER
     },
     deletedAt: null
   };
-  i?.noReplies ? c.parentHash = null : i?.repliesOnly && (c.parentHash = {
+  n?.noReplies ? l.parentHash = null : n?.repliesOnly && (l.parentHash = {
     $ne: null
-  }), e && (c.fid = e), t && (c.parentUrl = t, n) && (c.globalScore = {
+  }), e && (l.fid = e), t && (l.parentUrl = t, i) && (l.globalScore = {
     $gt: GLOBAL_SCORE_THRESHOLD_CHANNEL
   });
   let d;
-  if (r) try {
-    var g = await l.get(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + n);
-    g && (d = JSON.parse(g.value).map(e => new Casts(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!d && (d = await Casts.find(c).sort({
+  (d = r && (c = await memcache.get(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + i)) ? JSON.parse(c.value).map(e => new Casts(e)) : d) || (d = await Casts.find(l).sort({
     timestamp: -1
-  }).limit(a), r)) try {
-    await l.set(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + n, JSON.stringify(d));
-  } catch (e) {
-    console.error(e);
-  }
-  o = d.map(e => getFarcasterCastByHash(e.hash, s)), i = (await Promise.all(o)).filter(e => e), 
-  g = i.map(e => {
+  }).limit(a), r && await memcache.set(`getFarcasterCasts:${e}:${t}:${a}:${r}:` + i, JSON.stringify(d)));
+  n = d.map(e => getFarcasterCastByHash(e.hash, s)), c = (await Promise.all(n)).filter(e => e), 
+  l = c.map(e => {
     return e.parentHash ? getFarcasterCastByHash(e.parentHash, s) : e;
   });
-  const u = await Promise.all(g);
-  let h = null;
-  return [ i.map((e, t) => e.parentHash && u[t] ? {
-    ...u[t],
+  const o = await Promise.all(l);
+  let g = null;
+  return [ c.map((e, t) => e.parentHash && o[t] ? {
+    ...o[t],
     childCast: e,
     childrenCasts: [ e ]
-  } : e), h = d.length === a ? d[d.length - 1].timestamp.getTime() + "-" + d[d.length - 1].id : h ];
+  } : e), g = d.length === a ? d[d.length - 1].timestamp.getTime() + "-" + d[d.length - 1].id : g ];
 }, searchFarcasterCasts = async ({}) => {
   throw new Error("searchFarcasterCasts is unavailable, index is removed - it wasn't fast.");
 }, getFarcasterFollowingCount = async e => {
-  var t = getMemcachedClient();
-  try {
-    var a = await t.get("getFarcasterFollowingCount:" + e);
-    if (a) return a.value;
-  } catch (e) {
-    console.error(e);
-  }
-  a = await Links.count({
+  var t = await memcache.get("getFarcasterFollowingCount:" + e);
+  return t ? t.value : (t = await Links.count({
     fid: e,
     type: "follow",
     deletedAt: null
-  });
-  try {
-    await t.set("getFarcasterFollowingCount:" + e, a);
-  } catch (e) {
-    console.error(e);
-  }
-  return a;
+  }), await memcache.set("getFarcasterFollowingCount:" + e, t), t);
 }, getFarcasterFollowing = async (e, t, a) => {
-  var [ r, s ] = a ? a.split("-") : [ null, null ], n = getMemcachedClient();
+  var [ r, s ] = a ? a.split("-") : [ null, null ];
   let i;
-  if (a) try {
-    var c = await n.get(`getFarcasterFollowing:${e}:${t}:` + a);
-    c && (i = JSON.parse(c.value).map(e => new Links(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!i && (i = await Links.find({
+  (i = a && (n = await memcache.get(`getFarcasterFollowing:${e}:${t}:` + a)) ? JSON.parse(n.value).map(e => new Links(e)) : i) || (i = await Links.find({
     fid: e,
     type: "follow",
     timestamp: {
@@ -850,80 +636,34 @@ const getSyncedChannelById = async e => {
     deletedAt: null
   }).sort({
     timestamp: -1
-  }).limit(t), a)) try {
-    await n.set(`getFarcasterFollowing:${e}:${t}:` + a, JSON.stringify(i));
-  } catch (e) {
-    console.error(e);
-  }
-  c = i.map(e => getFarcasterUserByFid(e.targetFid));
-  let o = null;
-  return [ await Promise.all(c), o = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : o ];
+  }).limit(t), a && await memcache.set(`getFarcasterFollowing:${e}:${t}:` + a, JSON.stringify(i)));
+  var n = i.map(e => getFarcasterUserByFid(e.targetFid));
+  let l = null;
+  return [ await Promise.all(n), l = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : l ];
 }, getFarcasterFollowersCount = async e => {
-  var t = getMemcachedClient();
-  try {
-    var a = await t.get("getFarcasterFollowersCount:" + e);
-    if (a) return a.value;
-  } catch (e) {
-    console.error(e);
-  }
-  a = await Links.count({
+  var t = await memcache.get("getFarcasterFollowersCount:" + e);
+  return t ? t.value : (t = await Links.count({
     targetFid: e,
     type: "follow",
     deletedAt: null
-  });
-  try {
-    await t.set("getFarcasterFollowersCount:" + e, a);
-  } catch (e) {
-    console.error(e);
-  }
-  return a;
+  }), await memcache.set("getFarcasterFollowersCount:" + e, t), t);
 }, getFarcasterReactionsCount = async (e, t) => {
-  var a = getMemcachedClient();
-  try {
-    var r = await a.get(`getFarcasterReactionsCount:${e}:` + t);
-    if (r) return r.value;
-  } catch (e) {
-    console.error(e);
-  }
-  r = await Reactions.count({
+  var a = await memcache.get(`getFarcasterReactionsCount:${e}:` + t);
+  return a ? a.value : (a = await Reactions.count({
     targetHash: e,
     reactionType: t,
     deletedAt: null
-  });
-  try {
-    await a.set(`getFarcasterReactionsCount:${e}:` + t, r);
-  } catch (e) {
-    console.error(e);
-  }
-  return r;
+  }), await memcache.set(`getFarcasterReactionsCount:${e}:` + t, a), a);
 }, getFarcasterRepliesCount = async e => {
-  var t = getMemcachedClient();
-  try {
-    var a = await t.get("getFarcasterRepliesCount:" + e);
-    if (a) return a.value;
-  } catch (e) {
-    console.error(e);
-  }
-  a = await Casts.count({
+  var t = await memcache.get("getFarcasterRepliesCount:" + e);
+  return t ? t.value : (t = await Casts.count({
     parentHash: e,
     deletedAt: null
-  });
-  try {
-    await t.set("getFarcasterRepliesCount:" + e, a);
-  } catch (e) {
-    console.error(e);
-  }
-  return a;
+  }), await memcache.set("getFarcasterRepliesCount:" + e, t), t);
 }, getFarcasterFollowers = async (e, t, a) => {
-  var [ r, s ] = a ? a.split("-") : [ null, null ], n = getMemcachedClient();
+  var [ r, s ] = a ? a.split("-") : [ null, null ];
   let i;
-  if (a) try {
-    var c = await n.get(`getFarcasterFollowers:${e}:${t}:` + a);
-    c && (i = JSON.parse(c.value).map(e => new Links(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!i && (i = await Links.find({
+  if (!(i = a && (n = await memcache.get(`getFarcasterFollowers:${e}:${t}:` + a)) ? JSON.parse(n.value).map(e => new Links(e)) : i) && (i = await Links.find({
     targetFid: e,
     type: "follow",
     timestamp: {
@@ -936,51 +676,35 @@ const getSyncedChannelById = async e => {
   }).sort({
     timestamp: -1
   }).limit(t), a)) try {
-    await n.set(`getFarcasterFollowers:${e}:${t}:` + a, JSON.stringify(i));
+    await memcache.set(`getFarcasterFollowers:${e}:${t}:` + a, JSON.stringify(i));
   } catch (e) {
     console.error(e);
   }
-  c = i.map(e => getFarcasterUserByFid(e.fid));
-  let o = null;
-  return [ await Promise.all(c), o = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : o ];
+  var n = i.map(e => getFarcasterUserByFid(e.fid));
+  let l = null;
+  return [ await Promise.all(n), l = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : l ];
 }, getFarcasterCastReactions = async (e, t, a) => {
-  var r = getMemcachedClient(), [ s, n ] = a ? a.split("-") : [ null, null ];
+  var [ r, s ] = a ? a.split("-") : [ null, null ];
   let i;
-  if (a) try {
-    var c = await r.get(`getFarcasterCastReactions:${e}:${t}:` + a);
-    c && (i = JSON.parse(c.value).map(e => new Reactions(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!i && (i = await Reactions.find({
+  (i = a && (n = await memcache.get(`getFarcasterCastReactions:${e}:${t}:` + a)) ? JSON.parse(n.value).map(e => new Reactions(e)) : i) || (i = await Reactions.find({
     targetHash: e,
     timestamp: {
-      $lt: s || Date.now()
+      $lt: r || Date.now()
     },
     id: {
-      $lt: n || Number.MAX_SAFE_INTEGER
+      $lt: s || Number.MAX_SAFE_INTEGER
     },
     deletedAt: null
   }).sort({
     timestamp: -1
-  }).limit(t), a)) try {
-    await r.set(`getFarcasterCastReactions:${e}:${t}:` + a, JSON.stringify(i));
-  } catch (e) {
-    console.error(e);
-  }
-  c = i.map(e => getFarcasterUserByFid(e.fid));
-  let o = null;
-  return [ await Promise.all(c), o = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : o ];
+  }).limit(t), a && await memcache.set(`getFarcasterCastReactions:${e}:${t}:` + a, JSON.stringify(i)));
+  var n = i.map(e => getFarcasterUserByFid(e.fid));
+  let l = null;
+  return [ await Promise.all(n), l = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : l ];
 }, getFarcasterCastLikes = async (e, t, a) => {
-  var [ r, s ] = a ? a.split("-") : [ null, null ], n = getMemcachedClient();
+  var [ r, s ] = a ? a.split("-") : [ null, null ];
   let i;
-  if (a) try {
-    var c = await n.get(`getFarcasterCastLikes:${e}:${t}:` + a);
-    c && (i = JSON.parse(c.value).map(e => new Reactions(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!i && (i = await Reactions.find({
+  (i = a && (n = await memcache.get(`getFarcasterCastLikes:${e}:${t}:` + a)) ? JSON.parse(n.value).map(e => new Reactions(e)) : i) || (i = await Reactions.find({
     targetHash: e,
     reactionType: ReactionType.REACTION_TYPE_LIKE,
     id: {
@@ -992,24 +716,14 @@ const getSyncedChannelById = async e => {
     deletedAt: null
   }).sort({
     timestamp: -1
-  }).limit(t), a)) try {
-    await n.set(`getFarcasterCastLikes:${e}:${t}:` + a, JSON.stringify(i));
-  } catch (e) {
-    console.error(e);
-  }
-  c = i.map(e => getFarcasterUserByFid(e.fid));
-  let o = null;
-  return [ await Promise.all(c), o = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : o ];
+  }).limit(t), a && await memcache.set(`getFarcasterCastLikes:${e}:${t}:` + a, JSON.stringify(i)));
+  var n = i.map(e => getFarcasterUserByFid(e.fid));
+  let l = null;
+  return [ await Promise.all(n), l = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : l ];
 }, getFarcasterCastRecasters = async (e, t, a) => {
-  var [ r, s ] = a ? a.split("-") : [ null, null ], n = getMemcachedClient();
+  var [ r, s ] = a ? a.split("-") : [ null, null ];
   let i;
-  if (a) try {
-    var c = await n.get(`getFarcasterCastRecasters:${e}:${t}:` + a);
-    c && (i = JSON.parse(c.value).map(e => new Reactions(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!i && (i = await Reactions.find({
+  (i = a && (n = await memcache.get(`getFarcasterCastRecasters:${e}:${t}:` + a)) ? JSON.parse(n.value).map(e => new Reactions(e)) : i) || (i = await Reactions.find({
     targetHash: e,
     reactionType: ReactionType.REACTION_TYPE_RECAST,
     id: {
@@ -1021,98 +735,63 @@ const getSyncedChannelById = async e => {
     deletedAt: null
   }).sort({
     timestamp: -1
-  }).limit(t), a)) try {
-    await n.set(`getFarcasterCastRecasters:${e}:${t}:` + a, JSON.stringify(i));
-  } catch (e) {
-    console.error(e);
-  }
-  c = i.map(e => getFarcasterUserByFid(e.fid));
-  let o = null;
-  return [ await Promise.all(c), o = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : o ];
+  }).limit(t), a && await memcache.set(`getFarcasterCastRecasters:${e}:${t}:` + a, JSON.stringify(i)));
+  var n = i.map(e => getFarcasterUserByFid(e.fid));
+  let l = null;
+  return [ await Promise.all(n), l = i.length === t ? i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id : l ];
 }, getFarcasterFeed = async ({
   limit: e = 10,
   cursor: t = null,
   context: a = {},
   explore: r = !1
 }) => {
-  var s = getMemcachedClient(), [ n, i ] = t ? t.split("-") : [ null, null ], n = {
+  var [ s, i ] = t ? t.split("-") : [ null, null ], s = {
     timestamp: {
-      $lt: n || Date.now()
+      $lt: s || Date.now()
     },
     id: {
       $lt: i || Number.MAX_SAFE_INTEGER
     },
     deletedAt: null
   };
-  r && (n.globalScore = {
+  r && (s.globalScore = {
     $gt: GLOBAL_SCORE_THRESHOLD
   });
-  let c;
-  try {
-    var o = await s.get(`getFarcasterFeed:${a?.fid || "global"}:${r}:${e}:` + t);
-    o && (c = JSON.parse(o.value).map(e => new Casts(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!c) {
-    c = await Casts.find(n).sort({
-      timestamp: -1
-    }).limit(e);
-    try {
-      t ? await s.set(`getFarcasterFeed:${a?.fid || "global"}:${r}:${e}:` + t, JSON.stringify(c)) : await s.set(`getFarcasterFeed:${a?.fid || "global"}:${r}:${e}:` + t, JSON.stringify(c), {
-        lifetime: 60
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  i = c.map(e => getFarcasterFeedCastByHash(e.hash, a)), o = (await Promise.all(i)).filter(e => !(!e || e.parentHash && e.threadHash === e.hash));
+  let n;
+  i = await memcache.get(`getFarcasterFeed:${a?.fid || "global"}:${r}:${e}:` + t), 
+  (n = i ? JSON.parse(i.value).map(e => new Casts(e)) : n) || (n = await Casts.find(s).sort({
+    timestamp: -1
+  }).limit(e), t ? await memcache.set(`getFarcasterFeed:${a?.fid || "global"}:${r}:${e}:` + t, JSON.stringify(n)) : await memcache.set(`getFarcasterFeed:${a?.fid || "global"}:${r}:${e}:` + t, JSON.stringify(n), {
+    lifetime: 60
+  })), i = n.map(e => getFarcasterFeedCastByHash(e.hash, a)), s = (await Promise.all(i)).filter(e => !(!e || e.parentHash && e.threadHash === e.hash));
   const l = {};
-  n = o.reduce((e, t) => (t.author?.fid && (e[t.hash] || l[t.author.fid] ? l[t.author.fid] || t.childrenCasts.length > e[t.hash].childrenCasts.length && (e[t.hash] = t, 
+  r = s.reduce((e, t) => (t.author?.fid && (e[t.hash] || l[t.author.fid] ? l[t.author.fid] || t.childrenCasts.length > e[t.hash].childrenCasts.length && (e[t.hash] = t, 
   l[t.author.fid] = l[t.author.fid] ? l[t.author.fid] + 1 : 1) : (e[t.hash] = t, 
   l[t.author.fid] = l[t.author.fid] ? l[t.author.fid] + 1 : 1)), e), {});
-  let d = null;
-  return c.length >= e && (d = c[c.length - 1].timestamp.getTime() + "-" + c[c.length - 1].id), 
-  [ Object.values(n), d ];
+  let c = null;
+  return n.length >= e && (c = n[n.length - 1].timestamp.getTime() + "-" + n[n.length - 1].id), 
+  [ Object.values(r), c ];
 }, getFarcasterUnseenNotificationsCount = async ({
   lastSeen: e,
   context: t
 }) => {
-  if (!t.fid) return 0;
-  var a = getMemcachedClient();
-  try {
-    var r = await a.get("getFarcasterUnseenNotificationsCount:" + t.fid);
-    if (r) return r.value;
-  } catch (e) {
-    console.error(e);
-  }
-  r = await Notifications.count({
+  var a;
+  return t.fid ? (a = await memcache.get("getFarcasterUnseenNotificationsCount:" + t.fid)) ? a.value : (a = await Notifications.count({
     toFid: t.fid,
     timestamp: {
       $gt: e
     },
     deletedAt: null
-  });
-  try {
-    await a.set("getFarcasterUnseenNotificationsCount:" + t.fid, r);
-  } catch (e) {
-    console.error(e);
-  }
-  return r;
+  }), await memcache.set("getFarcasterUnseenNotificationsCount:" + t.fid, a), a) : 0;
 }, getFarcasterNotifications = async ({
   limit: e,
   cursor: t,
   context: r
 }) => {
-  var [ a, s ] = t ? t.split("-") : [ null, null ], n = getMemcachedClient();
+  var [ a, s ] = t ? t.split("-") : [ null, null ];
   let i;
-  try {
-    const o = await n.get(t ? `getFarcasterNotifications:${r.fid}:${e}:` + t : "getFarcasterNotifications:" + r.fid);
-    o && (i = JSON.parse(o.value).map(e => new Notifications(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!i && (i = await Notifications.find({
+  var n = await memcache.get(t ? `getFarcasterNotifications:${r.fid}:${e}:` + t : "getFarcasterNotifications:" + r.fid);
+  (i = n ? JSON.parse(n.value).map(e => new Notifications(e)) : i) || (i = await Notifications.find({
     toFid: r.fid,
     timestamp: {
       $lt: a || Date.now()
@@ -1126,14 +805,10 @@ const getSyncedChannelById = async e => {
     deletedAt: null
   }).sort({
     timestamp: -1
-  }).limit(e), t)) try {
-    await n.set(t ? `getFarcasterNotifications:${r.fid}:${e}:` + t : "getFarcasterNotifications:" + r.fid, JSON.stringify(i));
-  } catch (e) {
-    console.error(e);
-  }
-  let c = null;
-  i.length === e && (c = i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id);
-  const o = await Promise.all(i.map(async e => {
+  }).limit(e), t && await memcache.set(t ? `getFarcasterNotifications:${r.fid}:${e}:` + t : "getFarcasterNotifications:" + r.fid, JSON.stringify(i)));
+  let l = null;
+  return i.length === e && (l = i[i.length - 1].timestamp.getTime() + "-" + i[i.length - 1].id), 
+  [ await Promise.all(i.map(async e => {
     var t = await getFarcasterUserAndLinksByFid({
       fid: e.fromFid,
       context: r
@@ -1147,29 +822,14 @@ const getSyncedChannelById = async e => {
     });
     return "reaction" === e.notificationType && (t.reactionType = e.payload.reactionType), 
     t;
-  }));
-  return [ o, c ];
+  })), l ];
 }, getFarcasterStorageByFid = async e => {
-  var t = getMemcachedClient();
-  let a;
-  try {
-    var r = await t.get("getFarcasterStorageByFid:" + e);
-    r && (a = JSON.parse(r.value).map(e => new Storage(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!a) {
-    a = await Storage.find({
-      fid: e,
-      deletedAt: null
-    }).read("secondaryPreferred");
-    try {
-      await t.set("getFarcasterStorageByFid:" + e, JSON.stringify(a));
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return a.map(e => ({
+  let t;
+  var a = await memcache.get("getFarcasterStorageByFid:" + e);
+  return (t = a ? JSON.parse(a.value).map(e => new Storage(e)) : t) || (t = await Storage.find({
+    fid: e,
+    deletedAt: null
+  }), await memcache.set("getFarcasterStorageByFid:" + e, JSON.stringify(t))), t.map(e => ({
     timestamp: e.timestamp,
     fid: e.fid,
     units: e.units,
@@ -1240,46 +900,6 @@ const getSyncedChannelById = async e => {
     throw new Error("Not configured!");
   })(e);
   throw new Error("Invalid signature params");
-}, createFrame = async (e = {}) => {
-  var t = {
-    frameButton1: {
-      text: e["fc:frame:button:1"],
-      action: e["fc:frame:button:1:action"],
-      target: e["fc:frame:button:1:target"]
-    },
-    frameButton2: {
-      text: e["fc:frame:button:2"],
-      action: e["fc:frame:button:2:action"],
-      target: e["fc:frame:button:2:target"]
-    },
-    frameButton3: {
-      text: e["fc:frame:button:3"],
-      action: e["fc:frame:button:3:action"],
-      target: e["fc:frame:button:3:target"]
-    },
-    frameButton4: {
-      text: e["fc:frame:button:4"],
-      action: e["fc:frame:button:4:action"],
-      target: e["fc:frame:button:4:target"]
-    },
-    frameInputText: e["fc:frame:input:text"],
-    frameImageUrl: e["fc:frame:image"],
-    framePostUrl: e["fc:frame:post_url"],
-    image: e.image,
-    title: e.title,
-    sourceUrl: e.sourceUrl,
-    description: e.description,
-    domain: e.domain
-  };
-  return e.hash ? Frames.findOneAndUpdate({
-    hash: e.hash
-  }, {
-    ...t
-  }, {
-    upsert: !0
-  }) : Frames.create({
-    ...t
-  });
 }, getFrame = async e => {
   return await Frames.findOne({
     hash: e
@@ -1288,7 +908,7 @@ const getSyncedChannelById = async e => {
   limit: e,
   cursor: t
 }) => {
-  var [ a, r ] = t ? t.split("-") : [ null, null ], s = getMemcachedClient(), a = {
+  var [ a, r ] = t ? t.split("-") : [ null, null ], a = {
     createdAt: {
       $lt: a || Date.now()
     },
@@ -1296,43 +916,29 @@ const getSyncedChannelById = async e => {
       $lt: r || Number.MAX_SAFE_INTEGER
     }
   };
-  let n;
-  if (!n && (n = await Frames.find(a).sort({
+  let s, i = (s || (s = await Frames.find(a).sort({
     createdAt: -1
-  }).limit(e), t)) try {
-    await s.set(`getFrames:${e}:` + t, JSON.stringify(n));
-  } catch (e) {
-    console.error(e);
-  }
-  let i = null;
-  return n.length === e && (i = n[n.length - 1].createdAt.getTime() + "-" + n[n.length - 1].id), 
-  [ n, i ];
+  }).limit(e), t && await memcache.set(`getFrames:${e}:` + t, JSON.stringify(s))), 
+  null);
+  return s.length === e && (i = s[s.length - 1].createdAt.getTime() + "-" + s[s.length - 1].id), 
+  [ s, i ];
 }, createReport = async (e, t) => {
-  var a = getMemcachedClient();
-  if (e) {
-    var r = await Reports.findOne({
-      fid: e
-    }), s = r?.count || 0, r = new Set(r?.reporters || []), t = (r.add(t), s += 1, 
-    await Reports.findOneAndUpdate({
-      fid: e
-    }, {
-      count: s,
-      reporters: Array.from(r)
-    }, {
-      upsert: !0
-    }));
-    try {
-      await a.set("algorithm_getReport:" + e, JSON.stringify(t));
-    } catch (e) {
-      console.error(e);
-    }
-    return t;
-  }
+  var a, r;
+  if (e) return a = (r = await Reports.findOne({
+    fid: e
+  }))?.count || 0, (r = new Set(r?.reporters || [])).add(t), a += 1, t = await Reports.findOneAndUpdate({
+    fid: e
+  }, {
+    count: a,
+    reporters: Array.from(r)
+  }, {
+    upsert: !0
+  }), await memcache.set("algorithm_getReport:" + e, JSON.stringify(t)), t;
 }, getActions = async ({
   limit: e,
   cursor: t
 }) => {
-  var [ a, r ] = t ? t.split("-") : [ null, null ], s = getMemcachedClient(), a = {
+  var [ a, r ] = t ? t.split("-") : [ null, null ], a = {
     createdAt: {
       $lt: a || Date.now()
     },
@@ -1344,16 +950,11 @@ const getSyncedChannelById = async e => {
       $gt: -1
     }
   };
-  let n;
-  try {
-    var i = await s.get(`getActions:${e}:` + t);
-    i && (n = JSON.parse(i.value).map(e => new SyncedActions(e)));
-  } catch (e) {
-    console.error(e);
-  }
-  let c = null;
-  return (n = n || await SyncedActions.find(a).sort("rank _id").limit(e)).length === e && (c = n[n.length - 1].createdAt.getTime() + "-" + n[n.length - 1].id), 
-  [ n, c ];
+  let s;
+  r = await memcache.get(`getActions:${e}:` + t);
+  let i = null;
+  return (s = (s = r ? JSON.parse(r.value).map(e => new SyncedActions(e)) : s) || await SyncedActions.find(a).sort("rank _id").limit(e)).length === e && (i = s[s.length - 1].createdAt.getTime() + "-" + s[s.length - 1].id), 
+  [ s, i ];
 }, createAction = async ({
   ...e
 }) => {
@@ -1411,7 +1012,6 @@ module.exports = {
   getFarcasterStorageByFid: getFarcasterStorageByFid,
   getLeaderboard: getLeaderboard,
   getFidMetadataSignature: getFidMetadataSignature,
-  createFrame: createFrame,
   getFrame: getFrame,
   getFrames: getFrames,
   createReport: createReport,

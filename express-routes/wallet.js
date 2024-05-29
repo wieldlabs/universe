@@ -10,37 +10,23 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   fetchPriceHistory,
   fetchAssetMetadata
 } = require("../helpers/wallet"), requireAuth = require("../helpers/auth-middleware")["requireAuth"], {
-  getMemcachedClient,
+  memcache,
   getHash
-} = require("../connectmemcached"), apiKeyCache = new Map(), getLimit = n => async (e, r) => {
-  var t = e.header("API-KEY");
-  if (!t) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
+} = require("../connectmemcache"), apiKeyCache = new Map(), getLimit = o => async (e, r) => {
+  var t, a = e.header("API-KEY");
+  if (!a) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
     tags: {
       url: e.url
     }
   }), 0;
-  var a = getMemcachedClient();
   let s;
-  if (apiKeyCache.has(t)) s = apiKeyCache.get(t); else try {
-    var o = await a.get(getHash("WalletApiKey_getLimit:" + t));
-    o && (s = new ApiKey(JSON.parse(o.value)), apiKeyCache.set(t, s));
-  } catch (e) {
-    console.error(e);
-  }
-  if (!s && (s = await ApiKey.findOne({
-    key: t
-  }))) {
-    apiKeyCache.set(t, s);
-    try {
-      await a.set(getHash("WalletApiKey_getLimit:" + t), JSON.stringify(s), {
-        lifetime: 3600
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  }
-  return s ? Math.ceil(n * s.multiplier) : (o = `API-KEY ${t} not found! Returning 0 for ` + e.url, 
-  console.error(o), Sentry.captureMessage(o), 0);
+  return apiKeyCache.has(a) ? s = apiKeyCache.get(a) : (t = await memcache.get(getHash("WalletApiKey_getLimit:" + a))) && (s = new ApiKey(JSON.parse(t.value)), 
+  apiKeyCache.set(a, s)), s || (s = await ApiKey.findOne({
+    key: a
+  })) && (apiKeyCache.set(a, s), await memcache.set(getHash("WalletApiKey_getLimit:" + a), JSON.stringify(s), {
+    lifetime: 3600
+  })), s ? Math.ceil(o * s.multiplier) : (t = `API-KEY ${a} not found! Returning 0 for ` + e.url, 
+  console.error(t), Sentry.captureMessage(t), 0);
 }, limiter = rateLimit({
   windowMs: 3e3,
   max: getLimit(2.5),
@@ -134,8 +120,8 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, r) => {
 }), app.get("/v1/summary", [ authContext, limiter ], async (e, r) => {
   try {
     var t = e.query.networks || DEFAULT_NETWORKS;
-    const m = e.query.address;
-    var a = e.context.account, s = parseInt(e.query.limit || DEFAULT_LIMIT), o = await Promise.all(t.map(e => getOnchainTransactions(m, e, {}))), n = await Promise.all(t.map(e => getOnchainNFTs(m, e, {}))), i = await Promise.all(t.map(e => getOnchainTokens(m, e, {}))), c = await AccountInventory.findAndSort({
+    const y = e.query.address;
+    var a = e.context.account, s = parseInt(e.query.limit || DEFAULT_LIMIT), o = await Promise.all(t.map(e => getOnchainTransactions(y, e, {}))), n = await Promise.all(t.map(e => getOnchainNFTs(y, e, {}))), i = await Promise.all(t.map(e => getOnchainTokens(y, e, {}))), c = await AccountInventory.findAndSort({
       rewardType: [ "IMAGE" ],
       filters: {
         account: a._id
@@ -144,7 +130,7 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, r) => {
       countOnly: !0
     }), u = (e, r, t = !0) => {
       return e.toLocaleString("en-US") + (t && e === r ? "+" : "");
-    }, p = o.reduce((e, r) => e + r.transfers.length, 0), l = n.reduce((e, r) => e + r.ownedNfts.length, 0), h = i.reduce((e, r) => e + r.tokenBalances.filter(e => "0x0000000000000000000000000000000000000000000000000000000000000000" !== e.tokenBalance).length, 0), y = {
+    }, p = o.reduce((e, r) => e + r.transfers.length, 0), l = n.reduce((e, r) => e + r.ownedNfts.length, 0), h = i.reduce((e, r) => e + r.tokenBalances.filter(e => "0x0000000000000000000000000000000000000000000000000000000000000000" !== e.tokenBalance).length, 0), m = {
       itemsCount: u(c, s, !1),
       transactionsCount: u(p, s),
       nftsCount: u(l, s),
@@ -152,7 +138,7 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, r) => {
     };
     return r.json({
       source: "v1",
-      data: y
+      data: m
     });
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({

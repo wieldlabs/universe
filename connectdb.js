@@ -7,7 +7,9 @@ module.exports = {
       mongoose.set("strictQuery", !0), mongoose.connect(process.env.MONGO_URL, {
         useNewUrlParser: !0,
         readPreference: "primary",
-        compressors: [ "zstd" ]
+        compressors: [ "zstd" ],
+        minPoolSize: 50,
+        maxPoolSize: 250
       }).then(() => {
         console.log("Mongoose up!"), o();
       }).catch(o => {

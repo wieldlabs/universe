@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"), Account = require("./Account")["Account"], Image = require("./Image")["Image"], schema = require("../schemas/accountSection")["schema"];
+const mongoose = require("mongoose"), Account = require("./Account")["Account"], Image = require("./Image")["Image"], schema = require("../schemas/accountSection")["schema"], memcache = require("../connectmemcache")["memcache"];
 
 class AccountSectionClass {
   static ping() {
@@ -54,7 +54,7 @@ class AccountSectionClass {
       $pull: {
         sections: t
       }
-    }), t;
+    }), await memcache.delete("Account:findById:" + e), t;
   }
   async updateEntry(t, {
     imageId: e,

@@ -5,7 +5,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), _Auth
 } = require("../helpers/express-middleware"), AccountInvite = require("../models/AccountInvite")["AccountInvite"], SignedKeyRequest = require("../models/SignedKeyRequest")["SignedKeyRequest"], {
   getFarcasterUserByFid,
   getFarcasterUserByCustodyAddress
-} = require("../helpers/farcaster"), crypto = require("crypto"), getMemcachedClient = require("../connectmemcached")["getMemcachedClient"];
+} = require("../helpers/farcaster"), crypto = require("crypto"), memcache = require("../connectmemcache")["memcache"];
 
 app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
   e = e.body;
@@ -63,9 +63,9 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
     var t = e.context.account;
     if (!t) throw new Error("Account not found");
     await t.populate("addresses profileImage");
-    var r = t.addresses[0].address?.toLowerCase(), [ a, n, c ] = await Promise.all([ AccountInvite.findOrCreate({
+    var r = t.addresses[0].address?.toLowerCase(), [ a, c, n ] = await Promise.all([ AccountInvite.findOrCreate({
       accountId: t._id
-    }), getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), i = n || c;
+    }), getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), i = c || n;
     s.status(201).json({
       code: "201",
       success: !0,
@@ -96,7 +96,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
   if (!e) throw new Error("RecovererAddress is required");
   await t.populate("addresses");
   try {
-    var n = await new _AccountRecovererService().addRecoverer(t, {
+    var c = await new _AccountRecovererService().addRecoverer(t, {
       id: a || t.addresses[0].address,
       type: r || "FARCASTER_SIGNER_EXTERNAL",
       address: e
@@ -105,7 +105,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       code: "201",
       success: !0,
       message: "Recoverer added successfully",
-      result: n
+      result: c
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), s.status(500).json({
@@ -121,7 +121,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
   } = e.body;
   if (!t) throw new Error("AppFid is required");
   try {
-    var a = crypto.randomBytes(16).toString("hex"), n = (await new SignedKeyRequest({
+    var a = crypto.randomBytes(16).toString("hex"), c = (await new SignedKeyRequest({
       appFid: t,
       key: r.key,
       status: "pending",
@@ -133,7 +133,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       success: !0,
       message: "Signed key request created successfully",
       token: a,
-      deepLink: n
+      deepLink: c
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), s.status(500).json({
@@ -161,7 +161,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       deadline: a.signerData.deadline,
       metadata: a.signerData.metadata,
       signature: a.signerData.signature
-    }), e.status = "signed", e = await e.save(), await getMemcachedClient().delete("SignedKeyRequest:" + e.token, {
+    }), e.status = "signed", e = await e.save(), await memcache.delete("SignedKeyRequest:" + e.token, {
       noreply: !0
     }), s.status(201).json({
       code: "201",
@@ -179,38 +179,33 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
 }), app.get("/v1/signed-key-request", [ limiter ], async (e, s) => {
   e = e.query.token;
   if (!e) throw new Error("Token is required");
-  var t = getMemcachedClient();
-  let r = null, a = null, n = null;
-  try {
-    var c = await t.get("SignedKeyRequest:" + e);
-    if (c) r = JSON.parse(c.value).signedKeyRequest, a = JSON.parse(c.value).appData, 
-    n = JSON.parse(c.value).noOfUsers; else {
-      if (!(r = await SignedKeyRequest.findOne({
-        token: e
-      }))) throw new Error("Signed key request not found");
-      n = await SignedKeyRequest.countDocuments({
-        appFid: r.appFid,
-        status: "signed"
-      }), a = await getFarcasterUserByFid(r.appFid), await t.set("SignedKeyRequest:" + e, JSON.stringify({
-        signedKeyRequest: r,
-        appData: a,
-        noOfUsers: n
-      }), {
-        lifetime: 86400
-      });
-    }
-  } catch (e) {
-    console.error(e);
+  let t = null, r = null, a = null;
+  var c = await memcache.get("SignedKeyRequest:" + e);
+  if (c) t = JSON.parse(c.value).signedKeyRequest, r = JSON.parse(c.value).appData, 
+  a = JSON.parse(c.value).noOfUsers; else {
+    if (!(t = await SignedKeyRequest.findOne({
+      token: e
+    }))) throw new Error("Signed key request not found");
+    a = await SignedKeyRequest.countDocuments({
+      appFid: t.appFid,
+      status: "signed"
+    }), r = await getFarcasterUserByFid(t.appFid), await memcache.set("SignedKeyRequest:" + e, JSON.stringify({
+      signedKeyRequest: t,
+      appData: r,
+      noOfUsers: a
+    }), {
+      lifetime: 86400
+    });
   }
   s.status(200).json({
     code: "200",
     success: !0,
     message: "Signed key request fetched successfully",
     signedKeyRequest: {
-      status: r.status,
-      key: r.key,
-      app: a,
-      noOfUsers: n
+      status: t.status,
+      key: t.key,
+      app: r,
+      noOfUsers: a
     }
   });
 }), app.post("/v1/auth-by-signed-key-request", heavyLimiter, async (e, s) => {
@@ -228,7 +223,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
     });
     var {
       account: a,
-      accessToken: n
+      accessToken: c
     } = await new _AuthService().authenticateWithSigner({
       address: r.address,
       chainId: r.chainId,
@@ -240,7 +235,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       success: !0,
       message: "Successfully authenticated",
       account: a,
-      accessToken: n
+      accessToken: c
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), s.status(500).json({
