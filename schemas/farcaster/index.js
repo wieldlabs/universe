@@ -358,6 +358,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     type: String,
     required: !0
   },
+  text: {
+    type: String
+  },
   external: {
     type: Boolean,
     default: !1
@@ -371,17 +374,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   fid: 1,
   deletedAt: 1
 }), userDataSchema.index({
-  fid: "text",
-  deletedAt: 1
-}), userDataSchema.index({
-  value: "text",
+  text: "text",
   type: 1,
   deletedAt: 1
-}), userDataSchema.index({
-  value: "text",
-  type: 1,
-  deletedAt: 1,
-  external: 1
 }), userDataSchema.index({
   fid: 1,
   type: 1,
@@ -407,10 +402,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     external: !1
   },
   expireAfterSeconds: 0
-}), userDataSchema.index({
-  external: 1,
-  deletedAt: 1,
-  value: 1
 }), new mongoose.Schema({
   fid: {
     type: String,

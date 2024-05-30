@@ -76,7 +76,7 @@ const getSyncedChannelById = async e => {
   }), a)) : null;
 }, searchChannels = async e => {
   var t, a;
-  return e ? (t = "searchChannels:" + e, (a = await memcache.get(t)) ? JSON.parse(a.value) : (0 < (a = await SyncedChannels.aggregate([ {
+  return e ? (t = getHash("searchChannels:" + e), (a = await memcache.get(t)) ? JSON.parse(a.value) : (0 < (a = await SyncedChannels.aggregate([ {
     $match: {
       channelId: {
         $regex: new RegExp("^" + escapeRegExp(e), "i")
@@ -136,12 +136,12 @@ const getSyncedChannelById = async e => {
       }
     }
     if (!e) {
-      var f = await i.submitMessage(t), F = f.unwrapOr(null);
-      if (!F) throw new Error("Could not send message: " + f?.error);
+      var F = await i.submitMessage(t), f = F.unwrapOr(null);
+      if (!f) throw new Error("Could not send message: " + F?.error);
       t = {
-        ...F,
-        hash: F.hash,
-        signer: F.signer
+        ...f,
+        hash: f.hash,
+        signer: f.signer
       };
     }
     var p = new Date(), w = {
@@ -279,6 +279,9 @@ const getSyncedChannelById = async e => {
     deletedAt: null
   }))?.fid || null;
   return await memcache.set("getFarcasterFidByCustodyAddress:" + e, t || ""), t;
+}, getFarcasterUserByAddress = async e => {
+  var [ e, t ] = await Promise.all([ getFarcasterUserByCustodyAddress(e), getFarcasterUserByFid(e) ]);
+  return e || t;
 }, getFarcasterUserByConnectedAddress = async t => {
   let a = null;
   var r = await memcache.get("getFarcasterUserByConnectedAddress_fid:" + t);
@@ -352,39 +355,50 @@ const getSyncedChannelById = async e => {
     custodyAddress: e,
     deletedAt: null
   })) ? (await memcache.set("getFidByCustodyAddress:" + e, t.fid), t.fid) : null : null;
-}, searchFarcasterUserByMatch = async (e, t = 10, a = "value", r = !0) => {
+}, searchFarcasterUserByMatch = async (e, t = 10, a = "text", r = !0) => {
   if (!e) return [];
-  var s = "0x" + Buffer.from(e.toLowerCase(), "ascii").toString("hex");
+  var s = escapeRegExp(e.toLowerCase());
   let i = "searchFarcasterUserByMatch:" + e;
   r || (i += ":noExternal");
   var n = await memcache.get(getHash(i));
   if (n) return JSON.parse(n.value);
   n = {
-    $or: [ {
-      value: {
-        $regex: "^" + s
-      },
-      type: UserDataType.USER_DATA_TYPE_USERNAME,
-      deletedAt: null
-    }, {
-      value: {
-        $regex: "^" + s
-      },
-      type: UserDataType.USER_DATA_TYPE_DISPLAY,
-      deletedAt: null
-    }, {
-      fid: e?.startsWith("0x") ? {
-        $regex: "^" + escapeRegExp(e)
-      } : "" + e,
-      deletedAt: null
-    } ]
-  }, r || (n.external = !1), s = await UserData.find(n).read("secondaryPreferred").limit(t).sort(a);
-  const l = {};
-  e = s.map(e => l[e.fid] ? null : (l[e.fid] = !0, e.fid)).filter(e => null !== e), 
-  r = await Promise.all(e.map(e => getFarcasterUserByFid(e)));
-  return await memcache.set(getHash(i), JSON.stringify(r), {
+    text: {
+      $regex: "^" + s
+    },
+    type: UserDataType.USER_DATA_TYPE_USERNAME,
+    deletedAt: null,
+    ...r ? {} : {
+      external: !1
+    }
+  }, s = {
+    text: {
+      $regex: "^" + s,
+      $options: "i"
+    },
+    type: UserDataType.USER_DATA_TYPE_DISPLAY,
+    deletedAt: null,
+    ...r ? {} : {
+      external: !1
+    }
+  };
+  const l = {
+    fid: e,
+    deletedAt: null,
+    ...r ? {} : {
+      external: !1
+    }
+  };
+  var [ e, r, n ] = await Promise.all([ (async () => {
+    var e = await UserData.findOne(l).read("secondaryPreferred");
+    return e ? [ e ] : [];
+  })(), UserData.find(n).read("secondaryPreferred").limit(2 < t ? Math.ceil(t / 2) : 1).sort(a), UserData.find(s).read("secondaryPreferred").limit(2 < t ? Math.ceil(t / 2) : 1).sort(a) ]), s = [ ...e, ...r, ...n ];
+  const c = {};
+  t = s.map(e => c[e.fid] ? null : (c[e.fid] = !0, e.fid)).filter(e => null !== e), 
+  a = await Promise.all(t.map(e => getFarcasterUserByFid(e)));
+  return await memcache.set(getHash(i), JSON.stringify(a), {
     lifetime: 300
-  }), r;
+  }), a;
 }, getFarcasterUserByUsername = async (e, t = 0) => {
   var a = "0x" + Buffer.from(e, "ascii").toString("hex");
   let r;
@@ -462,12 +476,12 @@ const getSyncedChannelById = async e => {
     }
   })) || [], [ a, i, c, d, o, g, m, u ] = (i.push(Promise.all(a)), await Promise.all(i)), h = s.text || "";
   let y = 0;
-  var f, F, p, w, A, C = [];
+  var F, f, p, w, A, C = [];
   let S = Buffer.from(h, "utf-8");
-  for (let e = 0; e < m.length; e++) m[e] && (p = s.mentionsPositions[e], f = m[e].username || "fid:" + m[e].fid, 
-  f = Buffer.from("@" + f, "utf-8"), F = m[e].originalMention || "", F = Buffer.from(F, "utf-8").length, 
-  p = p + y, w = S.slice(0, p), A = S.slice(p + F), S = Buffer.concat([ w, f, A ]), 
-  y += f.length - F, C.push(p));
+  for (let e = 0; e < m.length; e++) m[e] && (p = s.mentionsPositions[e], F = m[e].username || "fid:" + m[e].fid, 
+  F = Buffer.from("@" + F, "utf-8"), f = m[e].originalMention || "", f = Buffer.from(f, "utf-8").length, 
+  p = p + y, w = S.slice(0, p), A = S.slice(p + f), S = Buffer.concat([ w, F, A ]), 
+  y += F.length - f, C.push(p));
   h = S.toString("utf-8"), h = {
     hash: s.hash,
     parentHash: s.parentHash,
@@ -1009,6 +1023,7 @@ module.exports = {
   GLOBAL_SCORE_THRESHOLD: GLOBAL_SCORE_THRESHOLD,
   GLOBAL_SCORE_THRESHOLD_CHANNEL: GLOBAL_SCORE_THRESHOLD_CHANNEL,
   getFarcasterFidByCustodyAddress: getFarcasterFidByCustodyAddress,
+  getFarcasterUserByAddress: getFarcasterUserByAddress,
   getFarcasterStorageByFid: getFarcasterStorageByFid,
   getLeaderboard: getLeaderboard,
   getFidMetadataSignature: getFidMetadataSignature,
