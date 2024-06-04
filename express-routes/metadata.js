@@ -1,4 +1,4 @@
-const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = import("d3"), jsdom = require("jsdom"), validateName = require("../helpers/validate-community-name")["validateName"], keccak256 = require("web3-utils").keccak256, utf8ToHex = require("web3-utils").utf8ToHex, ethers = require("ethers")["ethers"], _RegistrarService = require("../services/RegistrarService")["Service"], rateLimit = require("express-rate-limit"), getCharacterSet = t => t.match(/^[a-zA-Z]+$/) ? "letter" : t.match(/^[0-9]+$/) ? "digit" : t.match(/^[a-zA-Z0-9]+$/) ? "alphanumeric" : t.match(/[\u{1F300}-\u{1F5FF}]/u) ? "emoji" : "mixed", background = async t => "premium" === t ? `
+const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = import("d3"), jsdom = require("jsdom"), validateAndCreateMetadata = require("../helpers/domain-metadata")["validateAndCreateMetadata"], ethers = require("ethers")["ethers"], _RegistrarService = require("../services/RegistrarService")["Service"], rateLimit = require("express-rate-limit"), getCharacterSet = t => t.match(/^[a-zA-Z]+$/) ? "letter" : t.match(/^[0-9]+$/) ? "digit" : t.match(/^[a-zA-Z0-9]+$/) ? "alphanumeric" : t.match(/[\u{1F300}-\u{1F5FF}]/u) ? "emoji" : "mixed", background = async t => "premium" === t ? `
     <svg id="eAVy1O8efKQ1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
 
 <style><![CDATA[
@@ -45,30 +45,8 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
   }
 }), bebLogo = (app.get("/domain/:domain", lightLimiter, async (t, e) => {
   try {
-    var r = t.params.domain;
-    if (!r || 0 == r.length || r.toLowerCase() != r) throw Error("inputDomain invalid!");
-    if (r.includes(".beb") || r.includes(".cast")) {
-      if (2 != r.split(".").length) throw Error("inputDomain cannot contain subdomains!");
-      let t;
-      if (r.includes(".beb") ? t = r.split(".beb") : r.includes(".cast") && (t = r.split(".cast")), 
-      0 < t[1].length) throw Error("inputDomain extension incorrect!");
-    } else if (r.includes(".")) throw Error("inputDomain does not have correct extension!");
-    validateName(r);
-    var a, i = r.replace(".beb", "").replace(".cast", ""), n = await Metadata.findOne({
-      uri: keccak256(utf8ToHex(i))
-    });
-    return n ? e.json({
-      created: !1,
-      domain: n.domain,
-      uri: n.uri
-    }) : (a = await Metadata.create({
-      domain: i,
-      uri: keccak256(utf8ToHex(i))
-    }), e.json({
-      created: !0,
-      domain: a.domain,
-      uri: a.uri
-    }));
+    var r = await validateAndCreateMetadata(t.params.domain);
+    return e.json(r);
   } catch (t) {
     return Sentry.captureException(t), e.json({
       code: "500",
@@ -82,32 +60,32 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
     if (!i || 0 == i.length) throw Error("uri invalid!");
     var n = ethers.BigNumber.from(i), c = ethers.BigNumber.from(2).pow(256).sub(1);
     if (n.gt(c)) throw new Error("The URI is too large to be represented in a 64-character-long hexadecimal string!");
-    var s, o = n.toHexString(), m = 64 - (o.length - 2), f = "0x" + "0".repeat(m) + o.slice(2), l = await Metadata.findOne({
-      uri: f
+    var s, o = n.toHexString(), f = 64 - (o.length - 2), m = "0x" + "0".repeat(f) + o.slice(2), l = await Metadata.findOne({
+      uri: m
     });
     if (!l) return s = {
       name: "~no_metadata_please_search_domain",
       description: "This domain does not have metadata, navigate to far.quest or Wield and search the domain you minted again to refresh!"
     }, a.json(s);
-    var q = l.domain, g = new JSDOM("<!DOCTYPE html><html><body></body></html>"), p = (await d3).select(g.window.document).select("body"), d = q.startsWith("op_"), u = await new _RegistrarService(d ? "optimism" : null).expiresAt(q);
+    var q = l.domain, g = new JSDOM("<!DOCTYPE html><html><body></body></html>"), p = (await d3).select(g.window.document).select("body"), d = q.startsWith("op_"), _ = await new _RegistrarService(d ? "optimism" : null).expiresAt(q);
     let t = [ ...q ].length;
     q.match(/^[\u0000-\u007f]*$/) || (t *= 2);
-    var _ = {
+    var u = {
       free: "free",
       premium: "premium",
       optimism: "optimism"
     };
-    let e = _.free;
-    q.startsWith("op_") ? e = _.optimism : t < 10 && (e = _.premium);
-    var x = parseInt(80 * Math.pow(.95, t)), b = `
+    let e = u.free;
+    q.startsWith("op_") ? e = u.optimism : t < 10 && (e = u.premium);
+    var x = parseInt(80 * Math.pow(.95, t)), y = `
     <svg width="500" height="500">
       ${await background(e)}
     </svg>
-  `, y = q.startsWith("op_") ? q.replace("op_", "") + ".op.cast" : q + ".cast", h = q.replace("op_", "").length, A = (p.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(b + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", x + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(y), 
-    p.select(".container").html()), O = "data:image/svg+xml;base64," + Buffer.from(A).toString("base64"), w = (process.env.NODE_ENV, 
+  `, b = q.startsWith("op_") ? q.replace("op_", "") + ".op.cast" : q + ".cast", h = q.replace("op_", "").length, A = (p.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(y + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", x + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(b), 
+    p.select(".container").html()), O = "data:image/svg+xml;base64," + Buffer.from(A).toString("base64"), V = (process.env.NODE_ENV, 
     {
-      name: y,
-      description: q.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${y} on wield.xyz, and check out far.quest 👁️`,
+      name: b,
+      description: q.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${b} on wield.xyz, and check out far.quest 👁️`,
       image: O,
       attributes: [ {
         trait_type: "Length",
@@ -122,10 +100,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
       }, {
         display_type: "date",
         trait_type: "Expiration Date",
-        value: u
+        value: _
       } ]
     });
-    return a.json(w);
+    return a.json(V);
   } catch (t) {
     return Sentry.captureException(t), console.error(t), a.json({
       code: "500",

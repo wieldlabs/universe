@@ -22,9 +22,11 @@ class CacheService extends NormalizeCacheService {
       }),
       expiresAt: r
     });
-    return await memcache.set(getHash(e), a.value, r ? {
+    return await Promise.all([ memcache.set(getHash(e), a.value, r ? {
       lifetime: Math.floor((r - new Date()) / 1e3)
-    } : {}), a;
+    } : {}), memcache.delete(getHash(e) + "_null", {
+      noreply: !0
+    }) ]), a;
   }
   async set({
     key: e,
@@ -44,23 +46,32 @@ class CacheService extends NormalizeCacheService {
       }),
       expiresAt: r
     });
-    return await memcache.set(getHash(e), a.value, r ? {
+    return await Promise.all([ memcache.set(getHash(e), a.value, r ? {
       lifetime: Math.floor((r - new Date()) / 1e3)
-    } : {}), a;
+    } : {}), memcache.delete(getHash(e) + "_null", {
+      noreply: !0
+    }) ]), a;
   }
   async get({
     key: e,
     params: a
   }) {
-    var t, e = this.normalize({
+    e = this.normalize({
       key: e,
       params: a
-    }), a = await memcache.get(getHash(e));
-    return a ? JSON.parse(a.value).value : (t = (a = await KeyValueCache.findOne({
-      key: e
-    }))?.expiresAt > new Date() || !a?.expiresAt, a && t ? (t = a.expiresAt ? {
-      lifetime: Math.floor((a.expiresAt - new Date()) / 1e3)
-    } : {}, await memcache.set(getHash(e), a.value, t), JSON.parse(a.value).value) : null);
+    }), a = await memcache.get(getHash(e) + "_null");
+    if (!a) {
+      a = await memcache.get(getHash(e));
+      if (a) return JSON.parse(a.value).value;
+      var a = await KeyValueCache.findOne({
+        key: e
+      }), t = a?.expiresAt > new Date() || !a?.expiresAt;
+      if (a && t) return t = a.expiresAt ? {
+        lifetime: Math.floor((a.expiresAt - new Date()) / 1e3)
+      } : {}, await memcache.set(getHash(e), a.value, t), JSON.parse(a.value).value;
+      await memcache.set(getHash(e) + "_null", "1");
+    }
+    return null;
   }
   async _getAfterExpiredDate({
     key: e,

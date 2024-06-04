@@ -105,7 +105,7 @@ const frameContext = async (a, e, t) => {
     if (ethers.utils.isAddress(a.body.untrustedData?.fid)) s.isExternal = !0, s.connectedAddress = a.body?.untrustedData?.fid; else {
       if (!r.data?.fid) throw new Error("FID is missing, no fallback external FID: " + JSON.stringify(r.data));
       var n, d = await getConnectedAddressForFid(r.data.fid);
-      s.isExternal = !1, (s.connectedAddress = d) || (n = await getCustodyAddressByFid(r.data.fid), 
+      s.isExternal = !1, (s.connectedAddress = d) && ethers.utils.isAddress(d) || (n = await getCustodyAddressByFid(r.data.fid), 
       s.connectedAddress = n);
     }
     a.context = s;

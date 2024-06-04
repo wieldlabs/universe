@@ -49,22 +49,22 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
     }
   }), 0;
   let s;
-  return apiKeyCache.has(a) ? s = apiKeyCache.get(a) : (t = await memcache.get(getHash("FarcasterApiKey_getLimit:" + a))) && (s = new ApiKey(JSON.parse(t.value)), 
+  return apiKeyCache.has(a) ? s = apiKeyCache.get(a) : (t = await memcache.get(getHash("FarcasterApiKey_checkLimit:" + a))) && (s = new ApiKey(JSON.parse(t.value)), 
   apiKeyCache.set(a, s)), s || (s = await ApiKey.findOne({
     key: a
-  })) && (apiKeyCache.set(a, s), await memcache.set(getHash("FarcasterApiKey_getLimit:" + a), JSON.stringify(s), {
+  })) && (apiKeyCache.set(a, s), await memcache.set(getHash("FarcasterApiKey_checkLimit:" + a), JSON.stringify(s), {
     lifetime: 3600
   })), s ? Math.ceil(n * s.multiplier) : (t = `API-KEY ${a} not found! Returning 0 for ` + e.url, 
   console.error(t), Sentry.captureMessage(t), 0);
 }, limiter = rateLimit({
-  windowMs: 3e3,
-  max: getLimit(10),
+  windowMs: 5e3,
+  max: getLimit(5),
   message: "Too many requests or invalid API key! See docs.far.quest for more info.",
   validate: {
     limit: !1
   }
 }), heavyLimiter = rateLimit({
-  windowMs: 2e3,
+  windowMs: 5e3,
   max: getLimit(1),
   message: "Too many requests or invalid API key! See docs.far.quest for more info.",
   validate: {
@@ -83,8 +83,14 @@ const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.
     var o = await Account.findByIdCached(n.payload.id);
     if (!o) throw new Error(`Account id ${n.payload.id} not found`);
     if (o.deleted) throw new Error(`Account id ${n.payload.id} deleted`);
-    var c = (n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal))?.toString().toLowerCase();
-    await memcache.set("enableNotifications_" + c, "1"), r.context = {
+    var c = (n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal))?.toString().toLowerCase(), i = new _CacheService();
+    await i.get({
+      key: "enableNotifications_" + c
+    }) || await i.set({
+      key: "enableNotifications_" + c,
+      value: "1",
+      expiresAt: new Date(Date.now() + 2592e6)
+    }), r.context = {
       ...r.context || {},
       accountId: n.payload.id,
       fid: c,
@@ -589,15 +595,15 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     }))["data"], r.json({
       result: a.result,
       source: "v2"
-    })) : r.status(500).json({
+    })) : (console.error("FARCAST_KEY not configured"), r.status(500).json({
       error: "Not configured"
-    });
+    }));
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({
       error: "Internal Server Error"
     });
   }
-}), app.get("/v2/search-user-by-match", limiter, async (e, r) => {
+}), app.get("/v2/search-user-by-match", heavyLimiter, async (e, r) => {
   try {
     var t, a = e.query.match, s = Math.min(parseInt(e.query.limit || 10), 50);
     return a ? (t = await searchFarcasterUserByMatch(a, s), r.json({

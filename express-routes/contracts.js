@@ -1,23 +1,23 @@
 const app = require("express").Router(), Contract = require("../models/wallet/Contract")["Contract"], {
   memcache,
   getHash
-} = require("../connectmemcache"), axios = (app.get("/v1/", async (t, a) => {
+} = require("../connectmemcache"), config = require("../helpers/config")["config"], Sentry = require("@sentry/node"), axios = (app.get("/v1/", async (r, a) => {
   try {
     var s, {
-      factoryInterfaceType: c,
-      contractDeployer: n,
-      cursor: o,
+      factoryInterfaceType: n,
+      contractDeployer: o,
+      cursor: c,
       sort: i = "createdAt",
       limit: d = 10,
-      filters: l,
-      includeUser: u = !1
-    } = t.query, [ g, m ] = o ? o.split("-") : [ null, null ], p = c ? {
-      factoryInterfaceType: c
+      filters: g,
+      includeUser: l = !1
+    } = r.query, [ u, m ] = c ? c.split("-") : [ null, null ], p = n ? {
+      factoryInterfaceType: n
     } : {}, f = (p.createdAt = {
-      $lt: g || Date.now()
+      $lt: u || Date.now()
     }, p.id = {
       $lt: m || Number.MAX_SAFE_INTEGER
-    }, n && (p.contractDeployer = n), l && (s = JSON.parse(l)).createdAt && (s.createdAt.startsWith("-") ? p.createdAt = {
+    }, o && (p.contractDeployer = o), g && (s = JSON.parse(g)).createdAt && (s.createdAt.startsWith("-") ? p.createdAt = {
       $lt: s.createdAt.slice(1)
     } : p.createdAt = {
       $gt: s.createdAt
@@ -26,22 +26,22 @@ const app = require("express").Router(), Contract = require("../models/wallet/Co
       limit: parseInt(d, 10)
     });
     let e;
-    var y, h = `getContracts:${JSON.stringify(p)}:${d}:` + o, v = await memcache.get(h);
-    (e = v ? JSON.parse(v.value) : e) || (e = await Contract.find(p, null, f), o && await memcache.set(h, JSON.stringify(e), {
+    var y, h = `getContracts:${JSON.stringify(p)}:${d}:` + c, v = await memcache.get(h);
+    (e = v ? JSON.parse(v.value) : e) || (e = await Contract.find(p, null, f), c && await memcache.set(h, JSON.stringify(e), {
       lifetime: 60
     }));
-    let r = null;
-    return e.length === d && (y = e[e.length - 1], r = y.createdAt.getTime() + "-" + y._id), 
-    u && (e = await Promise.all(e.map(async e => {
-      var r = await getFarcasterUserByAddress(e.contractDeployer);
+    let t = null;
+    return e.length === d && (y = e[e.length - 1], t = y.createdAt.getTime() + "-" + y._id), 
+    l && (e = await Promise.all(e.map(async e => {
+      var [ t, r, a ] = await Promise.all([ getFarcasterUserByCustodyAddress(e.contractDeployer), getFarcasterUserByConnectedAddress(e.contractDeployer), getFarcasterUserByFid(e.contractDeployer) ]), t = t || r || a;
       return {
         ...e,
-        user: r
+        user: t
       };
     }))), a.json({
       success: !0,
       contracts: e,
-      next: r
+      next: t
     });
   } catch (e) {
     return console.error("Error fetching contracts: " + e), a.status(500).json({
@@ -49,58 +49,58 @@ const app = require("express").Router(), Contract = require("../models/wallet/Co
       message: "Internal server error"
     });
   }
-}), app.get("/v1/metadata/:contractSlugOrAddress/:tokenId", async (r, t) => {
+}), app.get("/v1/metadata/:contractSlugOrAddress/:tokenId", async (t, r) => {
   try {
-    var a, s = r.params["contractSlugOrAddress"], c = await Contract.findOne({
+    var a, s = t.params["contractSlugOrAddress"], n = await Contract.findOne({
       $or: [ {
         slug: s
       }, {
         address: s
       } ]
     });
-    if (!c) return t.status(404).json({
+    if (!n) return r.status(404).json({
       success: !1,
       message: "Contract not found"
     });
     let e = {
-      ...c.metadata?.toJSON(),
-      image: c.metadata?.rawImageUrl || c.metadata?.imageUrl
+      ...n.metadata?.toJSON(),
+      image: n.metadata?.rawImageUrl || n.metadata?.imageUrl
     };
-    return c.isSet && (a = await Token.findOne({
-      contractAddress: c.address,
-      tokenId: r.params.tokenId
+    return n.isSet && (a = await Token.findOne({
+      contractAddress: n.address,
+      tokenId: t.params.tokenId
     })) && (e = {
       ...e,
       ...a.metadata?.toJSON(),
       image: a.metadata?.rawImageUrl || a.metadata?.imageUrl || e.image
-    }), t.json(e);
+    }), r.json(e);
   } catch (e) {
-    return console.error("Error fetching contract metadata: " + e), t.status(500).json({
+    return console.error("Error fetching contract metadata: " + e), r.status(500).json({
       success: !1,
       message: "Internal server error"
     });
   }
-}), app.get("/v1/:chainId/:contractSlugOrAddress", async (e, r) => {
+}), app.get("/v1/:chainId/:contractSlugOrAddress", async (e, t) => {
   try {
     var {
-      contractSlugOrAddress: t,
+      contractSlugOrAddress: r,
       chainId: a
     } = e.params, s = await Contract.findOne({
       $or: [ {
-        slug: t
+        slug: r
       }, {
-        address: t
+        address: r
       } ],
       chainId: a
     });
-    return s ? r.json({
+    return s ? t.json({
       contract: s
-    }) : r.status(404).json({
+    }) : t.status(404).json({
       success: !1,
       message: "Contract not found"
     });
   } catch (e) {
-    return console.error("Error fetching contract metadata: " + e), r.status(500).json({
+    return console.error("Error fetching contract metadata: " + e), t.status(500).json({
       success: !1,
       message: "Internal server error"
     });
@@ -108,54 +108,75 @@ const app = require("express").Router(), Contract = require("../models/wallet/Co
 }), require("axios")), cheerio = require("cheerio"), Token = require("../models/wallet/Token")["Token"], {
   getFarcasterUserByCustodyAddress,
   getFarcasterUserByFid,
-  getFarcasterUserByAddress
-} = require("../helpers/farcaster");
+  getFarcasterUserByAddress,
+  getFarcasterUserByConnectedAddress
+} = require("../helpers/farcaster"), frameContext = require("../helpers/farcaster-utils")["frameContext"], {
+  getTxDataForProxyRegister2Address,
+  getTxDataForOpController,
+  getBebdomainTxData
+} = require("../helpers/get-contracts-tx-data");
 
 async function fetchDirectImageUrl(e) {
-  const r = new AbortController();
-  var t = setTimeout(() => r.abort(), 5e3);
+  const t = new AbortController();
+  var r = setTimeout(() => t.abort(), 5e3);
   try {
     var a = await axios.get(e, {
-      signal: r.signal
-    }), s = (clearTimeout(t), a.data), c = cheerio.load(s), n = c('meta[property="og:image"]').attr("content"), o = c("img").first().attr("src");
-    return n || o || e;
+      signal: t.signal
+    }), s = (clearTimeout(r), a.data), n = cheerio.load(s), o = n('meta[property="og:image"]').attr("content"), c = n("img").first().attr("src");
+    return o || c || e;
   } catch (e) {
-    return clearTimeout(t), console.error("Error fetching direct image URL: " + e), 
+    return clearTimeout(r), console.error("Error fetching direct image URL: " + e), 
     null;
   }
 }
 
-async function handleImageResponse(e, r) {
-  var t = e.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  t ? e = "https://drive.google.com/uc?export=view&id=" + t[1] : /\.(jpeg|jpg|gif|png|svg)$/.test(e) || (e = await Promise.race([ fetchDirectImageUrl(e), new Promise((e, r) => setTimeout(() => r(new Error("Timeout")), 5e3)) ]));
+async function handleImageResponse(e, t) {
+  var r = e.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  r ? e = "https://drive.google.com/uc?export=view&id=" + r[1] : /\.(jpeg|jpg|gif|png|svg)$/.test(e) || (e = await Promise.race([ fetchDirectImageUrl(e), new Promise((e, t) => setTimeout(() => t(new Error("Timeout")), 5e3)) ]));
   try {
     var a = await axios.get(e, {
       responseType: "arraybuffer"
     }), s = a.headers["content-type"];
-    if (!s.startsWith("image")) return r.redirect(e);
-    var c = Buffer.from(a.data, "binary");
-    r.setHeader("Content-Type", s), r.send(c);
+    if (!s.startsWith("image")) return t.redirect(e);
+    var n = Buffer.from(a.data, "binary");
+    t.setHeader("Content-Type", s), t.send(n);
   } catch (e) {
-    return console.error("Error fetching image: " + e), r.status(500).json({
+    return console.error("Error fetching image: " + e), t.status(500).json({
       success: !1,
       message: "Internal server error"
     });
   }
 }
 
-app.get("/v1/images", async (r, t) => {
+app.get("/v1/images", async (t, r) => {
   try {
-    var a, s = r.query["contractId"];
-    let e = r.query.image;
-    if (e || (a = await Contract.findById(s), e = a.metadata?.imageUrl), !e) return t.status(404).json({
+    var a, s = t.query["contractId"];
+    let e = t.query.image;
+    if (e || (a = await Contract.findById(s), e = a.metadata?.imageUrl), !e) return r.status(404).json({
       success: !1,
       message: "Image not found for contract"
     });
-    await handleImageResponse(e, t);
+    await handleImageResponse(e, r);
   } catch (e) {
-    return console.error("Error fetching contract image: " + e), t.status(500).json({
+    return console.error("Error fetching contract image: " + e), r.status(500).json({
       success: !1,
       message: "Internal server error"
+    });
+  }
+}), app.post("/v1/transactions/:txId/data", frameContext, async (t, r) => {
+  var a = t.params["txId"];
+  try {
+    let e;
+    return a === config().PROXY_REGISTER_2_ADDRESS ? e = await getTxDataForProxyRegister2Address(t) : "mint-bebdomain" === a && (e = await getBebdomainTxData(t)), 
+    e ? r.status(200).json(e) : r.status(500).json({
+      success: !1,
+      message: "Invalid contract address"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error("Error fetching tx data for contract", e), 
+    r.status(500).json({
+      success: !1,
+      message: "Failed to fetch tx data"
     });
   }
 }), module.exports = {

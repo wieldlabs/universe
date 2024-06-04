@@ -10,6 +10,8 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
     type: String,
     index: !0
   }
+}, {
+  timestamps: !0
 });
 
 schema.index({

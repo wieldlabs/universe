@@ -6,6 +6,10 @@ function _validateKey(e) {
   if (e.includes(" ")) throw new Error(`Key must not include space: '${e}'`);
 }
 
+function _validateValue(e) {
+  if ("string" == typeof e && 1e6 < e.length) throw new Error(`Value must be less than 1MB: '${e.substring(0, 200)}'`);
+}
+
 class SafeMemcacheClient {
   getClient() {
     return this._client ||= new MemcacheClient({
@@ -25,9 +29,9 @@ class SafeMemcacheClient {
     }
   }
   async set(e, t, r = null, n = {}) {
-    var c = this.getClient();
+    var a = this.getClient();
     try {
-      return _validateKey(e), await c.set(e, t, r);
+      return _validateKey(e), _validateValue(t), await a.set(e, t, r);
     } catch (e) {
       if (console.error(e), n.throwExceptions) throw e;
       return null;
@@ -43,18 +47,18 @@ class SafeMemcacheClient {
     }
   }
   async incr(e, t, r = null, n = {}) {
-    var c = this.getClient();
+    var a = this.getClient();
     try {
-      return _validateKey(e), await c.incr(e, t, r);
+      return _validateKey(e), await a.incr(e, t, r);
     } catch (e) {
       if (console.error(e), n.throwExceptions) throw e;
       return null;
     }
   }
   async decr(e, t, r = null, n = {}) {
-    var c = this.getClient();
+    var a = this.getClient();
     try {
-      return _validateKey(e), await c.decr(e, t, r);
+      return _validateKey(e), await a.decr(e, t, r);
     } catch (e) {
       if (console.error(e), n.throwExceptions) throw e;
       return null;

@@ -7876,6 +7876,11 @@ fresh@0.5.2:
   resolved "https://registry.yarnpkg.com/fresh/-/fresh-0.5.2.tgz#3d8cadd90d976569fa835ab1f8e4b23a105605a7"
   integrity sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q==
 
+friendly-username-generator@^2.0.4:
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/friendly-username-generator/-/friendly-username-generator-2.0.4.tgz#67778be83a9879b935be224f948ac933d5ad7b94"
+  integrity sha512-718y2+j8A28eEsR3AOK4Tp0U/69svwnE6CMtXAvleXHubDim/CsOc2EU4MGBkShB1WzMTO4iO/10JrKaiCc2Sw==
+
 fs-constants@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/fs-constants/-/fs-constants-1.0.0.tgz#6be0de9be998ce16af8afc24497b9ee9b7ccd9ad"
