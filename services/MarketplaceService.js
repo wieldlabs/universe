@@ -155,7 +155,7 @@ class MarketplaceService {
   async latestFid() {
     let e;
     var t = await memcache.get("MarketplaceService:latestFid");
-    return (e = t ? t.value : e) || (e = await Fids.count(), await memcache.set("MarketplaceService:latestFid", e, {
+    return (e = t ? t.value : e) || (e = await Fids.estimatedDocumentCount(), await memcache.set("MarketplaceService:latestFid", e, {
       lifetime: 3600
     })), e;
   }

@@ -4,10 +4,10 @@ class AccountQueryService extends AccountService {
   async hasPremiumRole(e) {
     return !!e?._id && !!(process.env.BEBVERSE_HOLDER_COMMUNITY_ID && process.env.BEBVERSE_HOLDER_ROLE_ID && (e = await AccountCommunity.findOne({
       account: e._id,
-      community: mongoose.Types.ObjectId(process.env.BEBVERSE_HOLDER_COMMUNITY_ID)
+      community: new mongoose.Types.ObjectId(process.env.BEBVERSE_HOLDER_COMMUNITY_ID)
     })) && await AccountCommunityRole.exists({
       accountCommunity: e._id,
-      role: mongoose.Types.ObjectId(process.env.BEBVERSE_HOLDER_ROLE_ID),
+      role: new mongoose.Types.ObjectId(process.env.BEBVERSE_HOLDER_ROLE_ID),
       isValid: !0
     }));
   }

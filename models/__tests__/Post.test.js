@@ -19,8 +19,8 @@ describe("Post tests", () => {
       expect.assertions(1);
       try {
         await Post._verifyAndUpdateParentReplies({
-          parentId: mongoose.Types.ObjectId(),
-          postId: mongoose.Types.ObjectId()
+          parentId: new mongoose.Types.ObjectId(),
+          postId: new mongoose.Types.ObjectId()
         });
       } catch (t) {
         expect(t.message).toBe("Invalid parent id");

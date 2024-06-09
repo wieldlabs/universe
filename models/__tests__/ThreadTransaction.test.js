@@ -21,7 +21,7 @@ describe("ThreadTransaction tests", () => {
     it("should throw an error if threadTransactionId is invalid", async () => {
       try {
         await ThreadTransaction.completeTransaction({
-          threadTransactionId: mongoose.Types.ObjectId()
+          threadTransactionId: new mongoose.Types.ObjectId()
         });
       } catch (e) {
         expect(e.message).toBe("Invalid Transaction");

@@ -34,7 +34,7 @@ describe("AccountNonce tests", () => {
     }), it("should throw an error for invalid account nonce", async () => {
       expect.assertions(1);
       try {
-        await AccountNonce.generateNewTransactionNonceByAccountId(mongoose.Types.ObjectId());
+        await AccountNonce.generateNewTransactionNonceByAccountId(new mongoose.Types.ObjectId());
       } catch (e) {
         expect(e.message).toBe("Invalid account nonce");
       }

@@ -957,14 +957,39 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   }
 }, {
   timestamps: !0
-}));
-
-syncedActionsSchema.index({
+})), syncedVerificationSchema = (syncedActionsSchema.index({
   name: 1
 }), syncedActionsSchema.index({
   actionUrl: 1
 }), syncedActionsSchema.index({
   "action.actionType": 1
+}), new mongoose.Schema({
+  fid: {
+    type: String,
+    required: !0
+  },
+  verified: {
+    type: Boolean,
+    default: !1
+  },
+  timestamp: {
+    type: Date
+  }
+}, {
+  timestamps: !0
+}));
+
+syncedVerificationSchema.index({
+  verified: 1
+}), syncedVerificationSchema.index({
+  fid: 1
+}), syncedVerificationSchema.index({
+  fid: 1,
+  verified: 1
+}), syncedVerificationSchema.index({
+  updatedAt: 1
+}, {
+  expireAfterSeconds: 604800
 }), module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
   messagesSchema: messagesSchema,
@@ -985,5 +1010,6 @@ syncedActionsSchema.index({
   framesSchema: framesSchema,
   reportsSchema: reportsSchema,
   syncedChannelsSchema: syncedChannelsSchema,
-  syncedActionsSchema: syncedActionsSchema
+  syncedActionsSchema: syncedActionsSchema,
+  syncedVerificationSchema: syncedVerificationSchema
 };

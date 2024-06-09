@@ -66,7 +66,7 @@ class AccountRelationshipClass {
   }) {
     if (i.from) return await AccountRelationship.aggregate([ {
       $match: {
-        to: mongoose.Types.ObjectId(i.from),
+        to: new mongoose.Types.ObjectId(i.from),
         isFollowing: !0
       }
     }, {
@@ -81,7 +81,7 @@ class AccountRelationshipClass {
               $and: [ {
                 $eq: [ "$to", "$$from" ]
               }, {
-                $eq: [ "$from", mongoose.Types.ObjectId(i.from) ]
+                $eq: [ "$from", new mongoose.Types.ObjectId(i.from) ]
               } ]
             }
           }
@@ -120,10 +120,10 @@ class AccountRelationshipClass {
     let e = {};
     return i.from && (e = {
       ...e,
-      from: mongoose.Types.ObjectId(i.from)
+      from: new mongoose.Types.ObjectId(i.from)
     }), i.to && (e = {
       ...e,
-      to: mongoose.Types.ObjectId(i.to)
+      to: new mongoose.Types.ObjectId(i.to)
     }), void 0 !== i.isFollowing && (e = {
       ...e,
       isFollowing: i.isFollowing

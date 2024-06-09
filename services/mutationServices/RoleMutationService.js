@@ -46,7 +46,7 @@ class RoleMutationService extends RoleService {
     }, i), !t?.editable) throw new Error("You do not have permission to grant the role.");
     let a = null;
     return r ? a = await AccountCommunity.findOrCreate({
-      accountId: mongoose.Types.ObjectId(r),
+      accountId: new mongoose.Types.ObjectId(r),
       communityId: t.community
     }) : n && (o = await Account.findOrCreateByAddressAndChainId({
       address: n,
@@ -71,7 +71,7 @@ class RoleMutationService extends RoleService {
     }, i), !t?.editable) throw new Error("You do not have permission to revoke the role.");
     let a = null;
     if (r) a = await AccountCommunity.findOne({
-      account: mongoose.Types.ObjectId(r),
+      account: new mongoose.Types.ObjectId(r),
       community: t.community
     }); else if (n) {
       o = await Account.findByAddressAndChainId({

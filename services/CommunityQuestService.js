@@ -19,7 +19,7 @@ class CommunityQuestService extends QuestService {
       for (const o of await new FarcasterServiceV2().getProfilesByAddress(i)) {
         if ("FARCASTER_ACCOUNT" === t.type) return !0;
         if (t.type.includes("FARCASTER_CASTS_")) {
-          if (parseInt(t.type.replace("FARCASTER_CASTS_", "")) <= await Casts.count({
+          if (parseInt(t.type.replace("FARCASTER_CASTS_", "")) <= await Casts.countDocuments({
             fid: o._id,
             deletedAt: null
           })) return !0;
@@ -27,7 +27,7 @@ class CommunityQuestService extends QuestService {
           var n = parseInt(t.type.replace("FARCASTER_FOLLOWERS_", ""));
           if (o.followers >= n) return !0;
         } else if (t.type.includes("FARCASTER_LIKES_")) {
-          if (parseInt(t.type.replace("FARCASTER_LIKES_", "")) <= await Reactions.count({
+          if (parseInt(t.type.replace("FARCASTER_LIKES_", "")) <= await Reactions.countDocuments({
             targetFid: o._id,
             reactionType: ReactionType.REACTION_TYPE_LIKE,
             deletedAt: null

@@ -107,7 +107,7 @@ describe("RoleService tests", () => {
       });
     }), it("should return base permission if channel is not found", async () => {
       var e = [ o ], e = await a.computePermissionOverwrite(e, {
-        channelId: new mongoose.Types.ObjectId(),
+        channelId: new new mongoose.Types.ObjectId()(),
         basePermission: "1"
       }, {
         account: l

@@ -15,8 +15,8 @@ class AccountCommunityRoleClass {
       role: o,
       accountCommunity: e
     })) ? (i.isValid = t, i.isManagedByIndexer = n, i) : new AccountCommunityRole({
-      accountCommunity: mongoose.Types.ObjectId(e),
-      role: mongoose.Types.ObjectId(o),
+      accountCommunity: new mongoose.Types.ObjectId(e),
+      role: new mongoose.Types.ObjectId(o),
       isManagedByIndexer: !!n,
       isValid: t
     })).save();
@@ -32,8 +32,8 @@ class AccountCommunityRoleClass {
       role: o,
       accountCommunity: e
     }) || new AccountCommunityRole({
-      accountCommunity: mongoose.Types.ObjectId(e),
-      role: mongoose.Types.ObjectId(o),
+      accountCommunity: new mongoose.Types.ObjectId(e),
+      role: new mongoose.Types.ObjectId(o),
       isManagedByIndexer: !!n,
       isValid: t
     }).save();
@@ -48,10 +48,10 @@ class AccountCommunityRoleClass {
     let i = {};
     n.accountCommunity && (i = {
       ...i,
-      accountCommunity: mongoose.Types.ObjectId(n.accountCommunity)
+      accountCommunity: new mongoose.Types.ObjectId(n.accountCommunity)
     }), n.role && (i = {
       ...i,
-      role: mongoose.Types.ObjectId(n.role)
+      role: new mongoose.Types.ObjectId(n.role)
     }), void 0 !== n.isValid && (i = {
       ...i,
       isValid: !!n.isValid

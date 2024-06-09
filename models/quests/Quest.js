@@ -9,11 +9,11 @@ class QuestClass {
     return s.communities?.length && (e = {
       ...e,
       community: {
-        $in: s.communities.map(s => mongoose.Types.ObjectId(s))
+        $in: s.communities.map(s => new mongoose.Types.ObjectId(s))
       }
     }), e = s.community ? {
       ...e,
-      community: mongoose.Types.ObjectId(s.community)
+      community: new mongoose.Types.ObjectId(s.community)
     } : e;
   }
   static async findAndSort({

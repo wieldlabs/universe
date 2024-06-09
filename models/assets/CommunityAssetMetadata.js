@@ -11,7 +11,7 @@ class CommunityAssetMetadataClass {
     sort: a = "_id"
   } = {}) {
     if (e) return e = {
-      communityAsset: mongoose.Types.ObjectId(e)
+      communityAsset: new mongoose.Types.ObjectId(e)
     }, a = "-" === a[0] ? {
       [a.slice(1)]: -1,
       _id: 1

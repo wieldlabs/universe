@@ -33,12 +33,12 @@ describe("Thread tests", () => {
       expect(t._id.toString()).toMatch(e._id.toString());
     });
   }), describe("createThread", () => {
-    let d, r, c;
-    const t = getRandomAddress(), n = getRandomAddress();
+    let d, r, n;
+    const t = getRandomAddress(), c = getRandomAddress();
     it("should throw an error if account does not exist", async () => {
       try {
         await Thread.createThread({
-          fromAccountId: mongoose.Types.ObjectId()
+          fromAccountId: new mongoose.Types.ObjectId()
         });
       } catch (e) {
         expect(e.message).toMatch("Invalid Account");
@@ -50,17 +50,17 @@ describe("Thread tests", () => {
       });
       var [ e ] = await Thread.createThread({
         fromAccountId: d._id,
-        recipientAddress: n,
+        recipientAddress: c,
         recipientChainId: 1
       });
-      c = e, r = await Account.findByAddressAndChainId({
-        address: n,
+      n = e, r = await Account.findByAddressAndChainId({
+        address: c,
         chainId: 1
       }), expect(r).toBeDefined();
     }), it("should create a thread and two accountThreads", async () => {
       var e = await Account.create({}), [ t, a ] = await Thread.createThread({
         fromAccountId: e._id,
-        recipientAddress: n,
+        recipientAddress: c,
         recipientChainId: 1
       }), d = await AccountThread.findOne({
         account: e._id,
@@ -74,20 +74,20 @@ describe("Thread tests", () => {
     }), it("should not create a thread if a thread exists between accounts", async () => {
       var [ e ] = await Thread.createThread({
         fromAccountId: d._id,
-        recipientAddress: n,
+        recipientAddress: c,
         recipientChainId: 1
       });
-      expect(e._id.toString()).toEqual(c._id.toString());
+      expect(e._id.toString()).toEqual(n._id.toString());
     }), it("should not create an accountThread if an accountThread exists", async () => {
       var e = await AccountThread.findOne({
         account: d._id,
-        thread: c._id
+        thread: n._id
       }), t = await AccountThread.findOne({
         account: r._id,
-        thread: c._id
+        thread: n._id
       }), [ , a ] = (expect(e).toBeDefined(), expect(t).toBeDefined(), await Thread.createThread({
         fromAccountId: d._id,
-        recipientAddress: n,
+        recipientAddress: c,
         recipientChainId: 1
       })), a = [ a[0]._id.toString(), a[1]._id.toString() ];
       expect(a).toContain(e._id.toString()), expect(a).toContain(t._id.toString());
@@ -96,7 +96,7 @@ describe("Thread tests", () => {
     const d = getRandomAddress(), r = getRandomAddress();
     it("should return an empty array if thread is not found", async () => {
       var e = await Thread.getRecipientsByThreadId({
-        threadId: mongoose.Types.ObjectId()
+        threadId: new mongoose.Types.ObjectId()
       });
       expect(e.length).toBe(0);
     }), it("should return all accounts associated with thread", async () => {
@@ -146,11 +146,11 @@ describe("Thread tests", () => {
     });
   }), describe("createStakedThread", () => {
     let a, e, t, d;
-    const r = getRandomAddress(), c = getRandomAddress();
+    const r = getRandomAddress(), n = getRandomAddress();
     it("should throw an error if account does not exist", async () => {
       try {
         await Thread.createStakedThread({
-          senderId: mongoose.Types.ObjectId()
+          senderId: new mongoose.Types.ObjectId()
         });
       } catch (e) {
         expect(e.message).toMatch("Invalid Account");
@@ -160,11 +160,11 @@ describe("Thread tests", () => {
         address: r,
         chainId: 1
       }), d = await Account.createFromAddress({
-        address: c,
+        address: n,
         chainId: 1
       }), [ e, t ] = await Thread.createStakedThread({
         senderId: a._id,
-        recipientAddress: c,
+        recipientAddress: n,
         recipientChainId: 1,
         nonce: 1,
         tokenAmount: "0.1",
@@ -177,7 +177,7 @@ describe("Thread tests", () => {
         account: a._id
       }), t = (await Thread.createStakedThread({
         senderId: a._id,
-        recipientAddress: c,
+        recipientAddress: n,
         recipientChainId: 1,
         nonce: 1,
         tokenAmount: "0.1",

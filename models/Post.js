@@ -16,20 +16,20 @@ class PostClass {
       channel: null
     }), t.account && (e = {
       ...e,
-      account: mongoose.Types.ObjectId(t.account)
+      account: new mongoose.Types.ObjectId(t.account)
     }), t.post && (e = {
       ...e,
-      parent: mongoose.Types.ObjectId(t.post)
+      parent: new mongoose.Types.ObjectId(t.post)
     }), t.channel && (e = {
       ...e,
-      channel: mongoose.Types.ObjectId(t.channel)
+      channel: new mongoose.Types.ObjectId(t.channel)
     }), t.community && (e = {
       ...e,
-      community: mongoose.Types.ObjectId(t.community)
+      community: new mongoose.Types.ObjectId(t.community)
     }), e = t.communities && t.communities.length ? {
       ...e,
       community: {
-        $in: t.communities.map(t => mongoose.Types.ObjectId(t))
+        $in: t.communities.map(t => new mongoose.Types.ObjectId(t))
       }
     } : e;
   }

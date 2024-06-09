@@ -21,7 +21,7 @@ describe("AccountThread tests", () => {
     it("should return null if account thread does not exist", async () => {
       var e = await AccountThread._existingAccountThread({
         threadId: a._id,
-        accountId: mongoose.Types.ObjectId()
+        accountId: new mongoose.Types.ObjectId()
       });
       expect(e).toBe(null);
     }), it("should return null if accountId or threadId is not provided", async () => {
@@ -59,7 +59,7 @@ describe("AccountThread tests", () => {
     it("should throw an error if thread or account is not found", async () => {
       try {
         await AccountThread.acceptAccountThread({
-          threadId: mongoose.Types.ObjectId(),
+          threadId: new mongoose.Types.ObjectId(),
           accountId: d._id
         });
       } catch (e) {
@@ -75,7 +75,7 @@ describe("AccountThread tests", () => {
   }), describe("getAccountThreadByThread", () => {
     it("should return an empty array if no AccountThread is found", async () => {
       var e = await AccountThread.getAccountThreadByThread({
-        threadId: mongoose.Types.ObjectId()
+        threadId: new mongoose.Types.ObjectId()
       });
       expect(e.length).toEqual(0);
     }), it("should get all existing account threads by thread id", async () => {
@@ -112,7 +112,7 @@ describe("AccountThread tests", () => {
       expect(e.length).toBeGreaterThanOrEqual(2), expect(e[0].thread._id.toString()).toMatch(t._id.toString()), 
       expect(e[1].thread._id.toString()).toMatch(a._id.toString());
     }), it("should return an empty array if no condition match", async () => {
-      var e = await AccountThread.findAndSortByLatestThreadMessage(mongoose.Types.ObjectId());
+      var e = await AccountThread.findAndSortByLatestThreadMessage(new mongoose.Types.ObjectId());
       expect(e.length).toBe(0);
     }), it("should work with skip and limit", async () => {
       var e = await AccountThread.findAndSortByLatestThreadMessage(d._id, {

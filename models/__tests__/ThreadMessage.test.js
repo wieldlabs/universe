@@ -21,7 +21,7 @@ describe("ThreadMessage tests", () => {
     it("should throw an error if thread does not belong to account", async () => {
       try {
         await ThreadMessage._verifyThreadAndSender({
-          threadId: mongoose.Types.ObjectId(),
+          threadId: new mongoose.Types.ObjectId(),
           senderId: r._id
         });
       } catch (e) {
@@ -38,7 +38,7 @@ describe("ThreadMessage tests", () => {
     it("should throw an error if thread or sender is invalid", async () => {
       try {
         await ThreadMessage._verifyThreadAndSender({
-          threadId: mongoose.Types.ObjectId(),
+          threadId: new mongoose.Types.ObjectId(),
           senderId: r._id
         });
       } catch (e) {

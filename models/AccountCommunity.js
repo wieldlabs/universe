@@ -52,10 +52,10 @@ class AccountCommunityClass {
     let i = {};
     o.account && (i = {
       ...i,
-      account: mongoose.Types.ObjectId(o.account)
+      account: new mongoose.Types.ObjectId(o.account)
     }), o.community && (i = {
       ...i,
-      community: mongoose.Types.ObjectId(o.community)
+      community: new mongoose.Types.ObjectId(o.community)
     }), void 0 !== o.joined && (i = {
       ...i,
       joined: !!o.joined

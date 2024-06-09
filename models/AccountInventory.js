@@ -14,7 +14,7 @@ class AccountInventoryClass {
     let o = {};
     n.account && (o = {
       ...o,
-      account: mongoose.Types.ObjectId(n.account)
+      account: new mongoose.Types.ObjectId(n.account)
     }), n.gtQuantity && (o = {
       ...o,
       quantity: {

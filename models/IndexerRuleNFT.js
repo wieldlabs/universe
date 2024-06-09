@@ -11,7 +11,7 @@ class IndexerRuleNFTClass {
     minAmount: o
   }) {
     if (s && e) return await (s = new IndexerRuleNFT({
-      address: mongoose.Types.ObjectId(s),
+      address: new mongoose.Types.ObjectId(s),
       tokenId: n,
       minAmount: o,
       indexerRuleId: e

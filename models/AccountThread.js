@@ -8,7 +8,7 @@ class AccountThreadClass {
     filters: t
   }) {
     let a = {
-      account: mongoose.Types.ObjectId(e)
+      account: new mongoose.Types.ObjectId(e)
     };
     return a = void 0 !== t.isAccepted ? {
       ...a,

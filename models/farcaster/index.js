@@ -18,7 +18,8 @@ const mongoose = require("mongoose"), {
   framesSchema,
   reportsSchema,
   syncedChannelsSchema,
-  syncedActionsSchema
+  syncedActionsSchema,
+  syncedVerificationSchema
 } = require("../../schemas/farcaster");
 
 class HubSubscriptionsClass {
@@ -232,7 +233,17 @@ class SyncedActionsClass {
 
 syncedActionsSchema.loadClass(SyncedActionsClass);
 
-const SyncedActions = mongoose.models.SyncedActions || mongoose.model("farcaster.SyncedActions", syncedActionsSchema), UserDataType = {
+const SyncedActions = mongoose.models.SyncedActions || mongoose.model("farcaster.SyncedActions", syncedActionsSchema);
+
+class SyncedVerificationClass {
+  static ping() {
+    console.log("model: SyncedVerificationClass");
+  }
+}
+
+syncedVerificationSchema.loadClass(SyncedVerificationClass);
+
+const SyncedVerification = mongoose.models.SyncedVerification || mongoose.model("farcaster.SyncedVerification", syncedVerificationSchema), UserDataType = {
   USER_DATA_TYPE_NONE: 0,
   USER_DATA_TYPE_PFP: 1,
   USER_DATA_TYPE_DISPLAY: 2,
@@ -282,5 +293,6 @@ module.exports = {
   Frames: Frames,
   Reports: Reports,
   SyncedChannels: SyncedChannels,
-  SyncedActions: SyncedActions
+  SyncedActions: SyncedActions,
+  SyncedVerification: SyncedVerification
 };

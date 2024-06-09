@@ -18,6 +18,10 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
   } catch (e) {
     throw console.error("Error fetching tx data for contract"), e;
   }
+}, makeBufferedRegistrationCost = (e, t) => {
+  e = ethers.BigNumber.from(e || 0), t = ethers.BigNumber.from(t || 0), e = e.add(t), 
+  t = e.div(100);
+  return e.add(t).toString();
 }, getTxDataForEthController = async e => {
   var t = new ethers.providers.AlchemyProvider(1, config().ETH_NODE_URL), t = new ethers.Contract(config().CONTROLLER_ADDRESS, config().CONTROLLER_ABI, t);
   let r = e.query.bebdomain || e.context?.untrustedData?.inputText;
@@ -38,7 +42,7 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
       abi: config().CONTROLLER_ABI,
       to: config().CONTROLLER_ADDRESS_OP,
       data: e,
-      value: t.base.toString()
+      value: makeBufferedRegistrationCost(t.base, t.premium)
     }
   };
 }, getTxDataForOpController = async e => {

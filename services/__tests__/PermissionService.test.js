@@ -49,7 +49,7 @@ describe("PermissionService tests", () => {
     it("should assert if a permission string contains a permissionId", async () => {
       var e = await s.generatePermissionStringFromIds([ a._id, o._id ]);
       expect(await s.isFlagSetForPermissionStringById(e, a._id)).toBe(!0), expect(await s.isFlagSetForPermissionStringById(e, o._id)).toBe(!0), 
-      expect(await s.isFlagSetForPermissionStringById(e, null)).toBe(!1), expect(await s.isFlagSetForPermissionStringById(e, mongoose.Types.ObjectId())).toBe(!1);
+      expect(await s.isFlagSetForPermissionStringById(e, null)).toBe(!1), expect(await s.isFlagSetForPermissionStringById(e, new mongoose.Types.ObjectId())).toBe(!1);
     });
   });
 });

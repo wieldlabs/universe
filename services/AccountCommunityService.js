@@ -3,35 +3,35 @@ const mongoose = require("mongoose"), Post = require("../models/Post")["Post"], 
 class AccountCommunityService {
   async createOrUpdateRoleForAccountCommunity(e, {
     roleId: o,
-    isManagedByIndexer: t,
-    isValid: n = !0
+    isManagedByIndexer: n,
+    isValid: t = !0
   }) {
     if (e && e.community) return o = await new _AccountCommunityRoleService().createOrUpdateAccountCommunityRole(e, {
       roleId: o,
-      isManagedByIndexer: t,
-      isValid: n
+      isManagedByIndexer: n,
+      isValid: t
     }), e.roles.includes(o._id) || (e.roles.push(o._id), await e.save()), o;
     throw new Error("Invalid account community");
   }
   async validPermissionForAccountCommunity(e, {
     permissionIdentifier: o,
-    permissionId: t,
-    channelId: n
+    permissionId: n,
+    channelId: t
   }, i) {
     e = await this.getAccountCommunityRoles(e, {
       includeDefault: !0
     });
     return new _RoleService().hasPermissionForRoles(e, {
       permissionIdentifier: o,
-      permissionId: t,
-      channelId: n
+      permissionId: n,
+      channelId: t
     }, i);
   }
-  async countUnseenPostsCount(e, o, t = {}) {
+  async countUnseenPostsCount(e, o, n = {}) {
     return e?.lastSeen && e?.community && (await Post.find({
       community: e.community,
       account: {
-        $ne: t.accountId
+        $ne: n.accountId
       },
       createdAt: {
         $gt: new Date(e?.lastSeen)
@@ -43,8 +43,8 @@ class AccountCommunityService {
   async getAccountCommunityRoles(e, {
     includeDefault: o = !0
   } = {}) {
-    var t;
-    return e ? (t = ((await e.populate({
+    var n;
+    return e ? (n = ((await e.populate({
       path: "roles",
       match: {
         isValid: !0
@@ -54,7 +54,7 @@ class AccountCommunityService {
       }
     }))?.roles?.map?.(e => e.role) || []).filter(e => e && !0 !== e.isHidden), o && (o = await Role.findDefaultPublicRoleForCommunity({
       communityId: e.community
-    })) && t.push(o), t) : [];
+    })) && n.push(o), n) : [];
   }
   async revokeRole(e, {
     roleId: o
@@ -62,7 +62,7 @@ class AccountCommunityService {
     if (e) return await AccountCommunityRole.findOneAndUpdate({
       accountCommunity: e._id,
       isValid: !0,
-      role: mongoose.Types.ObjectId(o)
+      role: new mongoose.Types.ObjectId(o)
     }, {
       isValid: !1,
       isManagedByIndexer: !1

@@ -160,7 +160,7 @@ class NotificationService {
     });
     for (const i of (await Account.find({
       _id: {
-        $in: n.map(t => mongoose.Types.ObjectId(t.account))
+        $in: n.map(t => new mongoose.Types.ObjectId(t.account))
       },
       deleted: !1
     })).reduce((t, o) => t.concat(o.expoPushTokens || []), [])) if (!Expo.isExpoPushToken(i) || i.includes("SIMULATOR")) console.log(`Push token ${i} is not a valid Expo push token`); else try {

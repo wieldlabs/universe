@@ -6,19 +6,19 @@ class CommunityAssetClass {
   }
   static async findAndSort({
     limit: s = 20,
-    offset: t = 0,
-    filters: e = {},
+    offset: e = 0,
+    filters: t = {},
     sort: o = "_id"
   } = {}) {
     let m = {};
-    e.communityId && (m = {
+    t.communityId && (m = {
       ...m,
-      community: mongoose.Types.ObjectId(e.communityId)
-    }), e.type && (m = {
+      community: new mongoose.Types.ObjectId(t.communityId)
+    }), t.type && (m = {
       ...m,
-      type: mongoose.Types.ObjectId(e.type)
+      type: new mongoose.Types.ObjectId(t.type)
     });
-    e = "-" === o[0] ? {
+    t = "-" === o[0] ? {
       [o.slice(1)]: -1,
       _id: 1
     } : {
@@ -27,9 +27,9 @@ class CommunityAssetClass {
     return this.aggregate([ {
       $match: m
     }, {
-      $sort: e
+      $sort: t
     }, {
-      $skip: parseInt(t, 10)
+      $skip: parseInt(e, 10)
     }, {
       $limit: parseInt(s, 10)
     } ]);

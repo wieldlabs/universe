@@ -7,7 +7,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), Quest
 } = require("../helpers/farcaster-utils"), isFollowingChannel = require("../helpers/farcaster")["isFollowingChannel"], fetch = require("node-fetch"), axios = require("axios"), fetchAndCacheOpenGraphData = require("../helpers/opengraph")["fetchAndCacheOpenGraphData"], {
   limiter,
   authContext
-} = require("../helpers/express-middleware"), abcToIndex = {
+} = require("../helpers/express-middleware"), validateAndCreateMetadata = require("../helpers/domain-metadata")["validateAndCreateMetadata"], RegistrarService = require("../services/RegistrarService")["Service"], generateUsername = require("friendly-username-generator")["generateUsername"], abcToIndex = {
   1: "A",
   2: "B",
   3: "C",
@@ -57,17 +57,17 @@ async function getJpgFromSvg(e) {
   }
 }
 
-const generateSchoolImageMiddleware = async (t, e, r) => {
+const generateSchoolImageMiddleware = async (t, e, a) => {
   var {
-    id: a,
+    id: r,
     type: n = "png",
     isCorrectAnswer: o
   } = t.query;
-  if (t.query.reward) return r();
+  if (t.query.reward) return a();
   try {
-    var i = `API:frame:generateSchoolImageMiddleware:${a}:${n}:` + o, c = await memcache.get(i);
-    if (c) return t.imageContent = c.value, t.imageType = n, r();
-    var s = await Quest.findById(a), p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), f = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ l, d, u ] = await Promise.all([ fs.readFile(p), fs.readFile(m), fs.readFile(f) ]), g = (t.quest = s).requirements?.[0]?.data || [], h = g.find(e => "question" === e.key)?.value, y = g.find(e => "answers" === e.key)?.value.split(";"), w = "false" !== o, v = [ {
+    var i = `API:frame:generateSchoolImageMiddleware:${r}:${n}:` + o, c = await memcache.get(i);
+    if (c) return t.imageContent = c.value, t.imageType = n, a();
+    var s = await Quest.findById(r), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), f = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ l, d, u ] = await Promise.all([ fs.readFile(m), fs.readFile(p), fs.readFile(f) ]), g = (t.quest = s).requirements?.[0]?.data || [], h = g.find(e => "question" === e.key)?.value, y = g.find(e => "answers" === e.key)?.value.split(";"), v = "false" !== o, w = [ {
       type: "text",
       props: {
         children: h,
@@ -95,7 +95,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           textAlign: "center"
         }
       }
-    })) ], S = (w || v.push({
+    })) ], b = (v || w.push({
       type: "text",
       props: {
         children: "Try again",
@@ -112,7 +112,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
     }), await satori({
       type: "div",
       props: {
-        children: v,
+        children: w,
         style: {
           display: "flex",
           flexDirection: "column",
@@ -144,37 +144,37 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       } ]
     }));
     if ("png" === n) try {
-      var I = await getPngFromSvg(S);
-      t.imageContent = I, t.imageType = "png";
+      var S = await getPngFromSvg(b);
+      t.imageContent = S, t.imageType = "png";
     } catch (e) {
-      console.error(e), t.imageContent = S, t.imageType = "svg";
+      console.error(e), t.imageContent = b, t.imageType = "svg";
     } else if ("jpg" === n) try {
-      var A = await getJpgFromSvg(S);
-      t.imageContent = A, t.imageType = "jpg";
+      var I = await getJpgFromSvg(b);
+      t.imageContent = I, t.imageType = "jpg";
     } catch (e) {
-      console.error(e), t.imageContent = S, t.imageType = "svg";
-    } else t.imageContent = S, t.imageType = "svg";
+      console.error(e), t.imageContent = b, t.imageType = "svg";
+    } else t.imageContent = b, t.imageType = "svg";
     await memcache.set(i, t.imageContent, {
       lifetime: 86400
-    }), r();
+    }), a();
   } catch (e) {
-    Sentry.captureException(e), console.error(e), t.error = e, r();
+    Sentry.captureException(e), console.error(e), t.error = e, a();
   }
-}, generateRewardImageMiddleware = async (t, e, r) => {
+}, generateRewardImageMiddleware = async (t, e, a) => {
   var {
-    reward: a,
+    reward: r,
     type: n = "png"
   } = t.query;
-  if (!a) return r();
+  if (!r) return a();
   try {
-    var o = JSON.parse(a), i = `API:frame:generateRewardImageMiddleware:${o._id}:` + n;
+    var o = JSON.parse(r), i = `API:frame:generateRewardImageMiddleware:${o._id}:` + n;
     try {
       var c = await memcache.get(i);
-      if (c) return t.imageContent = c.value, t.imageType = n, r();
+      if (c) return t.imageContent = c.value, t.imageType = n, a();
     } catch (e) {
       console.error(e);
     }
-    var s = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), p = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), m = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , f ] = await Promise.all([ fs.readFile(s), fs.readFile(p), fs.readFile(m) ]), l = await new _QuestService().getQuestReward(o), d = getRewardImage(o, l), u = getRewardRarity(o, l), g = o?.quantity || 0, h = o?.title || "Reward", y = [ {
+    var s = path.join(__dirname, "../helpers/constants/Inter/static/Inter-Regular.ttf"), m = path.join(__dirname, "../helpers/constants/Inter/static/Inter-ExtraBold.ttf"), p = path.join(__dirname, "../helpers/constants/Silkscreen/Silkscreen-Regular.ttf"), [ , , f ] = await Promise.all([ fs.readFile(s), fs.readFile(m), fs.readFile(p) ]), l = await new _QuestService().getQuestReward(o), d = getRewardImage(o, l), u = getRewardRarity(o, l), g = o?.quantity || 0, h = o?.title || "Reward", y = [ {
       type: "img",
       props: {
         src: await convertImageToBase64(d, "image/png"),
@@ -211,7 +211,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
           fontFamily: "Silkscreen"
         }
       }
-    } ], w = await satori({
+    } ], v = await satori({
       type: "div",
       props: {
         children: y,
@@ -237,21 +237,21 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       } ]
     });
     if ("png" === n) try {
-      var v = await getPngFromSvg(w);
-      t.imageContent = v, t.imageType = "png";
+      var w = await getPngFromSvg(v);
+      t.imageContent = w, t.imageType = "png";
     } catch (e) {
-      console.error(e), t.imageContent = w, t.imageType = "svg";
+      console.error(e), t.imageContent = v, t.imageType = "svg";
     } else if ("jpg" === n) try {
-      var S = await getJpgFromSvg(w);
-      t.imageContent = S, t.imageType = "jpg";
+      var b = await getJpgFromSvg(v);
+      t.imageContent = b, t.imageType = "jpg";
     } catch (e) {
-      console.error(e), t.imageContent = w, t.imageType = "svg";
-    } else t.imageContent = w, t.imageType = "svg";
+      console.error(e), t.imageContent = v, t.imageType = "svg";
+    } else t.imageContent = v, t.imageType = "svg";
     await memcache.set(i, t.imageContent, {
       lifetime: 86400
-    }), r();
+    }), a();
   } catch (e) {
-    Sentry.captureException(e), console.error(e), t.error = e, r();
+    Sentry.captureException(e), console.error(e), t.error = e, a();
   }
 }, getSpinCount = async ({
   address: e,
@@ -263,32 +263,32 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
 }, incrSpinCount = async ({
   address: e,
   questId: t,
-  overrideValue: r = null
+  overrideValue: a = null
 }) => {
-  var a = new _CacheService(), e = `API:frame:checkCanSpin:alreadySpinned:${e}:` + t, t = await a.get({
+  var r = new _CacheService(), e = `API:frame:checkCanSpin:alreadySpinned:${e}:` + t, t = await r.get({
     key: e
   });
-  return a.set({
+  return r.set({
     key: e,
-    value: null !== r ? r : (t || 0) + 1,
+    value: null !== a ? a : (t || 0) + 1,
     expiresAt: new Date(Date.now() + 864e5)
   });
 }, checkCanSpin = async ({
   address: t,
-  fid: r,
-  frameActionBody: a,
+  fid: a,
+  frameActionBody: r,
   questId: e,
   verifiedFrameData: n = !1,
   isExternal: o
 } = {}) => {
-  o = o ? t : r;
+  o = o ? t : a;
   let i = 0, c = 0;
-  var r = await memcache.get(`API:frame:checkCanSpin:${t}:` + e);
-  if (r && (i = r.value, c = r.value), !i) {
-    i = t && (r = (await getAddressPasses(t, !0))["isHolder"], r) ? 6 : n ? 1 : 0;
+  var a = await memcache.get(`API:frame:checkCanSpin:${t}:` + e);
+  if (a && (i = a.value, c = a.value), !i) {
+    i = t && (a = (await getAddressPasses(t, !0))["isHolder"], a) ? 6 : n ? 1 : 0;
     let e;
-    a?.castId?.hash && (e = "0x" + Buffer.from(a?.castId?.hash).toString("hex"));
-    var [ r, n, a, o ] = await Promise.all([ Reactions.exists({
+    r?.castId?.hash && (e = "0x" + Buffer.from(r?.castId?.hash).toString("hex"));
+    var [ a, n, r, o ] = await Promise.all([ Reactions.exists({
       targetHash: e,
       deletedAt: null,
       fid: o,
@@ -309,18 +309,18 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
       type: "follow",
       deletedAt: null
     }) ]);
-    i = (i = i + (r ? 1 : 0) + (n ? 1 : 0)) + (a ? 1 : 0) + (o ? 1 : 0);
+    i = (i = i + (a ? 1 : 0) + (n ? 1 : 0)) + (r ? 1 : 0) + (o ? 1 : 0);
   }
   i !== c && await memcache.set(`API:frame:checkCanSpin:${t}:` + e, i, {
     lifetime: 15
   });
   let s = 0;
   try {
-    var p = await getSpinCount({
+    var m = await getSpinCount({
       address: t,
       questId: e
     });
-    null !== p ? s = p : await incrSpinCount({
+    null !== m ? s = m : await incrSpinCount({
       address: t,
       questId: e,
       overrideValue: 0
@@ -332,17 +332,17 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
 }, getRandomReward = async ({
   communityId: e,
   questId: t,
-  account: r
+  account: a
 }) => {
-  var a = new _CommunityQuestMutationService(), n = await CommunityQuest.findOne({
+  var r = new _CommunityQuestMutationService(), n = await CommunityQuest.findOne({
     community: e,
     quest: t
   });
-  if (n) return (await a._claimReward(n, {
+  if (n) return (await r._claimReward(n, {
     communityId: e,
     questId: t
   }, {
-    account: r
+    account: a
   }))?.[0];
   throw new Error("No Quest found");
 };
@@ -358,16 +358,16 @@ app.get("/v1/school", [ generateSchoolImageMiddleware, generateRewardImageMiddle
     success: !1,
     message: e.error?.message
   });
-  var r = "png" === e.imageType ? "image/png" : "jpg" === e.imageType ? "image/jpeg" : "image/svg+xml";
-  t.setHeader("Content-Type", r), t.send(e.imageContent);
+  var a = "png" === e.imageType ? "image/png" : "jpg" === e.imageType ? "image/jpeg" : "image/svg+xml";
+  t.setHeader("Content-Type", a), t.send(e.imageContent);
 }), app.get("/v1/school/post_url/redirect", async (e, t) => {
   t.redirect(302, "https://far.quest/school");
 }), app.post("/v1/invite/post_url", async (e, t) => {
   var {
     invite: e,
-    isCast: r
+    isCast: a
   } = e.query;
-  return t.redirect(302, r ? "https://far.quest/cast?invite=" + e : "https://far.quest/?invite=" + e);
+  return t.redirect(302, a ? "https://far.quest/cast?invite=" + e : "https://far.quest/?invite=" + e);
 });
 
 const STEPS = {
@@ -405,18 +405,18 @@ async function mint({
 
 app.post("/v1/school/post_url", frameContext, async (t, e) => {
   var {
-    redirect: r,
-    step: a
+    redirect: a,
+    step: r
   } = t.query;
-  if (r) return e.redirect(302, "https://far.quest/school");
-  var n = config().FARSCHOOL_COMMUNITY_ID, r = getQuestTitle(), o = await Quest.findOne({
+  if (a) return e.redirect(302, "https://far.quest/school");
+  var n = config().FARSCHOOL_COMMUNITY_ID, a = getQuestTitle(), o = await Quest.findOne({
     community: n,
-    title: r
-  }), r = o.requirements?.[0]?.data || [], i = r.find(e => "answers" === e.key)?.value.split(";"), c = r?.find(e => "correctAnswer" === e.key)?.value, s = i?.map((e, t) => `<meta property="fc:frame:button:${t + 1}" content="${abcToIndex[t + 1]}" />`);
-  let p, m, f;
-  switch (a) {
+    title: a
+  }), a = o.requirements?.[0]?.data || [], i = a.find(e => "answers" === e.key)?.value.split(";"), c = a?.find(e => "correctAnswer" === e.key)?.value, s = i?.map((e, t) => `<meta property="fc:frame:button:${t + 1}" content="${abcToIndex[t + 1]}" />`);
+  let m, p, f;
+  switch (r) {
    case STEPS.START:
-    p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png", m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
+    m = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png", p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
     f = s.join("\n");
     break;
 
@@ -427,12 +427,12 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
         e = parseInt(t.body?.untrustedData?.buttonIndex);
       } catch (e) {}
       var l = e - 1 == c;
-      f = l ? (p = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}.gif`, 
-      m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", `
+      f = l ? (m = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}.gif`, 
+      p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", `
          <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="✅ spin now!" />
-      `) : (p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&isCorrectAnswer=false", 
-      m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", s.join("\n"));
+      `) : (m = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&isCorrectAnswer=false", 
+      p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", s.join("\n"));
       break;
     }
 
@@ -448,7 +448,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
       address: t.context.connectedAddress,
       chainId: 1
     });
-    f = l ? (m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", 
+    f = l ? (p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", 
     l = await getRandomReward({
       communityId: n,
       questId: o._id,
@@ -456,7 +456,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     }), await incrSpinCount({
       address: t.context.connectedAddress,
       questId: o._id
-    }), p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&reward=" + encodeURIComponent(JSON.stringify(l)), 
+    }), m = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png&reward=" + encodeURIComponent(JSON.stringify(l)), 
     u = `Just got ${l?.title} on @farquest, get your free daily spins before they expire on https://far.quest/school 🎩🎩🎩 `, 
     l = `Just got ${l?.title} on FarQuest by @wieldlabs, get your free daily spins before they expire on https://far.quest/school and learn about Farcaster today 🎩🎩🎩 `, 
     u = `https://warpcast.com/~/compose?text=${encodeURIComponent(u)}&embeds[]=https://far.quest/school&rand=` + Math.random().toString()?.slice(0, 7), 
@@ -470,8 +470,8 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
 
          <meta property="fc:frame:button:3:action" content="post" />
         <meta property="fc:frame:button:3" content="${`Spin again (${d ? d - 1 : 0} left)`}" />
-      `) : (p = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}-spins.gif`, 
-    m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", `
+      `) : (m = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}-spins.gif`, 
+    p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=reward", `
         <meta property="fc:frame:button:1" content="Mint .cast" />
         <meta property="fc:frame:button:1:action" content="link" />
         <meta property="fc:frame:button:1:target" content="https://far.quest" />
@@ -481,15 +481,15 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     break;
 
    case STEPS.REWARD:
-    p = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}.gif`, 
-    m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", f = `
+    m = config().FARQUEST_URI + `/og/farschool${config().FARSCHOOL_SEASON}.gif`, 
+    p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=spin", f = `
          <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="✅ spin now!" />
       `;
     break;
 
    default:
-    p = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png", m = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
+    m = config().DEFAULT_URI + "/frame/v1/school?id=" + o._id + "&type=png", p = config().DEFAULT_URI + "/frame/v1/school/post_url?step=answered", 
     f = s.join("\n");
   }
   let g = `
@@ -497,61 +497,148 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     <html>
       <head>
 				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content=${p} />
-        <meta property="fc:frame:post_url" content=${m} />
+				<meta property="fc:frame:image" content=${m} />
+        <meta property="fc:frame:post_url" content=${p} />
         <meta property="fc:frame:image:aspect_ratio" content="1:1" />
   `;
   f && (g += f), g += `        
       </head>
     </html>`, e.setHeader("Content-Type", "text/html"), e.send(g);
 }), app.get("/v1/mint-bebdomain", async (e, t) => {
-  var r, e = e.query["step"];
-  let a, n, o;
-  if (e && "choose_handle" !== e) {
-    if ("mint" === e) try {
-      a = "https://i.imgur.com/kaX5fi3.png", r = config().DEFAULT_URI + "/contracts/v1/transactions/mint-bebdomain/data", 
-      n = config().DEFAULT_URI + "/contracts/v1/transactions/mint-bebdomain/callback", 
-      o = `
-    <meta property="fc:frame:button:1:action" content="tx" />
-    <meta property="fc:frame:input:text" content="Name your handle.cast (optional)" />
-    <meta property="fc:frame:button:1" content="Mint .cast" />
-    <meta property="fc:frame:button:1:target" content="${r}" />
+  var a = config().DEFAULT_URI + "/frame/v1/mint-bebdomain/image", r = `
+    <meta property="fc:frame:button:1:action" content="post" />
+    <meta property="fc:frame:input:text" content="Name your handle (optional)" />
+    <meta property="fc:frame:button:1" content="Confirm" />
+  `;
+  let n = `
+      <!DOCTYPE html>
+    <html>
+      <head>
+				<meta property="og:title" content="Mint .cast" />
+				<meta property="og:description" content="Mint your .cast handle now!" />
+				<meta property="og:image" content=${a} />
+				<meta property="og:url" content="https://far.quest" />
+				<meta property="fc:frame" content="vNext" />
+				<meta property="fc:frame:image" content=${a} />
+        <meta property="fc:frame:post_url" content=${config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=mint"} />
+        <meta property="fc:frame:image:aspect_ratio" content="1:1" />
+        <script>
+          window.location.replace("https://far.quest");
+        </script>
+  `;
+  n = n + r + `        
+      </head>
+    </html>`, t.setHeader("Content-Type", "text/html"), t.send(n);
+}), app.post("/v1/mint-bebdomain", frameContext, async (e, t) => {
+  var a, r = e.query["step"];
+  let n, o, i;
+  if (r && "choose_handle" !== r) {
+    if ("mint" === r) try {
+      let t = e.context?.untrustedData?.inputText || "";
+      if (!t) for (t = generateUsername({
+        useRandomNumber: !0
+      }); !t || t.length < 7; ) t = generateUsername({
+        useRandomNumber: !0
+      });
+      var c = 7 <= (t = t.replace(".cast", "").replace("op_", "").toLowerCase()).length;
+      c && (t = "op_" + t);
+      try {
+        await validateAndCreateMetadata(t);
+      } catch (e) {
+        throw new Error("Invalid domain name: " + e.message);
+      }
+      try {
+        var s = new RegistrarService(), m = new RegistrarService("optimism");
+        let e = !1;
+        if (!(e = c ? await m.available(t) : await s.available(t))) throw new Error("Domain not available");
+      } catch (e) {
+        throw new Error(e);
+      }
+      var p = c ? "https://far.quest/BEB-OP.jpg" : "https://far.quest/BEB-premium.jpg", f = (n = p, 
+      a = config().DEFAULT_URI + "/contracts/v1/transactions/mint-bebdomain/data?bebdomain=" + t, 
+      o = config().DEFAULT_URI + "/frame/v1/mint-bebdomain/callback", config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=choose_handle"), l = config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=mint";
+      i = `
+              <meta property="fc:frame:button:1:action" content="post" />
+        <meta property="fc:frame:button:1" content="⏪ Back" />
+        <meta property="fc:frame:button:1:post_url" content="${f}" />
+
+        <meta property="fc:frame:button:2:action" content="post" />
+        <meta property="fc:frame:button:2" content="🔄 Random" />
+        <meta property="fc:frame:button:2:post_url" content="${l}" />
+
+    <meta property="fc:frame:button:3:action" content="tx" />
+    <meta property="fc:frame:button:3" content="Mint ${t}.cast" />
+    <meta property="fc:frame:button:3:target" content="${a}" />
+    <meta property="fc:frame:state" content=${JSON.stringify({
+        chain: c ? "optimism" : "ethereum",
+        bebdomain: t
+      })} />
   `;
     } catch (e) {
-      n = config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=mint", o = `
+      n = "https://i.imgur.com/DwyDOmP.png", o = config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=mint", 
+      i = `
         <meta property="fc:frame:button:1:action" content="post" />
-        <meta property="fc:frame:input:text" content="Name your handle.cast (optional)" />
+        <meta property="fc:frame:input:text" content="Name your handle (optional)" />
         <meta property="fc:frame:button:1" content="Confirm" />
-      `, e.message.includes("Already Minted") && (a = "https://i.imgur.com/evIp6nB.png", 
-      n = "", o = `
-          <meta property="fc:frame:button:1" content="Already Minted!" />
-        `);
+      `, e.message.includes("Invalid domain name") ? n = "https://i.imgur.com/gzkQWRi.png" : e.message.includes("Domain not available") && (n = "https://i.imgur.com/DwyDOmP.png");
     }
-  } else a = "https://i.imgur.com/kaX5fi3.png", n = config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=mint", 
-  o = `
+  } else n = config().DEFAULT_URI + "/frame/v1/mint-bebdomain/image", o = config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=mint", 
+  i = `
     <meta property="fc:frame:button:1:action" content="post" />
-    <meta property="fc:frame:input:text" content="Name your handle.cast (optional)" />
+    <meta property="fc:frame:input:text" content="Name your handle (optional)" />
     <meta property="fc:frame:button:1" content="Confirm" />
+  `;
+  let d = `
+      <!DOCTYPE html>
+    <html>
+      <head>
+				<meta property="fc:frame" content="vNext" />
+				<meta property="fc:frame:image" content=${n} />
+        <meta property="fc:frame:post_url" content=${o} />
+        <meta property="fc:frame:image:aspect_ratio" content="1:1" />
+  `;
+  i && (d += i), d += `        
+      </head>
+    </html>`, t.setHeader("Content-Type", "text/html"), t.send(d);
+}), app.post("/v1/mint-bebdomain/callback", frameContext, async (e, t) => {
+  var a = e.body?.untrustedData?.transactionId;
+  let r = "optimism", n = "";
+  e.context?.untrustedData?.state && (e = JSON.parse(e.context.untrustedData.state), 
+  r = e.chain, n = e.bebdomain);
+  var e = "optimism" === r ? "https://optimistic.etherscan.io/tx/" + a : "https://etherscan.io/tx/" + a, a = config().DEFAULT_URI + "/frame/v1/mint-bebdomain?step=mint", o = config().DEFAULT_URI + "/frame/v1/mint-bebdomain", e = `
+    <meta property="fc:frame:button:1:action" content="link" />
+    <meta property="fc:frame:button:1" content="View tx" />
+    <meta property="fc:frame:button:1:target" content="${e}" />
+    
+              <meta property="fc:frame:button:2" content="Share" />
+    <meta property="fc:frame:button:2:action" content="link" />
+    <meta property="fc:frame:button:2:target" content="${`https://warpcast.com/~/compose?text=${encodeURIComponent("Just minted " + ((n ? n + ".cast" : null) || "my .cast handle") + " from far.quest ✨\n\n")}&embeds[]=${o}&rand=` + Math.random().toString().slice(0, 7)}" />
+
+    <meta property="fc:frame:button:3" content="Mint another" />
+      <meta property="fc:frame:button:3:action" content="post" />
+      <meta property="fc:frame:button:3:post_url" content="${o}" />
   `;
   let i = `
       <!DOCTYPE html>
     <html>
       <head>
 				<meta property="fc:frame" content="vNext" />
-				<meta property="fc:frame:image" content=${a} />
-        <meta property="fc:frame:post_url" content=${n} />
+				<meta property="fc:frame:image" content=https://i.imgur.com/uDgFXgX.png />
+        <meta property="fc:frame:post_url" content=${a} />
         <meta property="fc:frame:image:aspect_ratio" content="1:1" />
   `;
-  o && (i += o), i += `        
+  e && (i += e), i += `        
       </head>
     </html>`, t.setHeader("Content-Type", "text/html"), t.send(i);
+}), app.get("/v1/mint-bebdomain/image", (e, t) => {
+  t.setHeader("Cache-Control", "public, max-age=86400"), t.redirect("https://i.imgur.com/qXp2r7s.png");
 }), app.post("/v1/channel/whoami/post_url", frameContext, async (e, t) => {
-  var r = e.query["step"];
-  let a, n, o;
+  var a = e.query["step"];
+  let r, n, o;
   var i = e.context.frameData.fid, c = e.context.connectedAddress;
-  switch (r) {
+  switch (a) {
    case void 0:
-    a = "https://i.imgur.com/NF7zI9l.gif", n = config().DEFAULT_URI + "/frame/v1/channel/whoami/post_url?step=mint", 
+    r = "https://i.imgur.com/NF7zI9l.gif", n = config().DEFAULT_URI + "/frame/v1/channel/whoami/post_url?step=mint", 
     o = `
         <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="Mint" />
@@ -559,20 +646,20 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     break;
 
    case "mint":
-    var s = await isFollowingChannel(i, "whoami"), p = await new _CacheService().get({
+    var s = await isFollowingChannel(i, "whoami"), m = await new _CacheService().get({
       key: "Frame:Channel:Minted:" + c
     });
-    if (s && !p) try {
-      a = "https://i.imgur.com/wcKhqNs.png", n = "", o = `
+    if (s && !m) try {
+      r = "https://i.imgur.com/wcKhqNs.png", n = "", o = `
           <meta property="fc:frame:button:1" content="Mint closed" />
         `;
     } catch (e) {
-      console.error(e), a = "https://i.imgur.com/NF7zI9l.gif", n = "", o = `
+      console.error(e), r = "https://i.imgur.com/NF7zI9l.gif", n = "", o = `
           <meta property="fc:frame:button:1" content="Mint closed." />
         `;
-    } else o = p ? (a = "https://i.imgur.com/evIp6nB.png", n = "", `
+    } else o = m ? (r = "https://i.imgur.com/evIp6nB.png", n = "", `
           <meta property="fc:frame:button:1" content="Already Minted!" />
-        `) : (a = "https://i.imgur.com/6DINV3b.png", n = config().DEFAULT_URI + "/frame/v1/channel/whoami/post_url?step=mint", 
+        `) : (r = "https://i.imgur.com/6DINV3b.png", n = config().DEFAULT_URI + "/frame/v1/channel/whoami/post_url?step=mint", 
     `
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="https://warpcast.com/~/channel/whoami" />
@@ -583,7 +670,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     break;
 
    default:
-    a = "https://i.imgur.com/NF7zI9l.gif", n = config().DEFAULT_URI + "/frame/v1/channel/whoami/post_url", 
+    r = "https://i.imgur.com/NF7zI9l.gif", n = config().DEFAULT_URI + "/frame/v1/channel/whoami/post_url", 
     o = `
         <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="Mint" />
@@ -594,7 +681,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     <html>
       <head>
         <meta property="fc:frame" content="vNext" />
-        <meta property="fc:frame:image" content="${a}" />
+        <meta property="fc:frame:image" content="${r}" />
         <meta property="fc:frame:post_url" content="${n}" />
         <meta property="fc:frame:image:aspect_ratio" content="1:1" />
         ${o}
@@ -604,14 +691,14 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
 }), app.post("/v1/fetch-frame", limiter, async (e, t) => {
   var {
     proxyUrl: e,
-    untrustedData: r,
-    trustedData: a,
+    untrustedData: a,
+    trustedData: r,
     action: n
   } = e.body;
   try {
     var o, i = await axios.post(e, {
-      untrustedData: r,
-      trustedData: a
+      untrustedData: a,
+      trustedData: r
     });
     "post_redirect" === n && i.request?.res?.responseUrl !== e ? t.json({
       success: !0,

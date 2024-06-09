@@ -67,7 +67,7 @@ describe("IndexerRule Service tests", () => {
         await IndexerRuleService._beforeCreateRuleCheck({
           communityId: i._id,
           ruleOwnerType: 1,
-          ruleOwnerId: mongoose.Types.ObjectId(),
+          ruleOwnerId: new mongoose.Types.ObjectId(),
           indexerRuleType: "SALES"
         });
       } catch (e) {
@@ -79,7 +79,7 @@ describe("IndexerRule Service tests", () => {
         await IndexerRuleService._beforeCreateRuleCheck({
           communityId: i._id,
           ruleOwnerType: 0,
-          ruleOwnerId: mongoose.Types.ObjectId(),
+          ruleOwnerId: new mongoose.Types.ObjectId(),
           indexerRuleType: "NFT"
         });
       } catch (e) {

@@ -18,8 +18,8 @@ describe("AccountReaction tests", () => {
       expect.assertions(1);
       try {
         await AccountReaction.reactForPost({
-          accountId: mongoose.Types.ObjectId(),
-          postId: mongoose.Types.ObjectId(),
+          accountId: new mongoose.Types.ObjectId(),
+          postId: new mongoose.Types.ObjectId(),
           reactionType: "LIKES",
           amount: 1
         });

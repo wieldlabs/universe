@@ -11,14 +11,14 @@ class ChannelRecipientClass {
     return e.recipientIds && e.recipientIds.length && (i = {
       ...i,
       recipientId: {
-        $in: e.recipientIds.map(e => mongoose.Types.ObjectId(e))
+        $in: e.recipientIds.map(e => new mongoose.Types.ObjectId(e))
       }
     }), e.recipientType && (i = {
       ...i,
       recipientType: e.recipientType
     }), i = e.communityId ? {
       ...i,
-      community: mongoose.Types.ObjectId(e.communityId)
+      community: new mongoose.Types.ObjectId(e.communityId)
     } : i;
   }
   static async findAndSort({

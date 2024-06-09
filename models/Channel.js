@@ -23,7 +23,7 @@ class ChannelClass {
     let t = {};
     return e.communityId && (t = {
       ...t,
-      community: mongoose.Types.ObjectId(e.communityId)
+      community: new mongoose.Types.ObjectId(e.communityId)
     }), t = e.onlyPublic ? {
       ...t,
       $or: [ {
@@ -53,7 +53,7 @@ class ChannelClass {
         recipients: {
           $elemMatch: {
             recipientId: {
-              $in: e.recipientIds.map(e => mongoose.Types.ObjectId(e))
+              $in: e.recipientIds.map(e => new mongoose.Types.ObjectId(e))
             }
           }
         }

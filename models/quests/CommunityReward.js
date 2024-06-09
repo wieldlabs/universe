@@ -8,7 +8,7 @@ class CommunityRewardClass {
     let t = {};
     return t = e.community ? {
       ...t,
-      community: mongoose.Types.ObjectId(e.community)
+      community: new mongoose.Types.ObjectId(e.community)
     } : t;
   }
   static async findAndSort({

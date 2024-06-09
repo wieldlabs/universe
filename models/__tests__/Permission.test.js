@@ -75,7 +75,7 @@ describe("Permission tests", () => {
       var e = await Permission.findByUniqueIdentifierOrId({
         uniqueIdentifier: "read",
         communityId: t._id,
-        permissionId: mongoose.Types.ObjectId()
+        permissionId: new mongoose.Types.ObjectId()
       });
       expect(e._id.toString()).toBe(n._id.toString());
     });
