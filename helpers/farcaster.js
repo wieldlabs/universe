@@ -185,9 +185,9 @@ const getSyncedChannelById = async e => {
   }), Fids.findOne({
     fid: e,
     deletedAt: null
-  }), getConnectedAddressForFid(e), getConnectedAddressesForFid(e) ]);
-  if (!s) return null;
-  var l = {
+  }), getConnectedAddressForFid(e), getConnectedAddressesForFid(e) ]), l = e.toString().startsWith("0x") || !1;
+  if (!s && !l) return null;
+  var c = {
     fid: e,
     followingCount: t,
     followerCount: a,
@@ -199,43 +199,43 @@ const getSyncedChannelById = async e => {
       text: "",
       mentions: []
     },
-    external: e.toString().startsWith("0x") || !1,
+    external: l,
     custodyAddress: s?.custodyAddress,
     connectedAddress: i,
     allConnectedAddresses: n
   };
-  let c = s?.timestamp;
-  var d = {};
-  for (const h of r) {
-    c = c || h.createdAt, h.createdAt < c && (c = h.createdAt);
-    var o = h.value.startsWith("0x") ? h.value.slice(2) : h.value, m = Buffer.from(o, "hex").toString("utf8");
-    switch (h.type) {
+  let d = s?.timestamp;
+  var o = {};
+  for (const y of r) {
+    d = d || y.createdAt, y.createdAt < d && (d = y.createdAt);
+    var m = y.value.startsWith("0x") ? y.value.slice(2) : y.value, g = Buffer.from(m, "hex").toString("utf8");
+    switch (y.type) {
      case UserDataType.USER_DATA_TYPE_USERNAME:
-      d.username || (l.username = m, d.username = !0);
+      o.username || (c.username = g, o.username = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_DISPLAY:
-      d.displayName || (l.displayName = m, d.displayName = !0);
+      o.displayName || (c.displayName = g, o.displayName = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_PFP:
-      d.pfp || (l.pfp.url = m, d.pfp = !0);
+      o.pfp || (c.pfp.url = g, o.pfp = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_BIO:
-      if (!d.bio) {
-        l.bio.text = m;
-        for (var g, u = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; g = u.exec(m); ) l.bio.mentions.push(g[1]);
-        d.bio = !0;
+      if (!o.bio) {
+        c.bio.text = g;
+        for (var u, h = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; u = h.exec(g); ) c.bio.mentions.push(u[1]);
+        o.bio = !0;
       }
       break;
 
      case UserDataType.USER_DATA_TYPE_URL:
-      d.url || (l.url = m, d.url = !0);
+      o.url || (c.url = g, o.url = !0);
     }
   }
-  return l.registeredAt = c?.getTime(), await memcache.set("getFarcasterUserByFid:" + e, JSON.stringify(l)), 
-  l;
+  return c.registeredAt = d?.getTime(), await memcache.set("getFarcasterUserByFid:" + e, JSON.stringify(c)), 
+  c;
 }, getFarcasterUserAndLinksByFid = async ({
   fid: e,
   context: t
