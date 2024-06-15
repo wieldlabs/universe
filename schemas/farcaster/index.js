@@ -127,9 +127,9 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
     type: Number,
     default: 0
   },
-  type: {
-    type: String,
-    enum: [ "FRAME" ]
+  castType: {
+    type: Number,
+    default: 0
   },
   tag: {
     type: String

@@ -185,7 +185,9 @@ const getSyncedChannelById = async e => {
   }), Fids.findOne({
     fid: e,
     deletedAt: null
-  }), getConnectedAddressForFid(e), getConnectedAddressesForFid(e) ]), l = {
+  }), getConnectedAddressForFid(e), getConnectedAddressesForFid(e) ]);
+  if (!s) return null;
+  var l = {
     fid: e,
     followingCount: t,
     followerCount: a,
@@ -197,7 +199,7 @@ const getSyncedChannelById = async e => {
       text: "",
       mentions: []
     },
-    external: !1,
+    external: e.toString().startsWith("0x") || !1,
     custodyAddress: s?.custodyAddress,
     connectedAddress: i,
     allConnectedAddresses: n
@@ -205,7 +207,7 @@ const getSyncedChannelById = async e => {
   let c = s?.timestamp;
   var d = {};
   for (const h of r) {
-    h.external && (l.external = !0), c = c || h.createdAt, h.createdAt < c && (c = h.createdAt);
+    c = c || h.createdAt, h.createdAt < c && (c = h.createdAt);
     var o = h.value.startsWith("0x") ? h.value.slice(2) : h.value, m = Buffer.from(o, "hex").toString("utf8");
     switch (h.type) {
      case UserDataType.USER_DATA_TYPE_USERNAME:

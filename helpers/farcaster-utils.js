@@ -259,18 +259,19 @@ const makeMessage = async ({
   parentUrl: i,
   fid: o
 }) => {
-  a = {
+  t = {
     ...extractAndReplaceMentions(a, t.reduce((e, a, t) => (e[a] = r[t], e), {})),
     embeds: s || []
-  }, t = {};
-  n && (a.parentCastId = {
+  }, s = {};
+  n && (t.parentCastId = {
     hash: hexToBytes(n.slice(2)),
     fid: parseInt(d)
-  }, t.parentCastId = {
+  }, s.parentCastId = {
     fid: d
-  }), i && (a.parentUrl = i), t.mentions = a.mentions, a.mentions = a.mentions.map(e => parseInt(e));
+  }), i && (t.parentUrl = i), s.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e)), 
+  t.type = 320 < Buffer.from(a, "utf-8").length ? 1 : 0;
   try {
-    return await makeRequest(e, MessageType.CAST_ADD, a, o, {}, t);
+    return await makeRequest(e, MessageType.CAST_ADD, t, o, {}, s);
   } catch (e) {
     throw console.error(e), new Error(e);
   }
