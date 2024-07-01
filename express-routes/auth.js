@@ -62,19 +62,19 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
   try {
     var t = e.context.account;
     if (!t) throw new Error("Account not found");
-    await t.populate("addresses profileImage");
-    var r = t.addresses[0].address?.toLowerCase(), [ a, c, n ] = await Promise.all([ AccountInvite.findOrCreate({
+    var r = "true" === e.headers.external, a = (await t.populate("addresses profileImage"), 
+    t.addresses[0].address?.toLowerCase()), [ c, n, i ] = await Promise.all([ AccountInvite.findOrCreate({
       accountId: t._id
-    }), getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), i = c || n;
+    }), r ? null : getFarcasterUserByCustodyAddress(a), getFarcasterUserByFid(a) ]), o = n || i;
     s.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
       account: {
         ...t.toObject(),
-        invite: a,
+        invite: c,
         identities: {
-          farcaster: i
+          farcaster: o
         }
       }
     });

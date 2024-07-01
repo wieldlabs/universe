@@ -1,223 +1,232 @@
 const express = require("express"), app = express.Router(), Sentry = require("@sentry/node"), CommunityQuestService = require("../services/CommunityQuestService")["Service"], QuestService = require("../services/QuestService")["Service"], _CommunityQuestMutationService = require("../services/mutationServices/CommunityQuestMutationService")["Service"], CommunityQuest = require("../models/quests/CommunityQuest")["CommunityQuest"], Account = require("../models/Account")["Account"], CommunityReward = require("../models/quests/CommunityReward")["CommunityReward"], CommunityRewardAccount = require("../models/quests/CommunityRewardAccount")["CommunityRewardAccount"], Score = require("../models/Score")["Score"], Quest = require("../models/quests/Quest")["Quest"], {
   authContext,
   limiter
-} = require("../helpers/express-middleware");
+} = require("../helpers/express-middleware"), getAddressPasses = require("../helpers/farcaster-utils")["getAddressPasses"], {
+  memcache,
+  getHash
+} = require("../connectmemcache");
 
-app.get("/v1/:communityId/quests", limiter, async (e, t) => {
+app.get("/v1/:communityId/quests", limiter, async (s, t) => {
   try {
-    var s = e.params["communityId"], {
-      limit: u,
-      offset: a,
+    var a = s.params["communityId"], {
+      limit: r,
+      offset: u,
       sort: c
-    } = e.query, m = await Quest.findAndSort({
-      limit: u,
-      offset: a,
+    } = s.query, m = getHash(`communityQuestsCache:${a}:${r}:${u}:` + c), o = await memcache.get(m);
+    let e;
+    o ? e = JSON.parse(o.value) : (e = await Quest.findAndSort({
+      limit: r,
+      offset: u,
       sort: c,
       filters: {
-        community: s
+        community: a
       }
-    });
-    t.json({
-      message: "Success",
-      code: 200,
-      success: !0,
-      quests: m
-    });
-  } catch (e) {
-    Sentry.captureException(e), t.status(500).json({
-      message: e.message
-    });
-  }
-}), app.get("/v1/:communityId/quests/:questId/status", [ limiter, authContext ], async (e, t) => {
-  try {
-    var {
-      communityId: s,
-      questId: u
-    } = e.params, a = await CommunityQuest.findOne({
-      community: s,
-      quest: u
-    }), c = await new CommunityQuestService().getQuestStatus(a, {
-      communityId: s,
-      questId: u
-    }, e.context);
-    t.json({
-      message: "Success",
-      code: 200,
-      success: !0,
-      status: c
-    });
-  } catch (e) {
-    Sentry.captureException(e), t.status(500).json({
-      message: e.message
-    });
-  }
-}), app.get("/v1/:communityId/leaderboard", limiter, async (e, t) => {
-  try {
-    var s = e.params["communityId"], u = e.query["limit"], a = await Score.getLeaderboard(s, u);
-    t.json({
-      message: "Success",
-      code: 200,
-      success: !0,
-      leaderboard: a
-    });
-  } catch (e) {
-    Sentry.captureException(e), t.status(500).json({
-      message: e.message
-    });
-  }
-}), app.get("/v1/:communityId/quests/:questId/claimed/:address", limiter, async (e, t) => {
-  try {
-    var {
-      communityId: s,
-      questId: u,
-      address: a
-    } = e.params, c = await Account.findByAddressAndChainId({
-      address: a,
-      chainId: 1
-    });
-    if (!c) return t.status(404).json({
-      message: "Account not found"
-    });
-    var m = await CommunityQuest.findOne({
-      community: s,
-      quest: u
-    }), r = await new CommunityQuestService().checkIfCommunityQuestClaimedByAddress(m, {
-      communityId: s,
-      questId: u
-    }, {
-      account: c
-    });
-    t.json({
-      message: "Success",
-      code: 200,
-      success: !0,
-      isClaimed: r
-    });
-  } catch (e) {
-    Sentry.captureException(e), t.status(500).json({
-      message: e.message
-    });
-  }
-}), app.post("/v1/:communityId/quests/:questId/claim", [ limiter, authContext ], async (e, t) => {
-  try {
-    var {
-      communityId: s,
-      questId: u
-    } = e.params, a = e.body["questData"], c = (await new _CommunityQuestMutationService().claimRewardOrError(null, {
-      communityId: s,
-      questId: u,
-      questData: a
-    }, e.context))["communityQuest"];
-    t.json({
-      message: "Success",
-      code: 200,
-      success: !0,
-      communityQuest: c
-    });
-  } catch (e) {
-    console.log(e), Sentry.captureException(e), t.status(500).json({
-      message: e.message
-    });
-  }
-}), app.get("/v1/:communityId/quests/:questId/status/:address", limiter, async (e, t) => {
-  try {
-    var {
-      communityId: s,
-      questId: u,
-      address: a
-    } = e.params, c = await Account.findOrCreateByAddressAndChainId({
-      address: a,
-      chainId: 1
-    }), m = await CommunityQuest.findOne({
-      community: s,
-      quest: u
-    }), r = await new CommunityQuestService().getQuestStatus(m, {
-      communityId: s,
-      questId: u
-    }, {
-      account: c
-    });
-    t.json({
-      message: "Success",
-      code: 200,
-      success: !0,
-      questStatus: r
-    });
-  } catch (e) {
-    Sentry.captureException(e), t.status(500).json({
-      message: e.message
-    });
-  }
-}), app.get("/v1/:communityId/quests/:questId", limiter, async (e, t) => {
-  try {
-    var {
-      communityId: s,
-      questId: u
-    } = e.params, a = await CommunityQuest.findOne({
-      community: s,
-      quest: u
-    });
-    if (!a) return t.status(404).json({
-      message: "Community Quest not found"
-    });
-    t.json({
-      message: "Success",
-      code: 200,
-      success: !0,
-      communityQuest: a
-    });
-  } catch (e) {
-    Sentry.captureException(e), t.status(500).json({
-      message: e.message
-    });
-  }
-}), app.get("/v1/:communityId/rewards", [ limiter, authContext ], async (u, t) => {
-  try {
-    var e = u.params["communityId"], {
-      limit: s,
-      offset: a
-    } = u.query, c = await CommunityReward.findAndSort({
-      limit: s,
-      offset: a,
-      filters: {
-        community: e
-      }
-    });
-    const m = new QuestService();
-    await Promise.all(c.map(async e => {
-      var t, s;
-      if (e.reward) return t = await m.getQuestReward(e.reward), s = await CommunityRewardAccount.findOne({
-        communityReward: e._id,
-        account: u.context.account?._id || u.context.accountId
-      }), e.reward.item = t, e.reward.account = s, t;
+    }), await memcache.set(m, JSON.stringify(e), {
+      lifetime: 900
     })), t.json({
       message: "Success",
       code: 200,
       success: !0,
-      communityRewards: c
+      quests: e
     });
   } catch (e) {
-    console.log(e), Sentry.captureException(e), t.status(500).json({
+    console.error(e), Sentry.captureException(e), t.status(500).json({
       message: e.message
     });
   }
-}), app.post("/v1/:communityId/rewards/:communityRewardId", [ limiter, authContext ], async (e, t) => {
+}), app.get("/v1/:communityId/quests/:questId/status", [ limiter, authContext ], async (e, s) => {
   try {
-    var s = e.params["communityRewardId"], {
-      reward: u,
-      communityReward: a
-    } = await new _CommunityQuestMutationService().claimCommunityRewardOrError(null, {
-      communityRewardId: s
+    var {
+      communityId: t,
+      questId: a
+    } = e.params, r = await CommunityQuest.findOne({
+      community: t,
+      quest: a
+    }), u = await new CommunityQuestService().getQuestStatus(r, {
+      communityId: t,
+      questId: a
     }, e.context);
-    t.json({
+    s.json({
       message: "Success",
       code: 200,
       success: !0,
-      reward: u,
-      communityReward: a
+      status: u
     });
   } catch (e) {
-    console.log(e), Sentry.captureException(e), t.status(500).json({
+    console.error(e), Sentry.captureException(e), s.status(500).json({
+      message: e.message
+    });
+  }
+}), app.get("/v1/:communityId/leaderboard", limiter, async (e, s) => {
+  try {
+    var t = e.params["communityId"], a = e.query["limit"], r = await Score.getLeaderboard(t, a);
+    s.json({
+      message: "Success",
+      code: 200,
+      success: !0,
+      leaderboard: r
+    });
+  } catch (e) {
+    console.error(e), Sentry.captureException(e), s.status(500).json({
+      message: e.message
+    });
+  }
+}), app.get("/v1/:communityId/quests/:questId/claimed/:address", limiter, async (e, s) => {
+  try {
+    var {
+      communityId: t,
+      questId: a,
+      address: r
+    } = e.params, u = await Account.findByAddressAndChainId({
+      address: r,
+      chainId: 1
+    });
+    if (!u) return s.status(404).json({
+      message: "Account not found"
+    });
+    var c = await CommunityQuest.findOne({
+      community: t,
+      quest: a
+    }), m = await new CommunityQuestService().checkIfCommunityQuestClaimedByAddress(c, {
+      communityId: t,
+      questId: a
+    }, {
+      account: u
+    });
+    s.json({
+      message: "Success",
+      code: 200,
+      success: !0,
+      isClaimed: m
+    });
+  } catch (e) {
+    console.error(e), Sentry.captureException(e), s.status(500).json({
+      message: e.message
+    });
+  }
+}), app.post("/v1/:communityId/quests/:questId/claim/:address", [ limiter, authContext ], async (e, s) => {
+  try {
+    var t, {
+      communityId: a,
+      questId: r,
+      address: u
+    } = e.params, c = e.body["questData"], m = new _CommunityQuestMutationService(), o = (await getAddressPasses(u, !0))["isHolder"];
+    return o ? (t = (await m.claimRewardOrError(null, {
+      communityId: a,
+      questId: r,
+      questData: c
+    }, e.context))["communityQuest"], s.json({
+      message: "Success",
+      code: 200,
+      success: !0,
+      communityQuest: t
+    })) : s.status(500).json({
+      message: "You can only claim the reward if you hold a .cast handle in your address."
+    });
+  } catch (e) {
+    console.error(e), Sentry.captureException(e), s.status(500).json({
+      message: e.message
+    });
+  }
+}), app.get("/v1/:communityId/quests/:questId/status/:address", limiter, async (e, s) => {
+  try {
+    var {
+      communityId: t,
+      questId: a,
+      address: r
+    } = e.params, u = await Account.findOrCreateByAddressAndChainId({
+      address: r,
+      chainId: 1
+    }), c = await CommunityQuest.findOne({
+      community: t,
+      quest: a
+    }), m = await new CommunityQuestService().getQuestStatus(c, {
+      communityId: t,
+      questId: a
+    }, {
+      account: u
+    });
+    s.json({
+      message: "Success",
+      code: 200,
+      success: !0,
+      questStatus: m
+    });
+  } catch (e) {
+    console.error(e), Sentry.captureException(e), s.status(500).json({
+      message: e.message
+    });
+  }
+}), app.get("/v1/:communityId/quests/:questId", limiter, async (e, s) => {
+  try {
+    var {
+      communityId: t,
+      questId: a
+    } = e.params, r = await CommunityQuest.findOne({
+      community: t,
+      quest: a
+    });
+    if (!r) return s.status(404).json({
+      message: "Community Quest not found"
+    });
+    s.json({
+      message: "Success",
+      code: 200,
+      success: !0,
+      communityQuest: r
+    });
+  } catch (e) {
+    console.error(e), Sentry.captureException(e), s.status(500).json({
+      message: e.message
+    });
+  }
+}), app.get("/v1/:communityId/rewards", [ limiter, authContext ], async (a, s) => {
+  try {
+    var e = a.params["communityId"], {
+      limit: t,
+      offset: r
+    } = a.query, u = await CommunityReward.findAndSort({
+      limit: t,
+      offset: r,
+      filters: {
+        community: e
+      }
+    });
+    const c = new QuestService();
+    await Promise.all(u.map(async e => {
+      var s, t;
+      if (e.reward) return s = await c.getQuestReward(e.reward), t = await CommunityRewardAccount.findOne({
+        communityReward: e._id,
+        account: a.context.account?._id || a.context.accountId
+      }), e.reward.item = s, e.reward.account = t, s;
+    })), s.json({
+      message: "Success",
+      code: 200,
+      success: !0,
+      communityRewards: u
+    });
+  } catch (e) {
+    console.error(e), Sentry.captureException(e), s.status(500).json({
+      message: e.message
+    });
+  }
+}), app.post("/v1/:communityId/rewards/:communityRewardId", [ limiter, authContext ], async (e, s) => {
+  try {
+    var t = e.params["communityRewardId"], {
+      reward: a,
+      communityReward: r
+    } = await new _CommunityQuestMutationService().claimCommunityRewardOrError(null, {
+      communityRewardId: t
+    }, e.context);
+    s.json({
+      message: "Success",
+      code: 200,
+      success: !0,
+      reward: a,
+      communityReward: r
+    });
+  } catch (e) {
+    console.error(e), Sentry.captureException(e), s.status(500).json({
       message: e.message
     });
   }

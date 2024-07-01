@@ -33,7 +33,7 @@ const getGraphQLRateLimiter = require("graphql-rate-limit")["getGraphQLRateLimit
           filters: t.filters
         });
         return await memcache.set(getHash("QuestQuery:getQuests:" + i), JSON.stringify(m), {
-          lifetime: 3600
+          lifetime: 900
         }), m;
       } catch (e) {
         return console.log(e), Sentry.captureException(e), [];

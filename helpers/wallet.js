@@ -5,72 +5,72 @@ const prod = require("../helpers/registrar")["prod"], axios = require("axios"), 
 } = require("alchemy-sdk"), {
   memcache,
   getHash
-} = require("../connectmemcache"), normalizeTimeToRangeStart = require("./timerange")["normalizeTimeToRangeStart"];
+} = require("../connectmemcache"), normalizeTimeToRangeStart = require("./timerange")["normalizeTimeToRangeStart"], MarketplaceService = require("../services/MarketplaceService")["Service"], ethers = require("ethers")["ethers"];
 
 async function getAccountAssets() {}
 
-async function getOnchainNFTs(e, a, t, n = DEFAULT_NFT_LIMIT) {
-  var r, c = await memcache.get(getHash(`Wallet_getOnchainNFTs:${n}:${a}:${t}:` + e));
+async function getOnchainNFTs(e, t, a, r = DEFAULT_NFT_LIMIT) {
+  var n, c = await memcache.get(getHash(`Wallet_getOnchainNFTs:${r}:${t}:${a}:` + e));
   return c ? JSON.parse(c.value) : (c = {
     apiKey: prod().NODE_URL,
-    network: a
-  }, c = new Alchemy(c), r = {
-    pageSize: n
-  }, t && (r.cursor = t), (c = await c.nft.getNftsForOwner(e, r)).ownedNfts = c.ownedNfts.map(e => {
+    network: t
+  }, c = new Alchemy(c), n = {
+    pageSize: r
+  }, a && (n.cursor = a), (c = await c.nft.getNftsForOwner(e, n)).ownedNfts = c.ownedNfts.map(e => {
     return delete e.image.originalUrl, delete e.raw, e;
-  }), await memcache.set(getHash(`Wallet_getOnchainNFTs:${n}:${a}:${t}:` + e), JSON.stringify(c), {
+  }), await memcache.set(getHash(`Wallet_getOnchainNFTs:${r}:${t}:${a}:` + e), JSON.stringify(c), {
     lifetime: 86400
   }), c);
 }
 
-async function getOnchainTokenMetadata(e, a) {
-  var a = {
+async function getOnchainTokenMetadata(e, t) {
+  var t = {
     apiKey: prod().NODE_URL,
-    network: a
-  }, a = new Alchemy(a), t = await memcache.get(getHash("Wallet_getOnchainTokenMetadata:" + e));
-  return t ? JSON.parse(t.value) : (t = await a.core.getTokenMetadata(e), await memcache.set(getHash("Wallet_getOnchainTokenMetadata:" + e), JSON.stringify(t), {
+    network: t
+  }, t = new Alchemy(t), a = await memcache.get(getHash("Wallet_getOnchainTokenMetadata:" + e));
+  return a ? JSON.parse(a.value) : (a = await t.core.getTokenMetadata(e), await memcache.set(getHash("Wallet_getOnchainTokenMetadata:" + e), JSON.stringify(a), {
     lifetime: 86400
-  }), t);
+  }), a);
 }
 
-async function getOnchainTokens(e, a, t = DEFAULT_LIMIT, n = null, r = DEFAULT_FILTER_NO_SYMBOL) {
+async function getOnchainTokens(e, t, a = DEFAULT_LIMIT, r = null, n = DEFAULT_FILTER_NO_SYMBOL) {
   var c = {
     apiKey: prod().NODE_URL,
-    network: a
-  }, s = await memcache.get(getHash(`Wallet_getOnchainTokens:${t}:${a}:${n}:${e}:` + r));
+    network: t
+  }, s = await memcache.get(getHash(`Wallet_getOnchainTokens:${a}:${t}:${r}:${e}:` + n));
   if (s) return JSON.parse(s.value);
   s = new Alchemy(c), c = {
     type: TokenBalanceType.ERC20,
-    pageSize: t
-  }, n && (c.pageKey = n), s = await s.core.getTokenBalances(e, c), c = s.tokenBalances.map(e => getOnchainTokenMetadata(e.contractAddress, a));
+    pageSize: a
+  }, r && (c.pageKey = r), s = await s.core.getTokenBalances(e, c), c = s.tokenBalances.map(e => getOnchainTokenMetadata(e.contractAddress, t));
   const i = await Promise.all(c);
-  return s.tokenBalances = s.tokenBalances.map((e, a) => ({
+  return s.tokenBalances = s.tokenBalances.map((e, t) => ({
     ...e,
-    metadata: i[a]
-  })), s.tokenBalances = s.tokenBalances.filter(e => e.metadata?.symbol), await memcache.set(getHash(`Wallet_getOnchainTokens:${t}:${a}:${n}:${e}:` + r), JSON.stringify(s), {
+    metadata: i[t]
+  })), s.tokenBalances = s.tokenBalances.filter(e => e.metadata?.symbol), await memcache.set(getHash(`Wallet_getOnchainTokens:${a}:${t}:${r}:${e}:` + n), JSON.stringify(s), {
     lifetime: 3600
   }), s;
 }
 
-async function getOnchainTransactions(e, a, {
-  cursor: t = null,
-  category: n = [ "external", "erc20", "erc721", "erc1155" ],
-  fromBlock: r = "0x0",
+async function getOnchainTransactions(e, t, {
+  cursor: a = null,
+  category: r = [ "external", "erc20", "erc721", "erc1155" ],
+  fromBlock: n = "0x0",
   limit: c = DEFAULT_LIMIT
 }) {
   var s = {
     apiKey: prod().NODE_URL,
-    network: a
-  }, i = await memcache.get(getHash(`Wallet_getOnchainTransactions:${c}:${a}:${t}:` + e));
+    network: t
+  }, i = await memcache.get(getHash(`Wallet_getOnchainTransactions:${c}:${t}:${a}:` + e));
   return i ? JSON.parse(i.value) : (i = new Alchemy(s), s = {
-    fromBlock: r,
+    fromBlock: n,
     toAddress: e,
     excludeZeroValue: !0,
-    category: n,
+    category: r,
     limit: c
-  }, t && (s.pageKey = t), r = await i.core.getAssetTransfers(s), await memcache.set(getHash(`Wallet_getOnchainTransactions:${c}:${a}:${t}:` + e), JSON.stringify(r), {
+  }, a && (s.pageKey = a), n = await i.core.getAssetTransfers(s), await memcache.set(getHash(`Wallet_getOnchainTransactions:${c}:${t}:${a}:` + e), JSON.stringify(n), {
     lifetime: 3600
-  }), r);
+  }), n);
 }
 
 function calculateTTL(e) {
@@ -96,52 +96,52 @@ function calculateTTL(e) {
 }
 
 async function fetchPriceHistory(c, s, e) {
-  var a = new Date(), a = normalizeTimeToRangeStart(a, e);
-  const i = `wallet:fetchPriceHistory:${s}:${c}:${e}:` + a;
-  a = await memcache.get(i);
-  return a ? JSON.parse(a.value) : async function({
+  var t = new Date(), t = normalizeTimeToRangeStart(t, e);
+  const i = `wallet:fetchPriceHistory:${s}:${c}:${e}:` + t;
+  t = await memcache.get(i);
+  return t ? JSON.parse(t.value) : async function({
     range: e = "1d"
   }) {
-    let a;
-    var t = new Date();
+    let t;
+    var a = new Date();
     switch (e) {
      case "1h":
-      t.setHours(t.getHours() - 1), a = t.getTime();
+      a.setHours(a.getHours() - 1), t = a.getTime();
       break;
 
      case "1d":
-      t.setDate(t.getDate() - 1), a = t.getTime();
+      a.setDate(a.getDate() - 1), t = a.getTime();
       break;
 
      case "3d":
-      t.setDate(t.getDate() - 3), a = t.getTime();
+      a.setDate(a.getDate() - 3), t = a.getTime();
       break;
 
      case "1w":
      case "7d":
-      t.setDate(t.getDate() - 7), a = t.getTime();
+      a.setDate(a.getDate() - 7), t = a.getTime();
       break;
 
      case "1m":
-      t.setDate(1), t.setHours(0, 0, 0, 0), a = t.getTime();
+      a.setDate(1), a.setHours(0, 0, 0, 0), t = a.getTime();
       break;
 
      default:
-      a = t.getTime();
+      t = a.getTime();
     }
     try {
-      var n = new URLSearchParams({
+      var r = new URLSearchParams({
         asset: c,
         blockchain: s,
-        from: a
-      }).toString(), r = (await axios.get("https://api.mobula.io/api/1/market/history?" + n, {
+        from: t
+      }).toString(), n = (await axios.get("https://api.mobula.io/api/1/market/history?" + r, {
         headers: {
           Authorization: process.env.MOBULA_API_KEY
         }
       })).data;
-      return r.timestamp = new Date().toISOString(), await memcache.set(i, JSON.stringify(r.data || {}), {
+      return n.timestamp = new Date().toISOString(), await memcache.set(i, JSON.stringify(n.data || {}), {
         lifetime: calculateTTL(e)
-      }), r.data;
+      }), n.data;
     } catch (e) {
       throw console.error("Failed to fetch and cache:", e), e;
     }
@@ -150,25 +150,39 @@ async function fetchPriceHistory(c, s, e) {
   });
 }
 
-async function fetchAssetMetadata(e, a) {
-  var t = `wallet:fetchAssetMetadata:${e}:` + a;
+async function fetchAssetMetadata(e, t) {
+  var a = `wallet:fetchAssetMetadata:${e}:` + t;
   try {
-    var n, r, c = await memcache.get(t);
-    return c ? JSON.parse(c.value) : (n = new URLSearchParams({
-      asset: a
-    }), e && n.append("blockchain", e), r = (await axios.get("https://api.mobula.io/api/1/metadata?" + n.toString(), {
+    var r, n, c = await memcache.get(a);
+    return c ? JSON.parse(c.value) : (r = new URLSearchParams({
+      asset: t
+    }), e && r.append("blockchain", e), n = (await axios.get("https://api.mobula.io/api/1/metadata?" + r.toString(), {
       headers: {
         Authorization: process.env.MOBULA_API_KEY
       }
-    })).data, await memcache.set(t, JSON.stringify(r?.data || {}), {
+    })).data, await memcache.set(a, JSON.stringify(n?.data || {}), {
       lifetime: 3600
-    }), r?.data);
+    }), n?.data);
   } catch (e) {
     throw console.error("Failed to fetch and cache metadata:", e), e;
   }
 }
 
-const DEFAULT_NETWORKS = [ Network.ETH_MAINNET, Network.OPT_MAINNET, Network.BASE_MAINNET, Network.MATIC_MAINNET ], DEFAULT_CURSOR = null, DEFAULT_CURSORS = [ DEFAULT_CURSOR, DEFAULT_CURSOR, DEFAULT_CURSOR, DEFAULT_CURSOR ], DEFAULT_LIMIT = 100, DEFAULT_NFT_LIMIT = 100, SKIP_CURSOR = "skip", DEFAULT_FILTER_NO_SYMBOL = !0;
+const oneEthToUsd = () => {
+  return new MarketplaceService().ethToUsd(1);
+}, formatWeiToUsd = (e, t) => {
+  var a = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  try {
+    return a.format(ethers.utils.formatEther(ethers.BigNumber.from(e || "0").mul(t)));
+  } catch (e) {
+    return console.error("Failed to format wei to usd:", e), "0.00";
+  }
+}, formatEth = e => ethers.utils.formatEther(ethers.BigNumber.from(e || "0")), DEFAULT_NETWORKS = [ Network.ETH_MAINNET, Network.OPT_MAINNET, Network.BASE_MAINNET, Network.MATIC_MAINNET ], DEFAULT_CURSOR = null, DEFAULT_CURSORS = [ DEFAULT_CURSOR, DEFAULT_CURSOR, DEFAULT_CURSOR, DEFAULT_CURSOR ], DEFAULT_LIMIT = 100, DEFAULT_NFT_LIMIT = 100, SKIP_CURSOR = "skip", DEFAULT_FILTER_NO_SYMBOL = !0;
 
 module.exports = {
   getAccountAssets: getAccountAssets,
@@ -182,5 +196,8 @@ module.exports = {
   SKIP_CURSOR: SKIP_CURSOR,
   DEFAULT_FILTER_NO_SYMBOL: DEFAULT_FILTER_NO_SYMBOL,
   fetchPriceHistory: fetchPriceHistory,
-  fetchAssetMetadata: fetchAssetMetadata
+  fetchAssetMetadata: fetchAssetMetadata,
+  oneEthToUsd: oneEthToUsd,
+  formatWeiToUsd: formatWeiToUsd,
+  formatEth: formatEth
 };

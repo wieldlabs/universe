@@ -51,8 +51,8 @@ const Sentry = require("@sentry/node"), getGraphQLRateLimiter = require("graphql
       });
       if (s) throw new Error(s);
       try {
-        var a, c, i, d = (await getAddressPasses(r.address, !0))["isHolder"];
-        return d ? (a = await Account.findOrCreateByAddressAndChainId({
+        var a, c, i, o = (await getAddressPasses(r.address, !0))["isHolder"];
+        return o ? (a = await Account.findOrCreateByAddressAndChainId({
           address: r.address,
           chainId: 1
         }), {
@@ -85,44 +85,29 @@ const Sentry = require("@sentry/node"), getGraphQLRateLimiter = require("graphql
         };
       }
     },
-    claimCommunityRewardByAddress: async (r, t, s, e) => {
-      e = await rateLimiter({
-        root: r,
-        args: t,
-        context: s,
-        info: e
+    claimCommunityRewardByAddress: async (e, r, t, s) => {
+      s = await rateLimiter({
+        root: e,
+        args: r,
+        context: t,
+        info: s
       }, {
         max: RATE_LIMIT_MAX,
         window: "10s"
       });
-      if (e) throw new Error(e);
+      if (s) throw new Error(s);
       try {
-        let e = null;
-        var a, c, i, d, o = await memcache.get("getAddressPasses_isHolder:" + t.address);
-        return null === (e = o ? o.value : e) && (a = new _AlchemyService({
-          apiKey: prod().NODE_URL,
-          chain: prod().NODE_NETWORK
-        }), c = new _AlchemyService({
-          apiKey: prod().OPTIMISM_NODE_URL,
-          chain: prod().OPTIMISM_NODE_NETWORK
-        }), e = await a.isHolderOfCollection({
-          wallet: t.address,
-          contractAddress: prod().REGISTRAR_ADDRESS
-        }), e ||= await c.isHolderOfCollection({
-          wallet: t.address,
-          contractAddress: prod().OPTIMISM_REGISTRAR_ADDRESS
-        }), await memcache.set("getAddressPasses_isHolder:" + t.address, JSON.stringify(e), {
-          lifetime: e ? 86400 : 10
-        })), e ? (i = await Account.findOrCreateByAddressAndChainId({
-          address: t.address,
+        var a, c, i = (await getAddressPasses(r.address, !0))["isHolder"];
+        return i ? (a = await Account.findOrCreateByAddressAndChainId({
+          address: r.address,
           chainId: 1
-        }), d = (await new _CommunityQuestMutationService().claimCommunityRewardOrError(r, {
-          communityRewardId: t.communityRewardId
+        }), c = (await new _CommunityQuestMutationService().claimCommunityRewardOrError(e, {
+          communityRewardId: r.communityRewardId
         }, {
-          ...s,
-          account: i
+          ...t,
+          account: a
         }))["communityQuest"], {
-          communityQuest: d,
+          communityQuest: c,
           code: "201",
           success: !0,
           message: "Successfully claimed quest reward"

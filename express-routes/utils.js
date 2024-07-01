@@ -5,7 +5,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), _Cach
   handler: (e, r, s) => {
     r.status(429).send("Too many requests, please try again later.");
   }
-}), filteredUser = (app.get("/eth-to-usd", async (e, r) => {
+}), verifyRiddle = (app.get("/eth-to-usd", async (e, r) => {
   e = e.query.eth;
   if (!e) return r.json({
     code: 200,
@@ -59,7 +59,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), _Cach
       message: e.message
     });
   }
-}), app.get("/verfy-riddle", async (r, s) => {
+}), async (r, s) => {
   var t = r.query.address;
   if (!t) return s.json({
     code: 500,
@@ -109,7 +109,8 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), _Cach
       message: e.message
     });
   }
-}), app.get("/need-invite", heavyLimiter, async (e, r) => {
+}), filteredUser = (app.get("/verfy-riddle", verifyRiddle), app.get("/verify-riddle", verifyRiddle), 
+app.get("/need-invite", heavyLimiter, async (e, r) => {
   e = e.query.email;
   if (!e) return r.json({
     code: 500,

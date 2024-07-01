@@ -328,7 +328,7 @@ class AuthService {
       custodyAddress: e
     }), n = !1, o.toNumber()) : (n = !0, e), a.recovererAddress), e = {
       id: o,
-      type: o ? "FARCASTER_SIGNER" : "FARCASTER_SIGNER_EXTERNAL",
+      type: 0 == o?.toNumber() ? "FARCASTER_SIGNER_EXTERNAL" : "FARCASTER_SIGNER",
       address: a.recovererAddress
     }, await t.addRecoverer(r, e));
     var o = {

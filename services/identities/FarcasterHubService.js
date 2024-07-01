@@ -14,21 +14,22 @@ class FarcasterHubService {
   async getProfileByAccount(e, r) {
     return (e = e && this._getSigner(e, r)) ? await getFarcasterUserByFid(e.id) : null;
   }
-  async getFidByAccountId(e, r) {
+  async getFidByAccountId(e, r, t = !1) {
     if (!e) return null;
-    var t = await memcache.get(`FarcasterHubService:getFidByAccountId:${e}:` + r);
-    if (t) return "" === t.value ? null : t.value;
-    let c;
-    var t = await Account.findById(e), a = this._getSigner(t, r);
-    if (a) c = a.id; else {
-      await t.populate("addresses");
-      a = t.addresses[0].address;
-      if (r) return a?.toLowerCase?.();
-      c = await getFarcasterFidByCustodyAddress(a?.toLowerCase?.());
+    var c = await memcache.get(`FarcasterHubService:getFidByAccountId:${e}:${r}:` + t);
+    if (c) return "" === c.value ? null : c.value;
+    let a;
+    c = await Account.findById(e);
+    let s;
+    if (s = t ? s : this._getSigner(c, r)) a = s.id; else {
+      await c.populate("addresses");
+      c = c.addresses[0].address;
+      if (r || t) return c?.toLowerCase?.();
+      a = await getFarcasterFidByCustodyAddress(c?.toLowerCase?.());
     }
-    return await memcache.set(`FarcasterHubService:getFidByAccountId:${e}:` + r, c || "", {
+    return await memcache.set(`FarcasterHubService:getFidByAccountId:${e}:${r}:` + t, a || "", {
       lifetime: 300
-    }), c;
+    }), a;
   }
   isExternalAccount(e) {
     return !e.recoverers?.find?.(e => "FARCASTER_SIGNER" === e.type);

@@ -17,6 +17,28 @@ class AlchemyService {
   getNftV3BaseRoute() {
     return `https://${this.chain}.g.alchemy.com/nft/v3/` + this.apiKey;
   }
+  async getBalance(e, r = "latest") {
+    var t = {
+      timeout: TIMEOUT_MS,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      }
+    }, e = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_getBalance",
+      params: [ e, r ]
+    }, r = this.getBaseRoute();
+    try {
+      var a = (await axios.post(r, e, t))["data"];
+      if (a.error) throw Sentry.captureException("AlchemyService.getBalance error: " + a.error.message), 
+      new Error("AlchemyService.getBalance error: " + a.error.message);
+      return a.result;
+    } catch (e) {
+      throw Sentry.captureException(e), new Error("AlchemyService.getBalance error, " + e.message);
+    }
+  }
   async getNFTMetadata({
     contractAddress: e,
     tokenId: r,

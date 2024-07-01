@@ -93,13 +93,15 @@ class AccountRecovererService {
   }
   async verifyFarcasterSignerAndGetFid(e, {
     signerAddress: r,
-    custodyAddress: t
+    custodyAddress: t,
+    fid: a
   }) {
-    var a = getProvider({
+    var s = getProvider({
       network: 10,
       node: process.env.OPTIMISM_NODE_URL
-    }), s = getFlags(), i = s.USE_GATEWAYS ? keyGatewayRegistryAddress : keyRegistrarAddress, s = s.USE_GATEWAYS ? idGatewayRegistryAddress : idRegistrarAddress, i = new ethers.Contract(i, keyRegistrarAbi, a), s = await new ethers.Contract(s, idRegistrarAbi, a).idOf(t);
-    if (s) return 1 === (await i.keyDataOf(s, r))?.state ? s : null;
+    }), i = getFlags(), n = i.USE_GATEWAYS ? keyGatewayRegistryAddress : keyRegistrarAddress, i = i.USE_GATEWAYS ? idGatewayRegistryAddress : idRegistrarAddress, n = new ethers.Contract(n, keyRegistrarAbi, s), i = new ethers.Contract(i, idRegistrarAbi, s);
+    let d = a;
+    if (d = d || await i.idOf(t)) return 1 === (await n.keyDataOf(d, r))?.state ? d : null;
     throw new Error("Address does not own a valid FID");
   }
   async getFid(e, {
@@ -132,20 +134,48 @@ class AccountRecovererService {
     o = ethers.Wallet.fromMnemonic(g).connect(d), g = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, o), 
     d = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, o), o = r, g = await g.keyDataOf(t, o);
     if (1 === g?.state) return r;
-    if (0 === g?.state) return 0, console.log({
-      custodyAddress: a,
-      keyType: 1,
-      key: o,
-      metadataType: 1,
-      metadata: n,
-      deadline: i,
-      fidSignature: s
-    }), await (await d.addFor(a, 1, o, 1, n, ethers.BigNumber.from(i), s, {
-      gasLimit: 25e4,
-      maxFeePerGas: c,
-      maxPriorityFeePerGas: c
-    })).wait(), r;
-    throw new Error("Signer has been removed");
+    if (0 !== g?.state) throw new Error("Signer has been removed");
+    {
+      console.log({
+        custodyAddress: a,
+        keyType: 1,
+        key: o,
+        metadataType: 1,
+        metadata: n,
+        deadline: i,
+        fidSignature: s
+      });
+      var g = new _CacheService(), y = await g.get({
+        key: "AccountRecovererService:addOrGetSigner",
+        params: {
+          custodyAddress: a
+        }
+      });
+      let e = 1;
+      if (y) {
+        if (5 <= (e = parseInt(y))) throw new Error("You can only add 5 signers per day. Please wait 24 hours and try again.");
+        e++;
+      }
+      await g.set({
+        key: "AccountRecovererService:addOrGetSigner",
+        params: {
+          custodyAddress: a
+        },
+        value: e,
+        expiresAt: new Date(Date.now() + 864e5)
+      });
+      y = await d.addFor(a, 1, o, 1, n, ethers.BigNumber.from(i), s, {
+        gasLimit: 25e4,
+        maxFeePerGas: c,
+        maxPriorityFeePerGas: c
+      });
+      return await y.wait(), console.log("Added Signer"), console.log({
+        hash: y.hash,
+        signerAddress: r,
+        fid: t,
+        custodyAddress: a
+      }), r;
+    }
   }
   async getSigners(e, {
     fid: r,

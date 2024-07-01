@@ -1,4 +1,4 @@
-const app = require("express").Router(), Sentry = require("@sentry/node"), ethers = require("ethers")["ethers"], rateLimit = require("express-rate-limit"), _CacheService = require("../services/cache/CacheService")["Service"], _FarcasterHubService = require("../services/identities/FarcasterHubService")["Service"], _AlchemyService = require("../services/AlchemyService")["Service"], _AccountRecovererService = require("../services/AccountRecovererService")["Service"], Account = require("../models/Account")["Account"], ApiKey = require("../models/ApiKey")["ApiKey"], axios = require("axios").default, prod = require("../helpers/registrar")["prod"], _MarketplaceService = require("../services/MarketplaceService")["Service"], {
+const app = require("express").Router(), Sentry = require("@sentry/node"), ethers = require("ethers")["ethers"], rateLimit = require("express-rate-limit"), _CacheService = require("../services/cache/CacheService")["Service"], _FarcasterHubService = require("../services/identities/FarcasterHubService")["Service"], _AccountRecovererService = require("../services/AccountRecovererService")["Service"], Account = require("../models/Account")["Account"], ApiKey = require("../models/ApiKey")["ApiKey"], axios = require("axios").default, prod = require("../helpers/registrar")["prod"], _MarketplaceService = require("../services/MarketplaceService")["Service"], {
   getFarcasterUserByFid,
   getFarcasterUserByUsername,
   getFarcasterUserByCustodyAddress,
@@ -31,17 +31,21 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   searchChannels,
   searchFarcasterCasts,
   getActions,
-  createAction
+  createAction,
+  getFarcasterFidByCustodyAddress
 } = require("../helpers/farcaster"), {
   fetchAssetMetadata,
   fetchPriceHistory
 } = require("../helpers/wallet"), {
   getInsecureHubRpcClient,
   getSSLHubRpcClient
-} = require("@farcaster/hub-nodejs"), requireAuth = require("../helpers/auth-middleware")["requireAuth"], {
+} = require("@farcaster/hub-nodejs"), {
+  Alchemy,
+  Network
+} = require("alchemy-sdk"), requireAuth = require("../helpers/auth-middleware")["requireAuth"], {
   memcache,
   getHash
-} = require("../connectmemcache"), apiKeyCache = new Map(), getLimit = n => async (e, r) => {
+} = require("../connectmemcache"), AccountRecovererService = require("../services/AccountRecovererService"), apiKeyCache = new Map(), getLimit = n => async (e, r) => {
   var t, a = e.header("API-KEY");
   if (!a) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
     tags: {
@@ -83,17 +87,17 @@ const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.
     var o = await Account.findByIdCached(n.payload.id);
     if (!o) throw new Error(`Account id ${n.payload.id} not found`);
     if (o.deleted) throw new Error(`Account id ${n.payload.id} deleted`);
-    var c = (n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal))?.toString().toLowerCase(), i = new _CacheService();
-    await i.get({
-      key: "enableNotifications_" + c
-    }) || await i.set({
-      key: "enableNotifications_" + c,
+    var c = "true" === r.headers.external, i = (!c && n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal, c))?.toString().toLowerCase(), u = new _CacheService();
+    await u.get({
+      key: "enableNotifications_" + i
+    }) || await u.set({
+      key: "enableNotifications_" + i,
       value: "1",
       expiresAt: new Date(Date.now() + 2592e6)
     }), r.context = {
       ...r.context || {},
       accountId: n.payload.id,
-      fid: c,
+      fid: i,
       account: o,
       hubClient: a
     };
@@ -633,23 +637,18 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       },
       source: "v2"
     });
-    var o = new _AlchemyService({
+    var o = new Alchemy({
       apiKey: prod().NODE_URL,
-      chain: prod().NODE_NETWORK
-    }), c = new _AlchemyService({
+      network: Network.ETH_MAINNET
+    }), c = new Alchemy({
       apiKey: prod().OPTIMISM_NODE_URL,
-      chain: prod().OPTIMISM_NODE_NETWORK
+      network: Network.OPT_MAINNET
     });
     let e = null;
     var i, u, l = await memcache.get("getAddressPasses_isHolder:" + s);
-    if (null === (e = l ? l.value : e) && (e = await c.isHolderOfCollection({
-      wallet: s,
-      contractAddress: prod().OPTIMISM_REGISTRAR_ADDRESS
-    }), e ||= await o.isHolderOfCollection({
-      wallet: s,
-      contractAddress: prod().REGISTRAR_ADDRESS
-    }), await memcache.set("getAddressPasses_isHolder:" + s, JSON.stringify(e), {
-      lifetime: e ? 86400 : 10
+    if (null === (e = l ? "true" === l.value : e) && (e = await c.nft.verifyNftOwnership(s, prod().OPTIMISM_REGISTRAR_ADDRESS), 
+    e ||= await o.nft.verifyNftOwnership(s, prod().REGISTRAR_ADDRESS), await memcache.set("getAddressPasses_isHolder:" + s, JSON.stringify(e), {
+      lifetime: e ? 86400 : 1
     })), t.query.checkHolderOnly) return a.json({
       result: {
         isHolder: e
@@ -657,16 +656,14 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       source: "v2"
     });
     let r;
-    return r = e ? ([ i, u ] = await Promise.all([ o.getNFTs({
-      owner: s,
+    return 0 < (r = e ? ([ i, u ] = await Promise.all([ o.nft.getNftsForOwner(s, {
       contractAddresses: [ prod().REGISTRAR_ADDRESS ]
-    }), c.getNFTs({
-      owner: s,
+    }), c.nft.getNftsForOwner(s, {
       contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
     }) ]), (i?.ownedNfts || []).concat(u?.ownedNfts || []).map(e => {
-      let r = e.title;
+      let r = e?.name;
       return r = r ? r.replace(".beb", "").replace(".cast", "") + ".cast" : null;
-    }).filter(e => e && !e.includes("no_metadata"))) : [], await memcache.set("getAddressPasses:" + s, JSON.stringify(r), {
+    }).filter(e => e && !e.includes("no_metadata"))) : []).length && await memcache.set("getAddressPasses:" + s, JSON.stringify(r), {
       lifetime: 60
     }), a.json({
       result: {
@@ -1013,7 +1010,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         lastCount: t,
         lastTimestamp: a?.computedAt || null
       };
-    })), c = await Promise.all(a?.casts?.map(e => getFarcasterCastByHash(e.hash, r.context))), [ i, u ] = await Promise.all([ o, c ]), l = u.filter(e => null !== e), p = i.reduce((e, {
+    })), c = await Promise.all(a?.casts?.map(e => getFarcasterCastByHash(e.hash, r.context))), [ i, u ] = await Promise.all([ o, c ]), l = u.filter(e => null !== e), y = i.reduce((e, {
       token: r,
       percentageDifference: t,
       count: a,
@@ -1027,7 +1024,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     }, e), {});
     return t.json({
       result: {
-        trends: p,
+        trends: y,
         casts: l
       },
       source: "v2"
@@ -1060,7 +1057,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         createdAt: -1
       },
       limit: 1
-    }), p = n.find({
+    }), y = n.find({
       key: "TrendingHistory",
       params: {
         token: o.toUpperCase()
@@ -1071,7 +1068,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       sort: {
         createdAt: 1
       }
-    }), [ y, d ] = await Promise.all([ l, p ]), v = d.map(e => {
+    }), [ d, p ] = await Promise.all([ l, y ]), v = p.map(e => {
       var r = e.count;
       return {
         computedAt: e.computedAt,
@@ -1081,24 +1078,24 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         contractAddress: e.contractAddress
       };
     });
-    if (!y || !y[0]) return s.status(404).json({
+    if (!d || !d[0]) return s.status(404).json({
       error: "No history found for this token"
     });
-    var h = y[0]["casts"];
+    var h = d[0]["casts"];
     if (!h || 0 === h.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var m = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], g = (await Promise.all(m.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
-    if (0 === g.length) return s.status(404).json({
+    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === m.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
-    var S, f = v[v.length - 1];
-    return f?.contractAddress && (S = await Promise.allSettled([ fetchAssetMetadata(f.network, f.contractAddress), fetchPriceHistory(f.contractAddress, f.network, i) ]), 
-    r = "fulfilled" === S[0].status ? S[0].value : null, t = "fulfilled" === S[1].status ? S[1].value : []), 
+    var f, S = v[v.length - 1];
+    return S?.contractAddress && (f = await Promise.allSettled([ fetchAssetMetadata(S.network, S.contractAddress), fetchPriceHistory(S.contractAddress, S.network, i) ]), 
+    r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
-        casts: g,
+        casts: m,
         trendHistory: v,
         tokenMetadata: r,
         tokenPriceHistory: t
@@ -1201,6 +1198,32 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   } catch (e) {
     return Sentry.captureException(e), r.status(500).json({
       error: e.message || e.response?.data?.message || "Internal Server Error"
+    });
+  }
+}), app.get("/v2/get-fid-stats", [ limiter ], async (r, t) => {
+  try {
+    var a = r.query.fid;
+    if (!a) throw new Error("Fid not found");
+    var s, n = [ getFarcasterFidByCustodyAddress(a), getFarcasterUserByFid(a), getFarcasterStorageByFid(a) ], [ o, c, i ] = await Promise.all(n);
+    let e = !1;
+    r.query.signer && (s = new _AccountRecovererService(), e = await s.verifyFarcasterSignerAndGetFid(null, {
+      signerAddress: r.query.signer,
+      fid: o || c?.fid
+    })), t.status(201).json({
+      code: "201",
+      success: !0,
+      message: "Success",
+      stats: {
+        hasFid: o || !c?.external,
+        storage: i,
+        validSigner: !!e
+      }
+    });
+  } catch (e) {
+    Sentry.captureException(e), console.error(e), t.status(500).json({
+      code: "500",
+      success: !1,
+      message: e.message
     });
   }
 }), module.exports = {

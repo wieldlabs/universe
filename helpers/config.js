@@ -5,6 +5,7 @@ const ProxyRegister2Contract = require("./abi/proxy-register-2.json"), OpControl
   PROXY_REGISTER_2_ABI: ProxyRegister2Contract.abi,
   ETH_NODE_URL: process.env.HOMESTEAD_NODE_URL,
   OPTIMISM_NODE_URL: process.env.OPTIMISM_NODE_URL,
+  BASE_NODE_URL: process.env.BASE_NODE_URL,
   CONTROLLER_ADDRESS: "0x8357b8b211a02d8d0d2e1d947f7a4898cfc5af41",
   CONTROLLER_ADDRESS_OP: "0x8db531fe6bea7b474c7735879e9a1000e819bd1d",
   CONTROLLER_ABI: OpControllerContract.abi
@@ -15,6 +16,7 @@ const ProxyRegister2Contract = require("./abi/proxy-register-2.json"), OpControl
   PROXY_REGISTER_2_ABI: ProxyRegister2Contract.abi,
   OPTIMISM_NODE_URL: process.env.OPTIMISM_NODE_URL,
   ETH_NODE_URL: process.env.HOMESTEAD_NODE_URL,
+  BASE_NODE_URL: process.env.BASE_NODE_URL,
   CONTROLLER_ADDRESS: "0x8357b8b211a02d8d0d2e1d947f7a4898cfc5af41",
   CONTROLLER_ADDRESS_OP: "0x8db531fe6bea7b474c7735879e9a1000e819bd1d",
   CONTROLLER_ABI: OpControllerContract.abi
