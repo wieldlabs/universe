@@ -127,7 +127,7 @@ class AccountRecovererService {
     }), o = await new Alchemy({
       apiKey: process.env.OPTIMISM_NODE_URL,
       network: Network.OPT_MAINNET
-    }).core.getGasPrice(), o = Utils.formatUnits(o, "gwei"), c = ethers.utils.parseUnits(o, "gwei"), g = ethers.utils.parseUnits("0.1", "gwei");
+    }).core.getGasPrice(), o = Utils.formatUnits(o, "gwei"), c = ethers.utils.parseUnits(o, "gwei"), g = ethers.utils.parseUnits("0.175", "gwei");
     if (c.gt(g)) throw new Error(`Gas price is too high: ${o} gwei`);
     g = process.env.FARCAST_KEY;
     if (!g) throw new Error("Not configured!");

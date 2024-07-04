@@ -40,7 +40,7 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
     attribution: !1,
     params: {
       abi: config().CONTROLLER_ABI,
-      to: config().CONTROLLER_ADDRESS_OP,
+      to: config().CONTROLLER_ADDRESS,
       data: e,
       value: makeBufferedRegistrationCost(t.base, t.premium)
     }
