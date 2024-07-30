@@ -1,7 +1,7 @@
 const Magic = require("@magic-sdk/admin")["Magic"], fido2 = require("fido2-lib"), bufferToHex = require("ethereumjs-util")["bufferToHex"], recoverPersonalSignature = require("@metamask/eth-sig-util")["recoverPersonalSignature"], base64url = require("base64url"), mongoose = require("mongoose"), axios = require("axios").default, Account = require("../models/Account")["Account"], AccountAddress = require("../models/AccountAddress")["AccountAddress"], AccountCommunity = require("../models/AccountCommunity")["AccountCommunity"], AccountNonce = require("../models/AccountNonce")["AccountNonce"], {
   getCustodyAddress,
   getCurrentUser
-} = require("../helpers/warpcast"), getFidByCustodyAddress = require("../helpers/farcaster")["getFidByCustodyAddress"], _AccountRecovererService = require("./AccountRecovererService")["Service"], generateNewAccessTokenFromAccount = require("../helpers/jwt")["generateNewAccessTokenFromAccount"], SignedKeyRequest = require("../models/SignedKeyRequest")["SignedKeyRequest"], bufferToAB = e => {
+} = require("../helpers/warpcast"), Sentry = require("@sentry/node"), _AccountRecovererService = require("./AccountRecovererService")["Service"], generateNewAccessTokenFromAccount = require("../helpers/jwt")["generateNewAccessTokenFromAccount"], SignedKeyRequest = require("../models/SignedKeyRequest")["SignedKeyRequest"], bufferToAB = e => {
   for (var r = new ArrayBuffer(e.length), t = new Uint8Array(r), a = 0; a < e.length; ++a) t[a] = e[a];
   return r;
 };
@@ -309,34 +309,36 @@ class AuthService {
     address: e,
     chainId: r,
     signature: t,
-    signerData: a
+    signerData: a,
+    revokeId: n
   }) {
-    let n = !0;
-    let i = null, s = null;
+    let i = !0;
+    let s = null, o = null;
     r = await this.authBySignature({
       address: e,
       chainId: r,
       signature: t
-    }), a && (o = await (t = new _AccountRecovererService()).getFid(r, {
+    }), a && (d = await (t = new _AccountRecovererService()).getFid(r, {
       custodyAddress: e
-    }), s = (i = 0 != o?.toNumber() ? (await t.addOrGetSigner(r, {
+    }), o = (s = 0 != d?.toNumber() ? (await t.addOrGetSigner(r, {
       signerAddress: a.recovererAddress,
       signature: a.signature,
       deadline: a.deadline,
       metadata: a.metadata,
-      fid: o,
+      fid: d,
       custodyAddress: e
-    }), n = !1, o.toNumber()) : (n = !0, e), a.recovererAddress), e = {
-      id: o,
-      type: 0 == o?.toNumber() ? "FARCASTER_SIGNER_EXTERNAL" : "FARCASTER_SIGNER",
+    }), i = !1, d.toNumber()) : (i = !0, e), a.recovererAddress), e = {
+      id: d,
+      type: 0 == d?.toNumber() ? "FARCASTER_SIGNER_EXTERNAL" : "FARCASTER_SIGNER",
       address: a.recovererAddress
     }, await t.addRecoverer(r, e));
-    var o = {
-      isExternal: n
+    var d = {
+      isExternal: i
     };
-    return i && (o.signerId = i), s && (o.signerPubKey = s), this._generateNonceAndAccessToken({
+    return s && (d.signerId = s), o && (d.signerPubKey = o), n && (d.revokeId = n), 
+    this._generateNonceAndAccessToken({
       account: r,
-      extra: o
+      extra: d
     });
   }
   async authByEncryptedWalletJson({

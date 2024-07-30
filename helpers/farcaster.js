@@ -423,33 +423,31 @@ const getSyncedChannelById = async e => {
   return await memcache.set(getHash(i), JSON.stringify(a), {
     lifetime: 300
   }), a;
-}, getFarcasterUserByUsername = async (e, t = 0) => {
-  var a = "0x" + Buffer.from(e, "ascii").toString("hex");
-  let r;
-  var s = await memcache.get("getFarcasterUserByUsername_fid:" + e);
-  return (r = s ? s.value : r) || (s = await UserData.findOne({
+}, getFarcasterFidByUsername = async e => {
+  let t;
+  var a = await memcache.get("getFarcasterFidByUsername:" + e);
+  return (t = a ? a.value : t) || (a = await Fnames.findOne({
+    fname: e,
+    deletedAt: null
+  })) && (t = a.fid || await getFidByCustodyAddress(a.custodyAddress)), t || (a = "0x" + Buffer.from(e, "ascii").toString("hex"), 
+  a = await UserData.findOne({
     value: a,
     type: UserDataType.USER_DATA_TYPE_USERNAME,
     deletedAt: null
-  }), r = s?.fid), r ? (await memcache.set("getFarcasterUserByUsername_fid:" + e, r), 
-  getFarcasterUserByFid(r)) : null;
+  }), t = a?.fid), t ? (await memcache.set("getFarcasterFidByUsername:" + e, t), 
+  t) : null;
+}, getFarcasterUserByUsername = async (e, t = 0) => {
+  e = await getFarcasterFidByUsername(e);
+  return e ? getFarcasterUserByFid(e) : null;
 }, getFarcasterUserAndLinksByUsername = async ({
   username: e,
   context: t
 }) => {
-  var a = "0x" + Buffer.from(e, "ascii").toString("hex");
-  let r;
-  var s = await memcache.get(getHash("getFarcasterUserAndLinksByUsername_fid:" + e));
-  return (r = s ? s.value : r) || (s = await UserData.findOne({
-    value: a,
-    type: UserDataType.USER_DATA_TYPE_USERNAME,
-    deletedAt: null
-  }), r = s?.fid), r ? (await memcache.set(getHash("getFarcasterUserAndLinksByUsername_fid:" + e), r, {
-    lifetime: 86400
-  }), getFarcasterUserAndLinksByFid({
-    fid: r,
+  e = await getFarcasterFidByUsername(e);
+  return e ? getFarcasterUserAndLinksByFid({
+    fid: e,
     context: t
-  })) : null;
+  }) : null;
 }, getFarcasterCastByHash = async (e, t = {}, a = {}) => {
   let r;
   t.fid && ([ s, l ] = await Promise.all([ Reactions.exists({
@@ -493,13 +491,13 @@ const getSyncedChannelById = async e => {
     }
   })) || [], [ a, s, c, d, o, g, m, u ] = (s.push(Promise.all(a)), await Promise.all(s)), h = i.text || "";
   let y = 0;
-  var F, f, p, w, A, S = [];
-  let C = Buffer.from(h, "utf-8");
+  var F, f, p, w, A, C = [];
+  let S = Buffer.from(h, "utf-8");
   for (let e = 0; e < m.length; e++) m[e] && (p = i.mentionsPositions[e], F = m[e].username || "fid:" + m[e].fid, 
   F = Buffer.from("@" + F, "utf-8"), f = m[e].originalMention || "", f = Buffer.from(f, "utf-8").length, 
-  p = p + y, w = C.slice(0, p), A = C.slice(p + f), C = Buffer.concat([ w, F, A ]), 
-  y += F.length - f, S.push(p));
-  h = C.toString("utf-8"), h = {
+  p = p + y, w = S.slice(0, p), A = S.slice(p + f), S = Buffer.concat([ w, F, A ]), 
+  y += F.length - f, C.push(p));
+  h = S.toString("utf-8"), h = {
     hash: i.hash,
     parentHash: i.parentHash,
     parentFid: i.parentFid,
@@ -511,7 +509,7 @@ const getSyncedChannelById = async e => {
       quoteCasts: u
     },
     mentions: m,
-    mentionsPositions: S,
+    mentionsPositions: C,
     external: i.external,
     author: o,
     parentAuthor: d,
@@ -870,20 +868,16 @@ const getSyncedChannelById = async e => {
   t.map(e => e.toJSON());
 }, getLeaderboard = async ({
   scoreType: e,
-  limit: t,
-  context: a
+  limit: t
 }) => {
   e = await Score.getLeaderboard(e, t);
-  return await Promise.all(e.map(async e => {
-    var t = await getFarcasterUserAndLinksByFid({
-      fid: e.account.recoverers?.[0]?.id,
-      context: a
-    });
+  return (await Promise.all(e.map(async e => {
+    var t = e.address.toLowerCase(), [ t, a ] = await Promise.all([ getFarcasterUserByCustodyAddress(t), getFarcasterUserByFid(t) ]), t = t || a;
     return {
       ...e,
       profile: t
     };
-  }));
+  }))).filter(e => e.profile);
 }, makeSignatureParams = ({
   publicKey: e,
   deadline: t
@@ -1055,5 +1049,8 @@ module.exports = {
   isFollowingChannel: isFollowingChannel,
   getActions: getActions,
   createAction: createAction,
-  getFarcasterSignersForFid: getFarcasterSignersForFid
+  getFarcasterSignersForFid: getFarcasterSignersForFid,
+  getFarcasterReactionsCount: getFarcasterReactionsCount,
+  getFarcasterFollowersCount: getFarcasterFollowersCount,
+  getFarcasterRepliesCount: getFarcasterRepliesCount
 };

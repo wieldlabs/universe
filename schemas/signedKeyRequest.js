@@ -47,6 +47,10 @@ const mongoose = require("mongoose"), signedKeyRequestSchema = new mongoose.Sche
   status: {
     type: String,
     default: "pending"
+  },
+  isRevoked: {
+    type: Boolean,
+    default: !1
   }
 }, {
   timestamps: !0

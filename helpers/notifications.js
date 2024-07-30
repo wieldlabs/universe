@@ -12,10 +12,10 @@ const Expo = require("expo-server-sdk")["Expo"], _CacheService = require("../ser
       key: "expoTokens:" + a
     }));
     if (c) {
-      var o = (e?.toString() || "").trim(), s = await getFarcasterUserByFid(e);
-      if (s) {
+      var s = (e?.toString() || "").trim(), o = await getFarcasterUserByFid(e);
+      if (o) {
         let a;
-        var n = "fid:" + o.slice(0, 6) + (6 < o.length ? "..." : ""), m = s.displayName ? `${s.displayName?.trim()} (@${s.username?.trim() || n})` : "@" + (s.username?.trim() || n);
+        var n = "fid:" + s.slice(0, 6) + (6 < s.length ? "..." : ""), m = o.displayName ? `${o.displayName?.trim()} (@${o.username?.trim() || n})` : "@" + (o.username?.trim() || n);
         switch (i) {
          case "link":
           a = m + " followed you";
@@ -25,8 +25,12 @@ const Expo = require("expo-server-sdk")["Expo"], _CacheService = require("../ser
           a = m + " replied to your cast";
           break;
 
-         case "reaction":
-          a = m + " reacted to your cast";
+         case "like":
+          a = m + " liked your cast";
+          break;
+
+         case "recast":
+          a = m + " recasted your cast";
           break;
 
          case "mention":

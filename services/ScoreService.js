@@ -57,7 +57,7 @@ class ScoreService {
   }) {
     var c, e = validateAndConvertAddress(e);
     let d = s;
-    return a && (c = await this.getCommunityScore({
+    return null !== a && (c = await this.getCommunityScore({
       address: e,
       bebdomain: r
     }), d = c ? parseInt(c) + a : s + a), d = Math.min(Math.max(d, 0), Number.MAX_SAFE_INTEGER), 
@@ -95,6 +95,21 @@ class ScoreService {
         scoreType: r
       }
     }) || 0;
+  }
+  async getPosition({
+    address: e,
+    bebdomain: r
+  }) {
+    e = validateAndConvertAddress(e), e = await Score.findOne({
+      address: e,
+      scoreType: r
+    }), e = e ? e.score : 0;
+    return await Score.countDocuments({
+      scoreType: r,
+      score: {
+        $gt: padWithZeros(e.toString())
+      }
+    }) + 1;
   }
 }
 

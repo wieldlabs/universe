@@ -45,7 +45,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
 } = require("alchemy-sdk"), requireAuth = require("../helpers/auth-middleware")["requireAuth"], {
   memcache,
   getHash
-} = require("../connectmemcache"), AccountRecovererService = require("../services/AccountRecovererService"), apiKeyCache = new Map(), getLimit = n => async (e, r) => {
+} = require("../connectmemcache"), _ScoreService = require("../services/ScoreService")["Service"], getFartapScoreType = require("../helpers/fartap")["getFartapScoreType"], apiKeyCache = new Map(), getLimit = n => async (e, r) => {
   var t, a = e.header("API-KEY");
   if (!a) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
     tags: {
@@ -335,21 +335,31 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Internal Server Error"
     });
   }
-}), app.get("/v2/leaderboard", [ limiter, authContext ], async (e, r) => {
+}), app.get("/v2/leaderboard", [ limiter, authContext ], async (r, t) => {
   try {
-    var t = await getLeaderboard({
-      scoreType: e.query.scoreType,
-      limit: e.query.limit,
-      context: e.context
-    });
-    return r.json({
+    let e = r.query.scoreType;
+    "fartap" === e && (e = await getFartapScoreType());
+    var a, s = await getLeaderboard({
+      scoreType: e,
+      limit: r.query.limit
+    }), n = new _ScoreService();
+    return r.query.address ? (a = await n.getPosition({
+      address: r.query.address,
+      bebdomain: r.query.scoreType
+    }), t.json({
       result: {
-        leaderboard: t
+        leaderboard: s,
+        position: a
+      },
+      source: "v2"
+    })) : t.json({
+      result: {
+        leaderboard: s
       },
       source: "v2"
     });
   } catch (e) {
-    return Sentry.captureException(e), console.error(e), r.status(500).json({
+    return Sentry.captureException(e), console.error(e), t.status(500).json({
       error: "Internal Server Error"
     });
   }
@@ -1081,11 +1091,11 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     if (!d || !d[0]) return s.status(404).json({
       error: "No history found for this token"
     });
-    var h = d[0]["casts"];
-    if (!h || 0 === h.length) return s.status(404).json({
+    var g = d[0]["casts"];
+    if (!g || 0 === g.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    var h = [ ...new Set(g?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(h.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
     if (0 === m.length) return s.status(404).json({
       error: "Casts not found"
     });

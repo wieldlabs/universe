@@ -1,6 +1,6 @@
 {
   "name": "universe",
-  "version": "2.1.8",
+  "version": "2.1.9",
   "main": "README.md",
   "license": "AGPL-3.0",
   "repository": "git@github.com:wieldlabs/universe.git",
@@ -80,6 +80,7 @@
     "memory-cache": "^0.2.0",
     "migrate": "^1.8.0",
     "mini-svg-data-uri": "^1.4.4",
+    "moment-timezone": "^0.5.45",
     "mongodb": "^6.7.0",
     "mongodb-memory-server": "^9.3.0",
     "mongoose": "^8.4.1",

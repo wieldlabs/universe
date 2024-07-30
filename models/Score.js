@@ -9,12 +9,12 @@ class ScoreClass {
   }
   static async getLeaderboard(e, o = 10) {
     try {
-      var c = await memcache.get(`ScoreClass:getLeaderboard:${e}:` + o);
-      if (c) return JSON.parse(c.value);
+      var r = await memcache.get(`Score:getLeaderboard:${e}:` + o);
+      if (r) return JSON.parse(r.value);
     } catch (e) {
       console.error(e);
     }
-    c = (await Score.aggregate([ {
+    r = (await Score.aggregate([ {
       $match: {
         scoreType: e
       }
@@ -23,47 +23,14 @@ class ScoreClass {
         score: -1
       }
     }, {
-      $lookup: {
-        from: "accountaddresses",
-        localField: "address",
-        foreignField: "address",
-        as: "accountAddress"
-      }
-    }, {
-      $unwind: "$accountAddress"
-    }, {
-      $lookup: {
-        from: "accounts",
-        localField: "accountAddress.account",
-        foreignField: "_id",
-        as: "account"
-      }
-    }, {
-      $unwind: "$account"
-    }, {
-      $match: {
-        "account.recoverers": {
-          $exists: !0,
-          $not: {
-            $size: 0
-          }
-        }
-      }
-    }, {
       $limit: parseInt(o)
-    }, {
-      $project: {
-        score: 1,
-        address: 1,
-        account: 1
-      }
     } ])).map(e => ({
       ...e,
       score: e.score.replace(/^0+/, "")
     }));
-    return await memcache.set(`ScoreClass:getLeaderboard:${e}:` + o, JSON.stringify(c), {
-      lifetime: 3600
-    }), JSON.parse(JSON.stringify(c));
+    return await memcache.set(`Score:getLeaderboard:${e}:` + o, JSON.stringify(r), {
+      lifetime: 60
+    }), JSON.parse(JSON.stringify(r));
   }
 }
 

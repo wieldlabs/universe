@@ -24,17 +24,17 @@ async function getAddressPasses(e, a) {
   if (!e || e.length < 10) throw new Error("address is invalid");
   let t = null, r = [];
   try {
-    var s = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, d = await memcache.get(s), i = await memcache.get(n), {
+    var s = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, i = await memcache.get(s), d = await memcache.get(n), {
       AlchemyService: o,
       OptimismAlchemyService: c
     } = setupAlchemyServices();
-    if (d ? (r = JSON.parse(d.value), t = !0) : i ? t = JSON.parse(i.value) : (t = await checkIsHolderWithFallback(o, c, e), 
+    if (i ? (r = JSON.parse(i.value), t = !0) : d ? t = JSON.parse(d.value) : (t = await checkIsHolderWithFallback(o, c, e), 
     await memcache.set(n, JSON.stringify(t), {
       lifetime: t ? 86400 : 10
     })), a) return {
       isHolder: t
     };
-    t && !d && (r = await fetchAndProcessNFTs(o, c, e), await memcache.set(s, JSON.stringify(r), {
+    t && !i && (r = await fetchAndProcessNFTs(o, c, e), await memcache.set(s, JSON.stringify(r), {
       lifetime: 60
     }));
   } catch (e) {
@@ -104,13 +104,13 @@ const frameContext = async (a, e, t) => {
     };
     if (ethers.utils.isAddress(a.body.untrustedData?.fid)) s.isExternal = !0, s.connectedAddress = a.body?.untrustedData?.fid; else {
       if (!r.data?.fid) throw new Error("FID is missing, no fallback external FID: " + JSON.stringify(r.data));
-      var n, d = await getConnectedAddressForFid(r.data.fid);
-      s.isExternal = !1, s.connectedAddress = d, !a.body.untrustedData?.isCustodyWallet && d && ethers.utils.isAddress(d) || (n = await getCustodyAddressByFid(r.data.fid), 
+      var n, i = await getConnectedAddressForFid(r.data.fid);
+      s.isExternal = !1, s.connectedAddress = i, !a.body.untrustedData?.isCustodyWallet && i && ethers.utils.isAddress(i) || (n = await getCustodyAddressByFid(r.data.fid), 
       s.connectedAddress = n);
     }
     a.context = s;
   } catch (e) {
-    console.error(e), Sentry.captureException(e, {
+    console.error(e), e?.message?.includes("FID is missing, no fallback external FID") || Sentry.captureException(e, {
       extra: {
         body: a.body,
         context: a.context
@@ -136,15 +136,15 @@ function hexToBytes(a) {
 
 function extractAndReplaceMentions(e, s = {}) {
   let n = "";
-  const d = [], i = [];
+  const i = [], d = [];
   return e.split(/(\s|\n)/).forEach((e, a) => {
     var t, r;
     e.startsWith("@") && (t = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)[1]) in s ? (r = Buffer.from(n).length, 
-    d.push(s[t]), i.push(r), n += e.replace("@" + t, "")) : n += e;
+    i.push(s[t]), d.push(r), n += e.replace("@" + t, "")) : n += e;
   }), {
     text: n,
-    mentions: d,
-    mentionsPositions: i
+    mentions: i,
+    mentionsPositions: d
   };
 }
 
@@ -157,19 +157,19 @@ const makeMessage = async ({
 }) => {
   if (!e) throw new Error("No private key provided");
   var n = new NobleEd25519Signer(Buffer.from(e, "hex"));
-  let d;
+  let i;
   try {
     switch (a) {
      case MessageType.CAST_ADD:
-      d = await makeCastAddRpc(t, {
+      i = await makeCastAddRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.CAST_REMOVE:
-      var i = Date.now() - 314496e5, o = toFarcasterTime(i).value;
-      d = await makeCastRemoveRpc(t, {
+      var d = Date.now() - 314496e5, o = toFarcasterTime(d).value;
+      i = await makeCastRemoveRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK,
         timestamp: o
@@ -177,35 +177,35 @@ const makeMessage = async ({
       break;
 
      case MessageType.REACTION_ADD:
-      d = await makeReactionAddRpc(t, {
+      i = await makeReactionAddRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.REACTION_REMOVE:
-      d = await makeReactionRemoveRpc(t, {
+      i = await makeReactionRemoveRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.LINK_ADD:
-      d = await makeLinkAddRpc(t, {
+      i = await makeLinkAddRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.LINK_REMOVE:
-      d = await makeLinkRemoveRpc(t, {
+      i = await makeLinkRemoveRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.USER_DATA_ADD:
-      d = await makeUserDataAddRpc(t, {
+      i = await makeUserDataAddRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
@@ -217,16 +217,16 @@ const makeMessage = async ({
   } catch (e) {
     throw console.error(e), new Error("Unable to create message: " + e.message);
   }
-  if (!d) throw new Error("Invalid Farcaster data");
-  if (d.value) return e = d.value, Message.toJSON({
+  if (!i) throw new Error("Invalid Farcaster data");
+  if (i.value) return e = i.value, Message.toJSON({
     ...e,
     data: {
       ...e.data,
       ...s
     }
   });
-  throw d.error || new Error("Invalid Farcaster data");
-}, makeRequest = async (e, a, t, r, s = {}, n = {}, d = {}) => {
+  throw i.error || new Error("Invalid Farcaster data");
+}, makeRequest = async (e, a, t, r, s = {}, n = {}, i = {}) => {
   e = await makeMessage({
     privateKey: e,
     messageType: a,
@@ -234,15 +234,15 @@ const makeMessage = async ({
     fid: r,
     overrides: s
   });
-  let i = "0x" === r?.slice(0, 2);
+  let d = "0x" === r?.slice(0, 2);
   a = ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), 
-  i = i || Object.keys(n).some(a => "object" == typeof n[a] ? Object.keys(n[a]).some(e => "0x" === n[a][e]?.slice(0, 2)) : "0x" === n[a]?.slice?.(0, 2)), 
+  d = d || Object.keys(n).some(a => "object" == typeof n[a] ? Object.keys(n[a]).some(e => "0x" === n[a][e]?.slice(0, 2)) : "0x" === n[a]?.slice?.(0, 2)), 
   t = await postMessage({
-    isExternal: i || r.startsWith("0x") || !1,
+    isExternal: d || r.startsWith("0x") || !1,
     externalFid: r,
     messageJSON: e,
     hubClient: a,
-    errorHandler: d?.errorHandler || (e => {
+    errorHandler: i?.errorHandler || (e => {
       Sentry.captureException(e), console.error(e);
     }),
     bodyOverrides: n
@@ -255,8 +255,8 @@ const makeMessage = async ({
   mentionsUsernames: t = [],
   embeds: s,
   parentHash: n,
-  parentFid: d,
-  parentUrl: i,
+  parentFid: i,
+  parentUrl: d,
   fid: o
 }) => {
   t = {
@@ -265,10 +265,10 @@ const makeMessage = async ({
   }, s = {};
   n && (t.parentCastId = {
     hash: hexToBytes(n.slice(2)),
-    fid: parseInt(d)
+    fid: parseInt(i)
   }, s.parentCastId = {
-    fid: d
-  }), i && (t.parentUrl = i), s.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e)), 
+    fid: i
+  }), d && (t.parentUrl = d), s.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e)), 
   t.type = 320 < Buffer.from(a, "utf-8").length ? 1 : 0;
   try {
     return await makeRequest(e, MessageType.CAST_ADD, t, o, {}, s);

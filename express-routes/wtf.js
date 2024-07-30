@@ -2,10 +2,13 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   getFarcasterUserAndLinksByFid,
   getFarcasterCastByShortHash,
   getFarcasterCastByHash
-} = require("../helpers/farcaster"), config = require("../helpers/constants/config")["config"], Contract = require("../models/wallet/Contract")["Contract"], Token = require("../models/wallet/Token")["Token"], CacheService = require("../services/cache/CacheService")["Service"], cacheService = new CacheService(), generateImageWithText = require("../helpers/generate-image")["generateImageWithText"], crypto = require("crypto"), {
+} = require("../helpers/farcaster"), config = require("../helpers/constants/config")["config"], Contract = require("../models/wallet/Contract")["Contract"], Token = require("../models/wallet/Token")["Token"], CacheService = require("../services/cache/CacheService")["Service"], _ScoreService = require("../services/ScoreService")["Service"], cacheService = new CacheService(), generateImageWithText = require("../helpers/generate-image")["generateImageWithText"], crypto = require("crypto"), {
   memcache,
   getHash
-} = require("../connectmemcache"), Reactions = require("../models/farcaster")["Reactions"], getImageUrlOrUploadImage = require("../helpers/fetch-and-upload-image")["getImageUrlOrUploadImage"], heavyLimiter = rateLimit({
+} = require("../connectmemcache"), Reactions = require("../models/farcaster")["Reactions"], getImageUrlOrUploadImage = require("../helpers/fetch-and-upload-image")["getImageUrlOrUploadImage"], authContext = require("../helpers/express-middleware")["authContext"], Referral = require("../models/Referral")["Referral"], {
+  getFartapKey,
+  getFartapScoreType
+} = require("../helpers/fartap"), heavyLimiter = rateLimit({
   windowMs: 6e4,
   max: 50,
   message: "Too many requests! See docs.far.quest for more info.",
@@ -265,24 +268,24 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
    case "mint":
     {
       if (!f.isVerified) throw new Error("Contract is not verified");
-      var d = await cacheService.get({
+      var l = await cacheService.get({
         key: "Wtf:Frame:Minted",
         params: {
           connectedAddress: p,
           contractId: f._id
         }
       });
-      if (d && "development" !== process.env.NODE_ENV) {
+      if (l && "development" !== process.env.NODE_ENV) {
         c = "https://i.imgur.com/yByoglU.png", s = "";
-        var l = "https://far.quest/contracts/degen/" + f.slug, l = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + l)}&embeds[]=${l}&rand=` + Math.random().toString().slice(0, 7);
+        var d = "https://far.quest/contracts/degen/" + f.slug, d = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + d)}&embeds[]=${d}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View" />
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="https://explorer.degen.tips/tx/${d}" />
+          <meta property="fc:frame:button:1:target" content="https://explorer.degen.tips/tx/${l}" />
 
           <meta property="fc:frame:button:2" content="Share Mint" />
           <meta property="fc:frame:button:2:action" content="link" />
-          <meta property="fc:frame:button:2:target" content="${l}" />
+          <meta property="fc:frame:button:2:target" content="${d}" />
       
       
           <meta property="fc:frame:button:3" content="Install Action" />
@@ -295,8 +298,8 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         `;
         break;
       }
-      var d = "Wtf:Frame:MintedOut:" + f._id;
-      if ("1" === (await memcache.get(d))?.value) {
+      var l = "Wtf:Frame:MintedOut:" + f._id;
+      if ("1" === (await memcache.get(l))?.value) {
         c = "https://i.imgur.com/zSqLZoV.png", m = `
           <meta property="fc:frame:button:1" content="Install Action" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -309,7 +312,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         break;
       }
       let t = !0, e = {};
-      o && o.toString() !== i.toString() && ([ l, d, y ] = await Promise.all([ getFarcasterUserAndLinksByFid({
+      o && o.toString() !== i.toString() && ([ d, l, y ] = await Promise.all([ getFarcasterUserAndLinksByFid({
         fid: o,
         context: {
           fid: i
@@ -324,10 +327,10 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         context: {
           fid: i
         }
-      }) ]), e = l, t = l.isFollowing && (d.isFollowing || "274" === i.toString()) && (y.isFollowing || "251" === i.toString()));
-      l = r.query.count ? parseInt(r.query.count) : 0, d = l >= ANGRY_MODE_COUNT;
-      if (!t && !d) {
-        c = "https://i.imgur.com/Bvfd03f.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustFollow=` + o + (n ? "&mustLikeAndRecast=" + n : ""), 
+      }) ]), e = d, t = d.isFollowing && (l.isFollowing || "274" === i.toString()) && (y.isFollowing || "251" === i.toString()));
+      d = r.query.count ? parseInt(r.query.count) : 0, l = d >= ANGRY_MODE_COUNT;
+      if (!t && !l) {
+        c = "https://i.imgur.com/Bvfd03f.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${d + 1}&mustFollow=` + o + (n ? "&mustLikeAndRecast=" + n : ""), 
         m = `
           <meta property="fc:frame:button:1:action" content="link" />
           <meta property="fc:frame:button:1:target" content="https://warpcast.com/${e.username}" />
@@ -346,8 +349,8 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
       }
       let a;
       if (r.context.frameData?.frameActionBody?.castId?.hash && (a = "0x" + Buffer.from(r.context.frameData?.frameActionBody?.castId?.hash).toString("hex")), 
-      n && a && a !== TEST_HASH && !d) {
-        var [ y, d ] = await Promise.all([ Reactions.exists({
+      n && a && a !== TEST_HASH && !l) {
+        var [ y, l ] = await Promise.all([ Reactions.exists({
           targetHash: a,
           deletedAt: null,
           fid: i,
@@ -358,8 +361,8 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           reactionType: 2,
           fid: i
         }) ]);
-        if (!y || !d) {
-          c = "https://i.imgur.com/3urlLNk.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + n, 
+        if (!y || !l) {
+          c = "https://i.imgur.com/3urlLNk.png", s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${d + 1}&mustLikeAndRecast=` + n, 
           m = `
           <meta property="fc:frame:button:1:action" content="post" />
           <meta property="fc:frame:button:1" content="Mint ➡️" />
@@ -395,7 +398,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           value: h,
           expiresAt: null
         }) ]), s = "";
-        var C = "https://explorer.degen.tips/tx/" + h, I = "https://far.quest/contracts/degen/" + f.slug, A = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + I)}&embeds[]=${I}&rand=` + Math.random().toString().slice(0, 7);
+        var C = "https://explorer.degen.tips/tx/" + h, v = "https://far.quest/contracts/degen/" + f.slug, A = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + v)}&embeds[]=${v}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View Tx" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -420,7 +423,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           lifetime: 604800,
           noreply: !0
         }), c = "https://i.imgur.com/zSqLZoV.png") : (c = "https://i.imgur.com/dDh20zB.png", 
-        Sentry.captureException(t)), s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + n, 
+        Sentry.captureException(t)), s = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${d + 1}&mustLikeAndRecast=` + n, 
         m = `
           <meta property="fc:frame:button:1" content="Install Action" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -590,15 +593,15 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
       break;
 
      case "fillName":
-      var u = e.query.mustFollow, d = 1 === parseInt(e.body?.untrustedData?.buttonIndex) || e.query.mustLikeAndRecast ? "true" : null;
+      var u = e.query.mustFollow, l = 1 === parseInt(e.body?.untrustedData?.buttonIndex) || e.query.mustLikeAndRecast ? "true" : null;
       try {
         s = await processCastOrImageUrl(r);
       } catch (t) {
         console.error(t), s = r;
       }
       if (s?.startsWith("https://client.warpcast.com/v2/cast-image")) try {
-        var l = await findCastImageFromHash(new URL(s).searchParams.get("castHash"));
-        if (l) {
+        var d = await findCastImageFromHash(new URL(s).searchParams.get("castHash"));
+        if (d) {
           c = `
         <meta property="fc:frame:input:text" content="Name (Optional)" />
         <meta property="fc:frame:button:1" content="Start Over" />
@@ -607,11 +610,11 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
 
           <meta property="fc:frame:button:2" content="Use post's image" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:button:2:post_url" content="${p}?step=fillName${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(l)}"/>
+          <meta property="fc:frame:button:2:post_url" content="${p}?step=fillName${u ? "&mustFollow=" + u : ""}${l ? "&mustLikeAndRecast=" + l : ""}&image=${encodeURIComponent(d)}"/>
 
         <meta property="fc:frame:button:3" content="Create Free Mint ✨" />
           <meta property="fc:frame:button:3:action" content="post" />
-          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(s)}" />
+          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${l ? "&mustLikeAndRecast=" + l : ""}&image=${encodeURIComponent(s)}" />
         `;
           break;
         }
@@ -626,7 +629,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
 
         <meta property="fc:frame:button:2" content="Create Free Mint ✨" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(s)}" />
+          <meta property="fc:frame:post_url" content="${p}?step=confirm${u ? "&mustFollow=" + u : ""}${l ? "&mustLikeAndRecast=" + l : ""}&image=${encodeURIComponent(s)}" />
         `;
       break;
 
@@ -714,7 +717,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         <meta property="fc:frame:input:text" content="Error: Invalid step provided." />
       `;
     }
-    var I = `
+    var v = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -724,7 +727,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         ${c}
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(I);
+    a.setHeader("Content-Type", "text/html"), a.send(v);
   } catch (t) {
     console.error(t), Sentry.captureException(t, {
       extra: {
@@ -734,7 +737,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         context: e.context
       }
     });
-    I = `
+    v = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -746,7 +749,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
           <meta property="fc:frame:button:1:post_url" content="${p}?step=fillImage" />
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(I);
+    a.setHeader("Content-Type", "text/html"), a.send(v);
   }
 }), app.get("/v1/frames/add-action", (t, e) => {
   var a = {
@@ -787,6 +790,128 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
     frameUrl: o + `?step=fillName&${a.mustFollow ? "&mustFollow=" + a.mustFollow : ""}&${a.mustLikeAndRecast ? "&mustLikeAndRecast=" + a.mustLikeAndRecast : ""}&image=` + encodeURIComponent(a.image)
   }))) : e.status(400).json({
     message: "Invalid Cast ID!"
+  });
+});
+
+const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
+  farstray: .1,
+  farbeaver: .2,
+  farligator: .4,
+  farinu: .8,
+  farpossum: 1,
+  faryote: 1.2,
+  farsune: 1.6,
+  farllama: 2,
+  farlucky: 3
+}, boostsPrice = {
+  farstray: 100,
+  farbeaver: 1e3,
+  farligator: 1e4,
+  farinu: 5e4,
+  farpossum: 75e3,
+  faryote: 1e5,
+  farsune: 15e4,
+  farllama: 2e5,
+  farlucky: 5e5
+}, questsPrice = {
+  followWieldLabs: 5e5,
+  likeWieldLabsLatest: 5e5,
+  followTwitch: 5e5,
+  followJcdenton: 5e5,
+  followNico: 5e5,
+  followTg: 5e5,
+  followTgAnnouncement: 5e5
+}, referralQuesPrice = {
+  referralQuest1: 1e5,
+  referralQuest2: 25e4,
+  referralQuest5: 5e5,
+  referralQuest10: 1e6,
+  referralQuest15: 2e6,
+  referralQuest20: 4e6,
+  referralQuest25: 8e6,
+  referralQuest30: 1e7,
+  referralQuest40: 1e7,
+  referralQuest50: 1e7,
+  referralQuest60: 1e7,
+  referralQuest70: 1e7,
+  referralQuest80: 1e7,
+  referralQuest90: 1e7,
+  referralQuest100: 1e7,
+  referralQuest200: 1e7,
+  referralQuest300: 1e7,
+  referralQuest400: 1e7,
+  referralQuest500: 1e7,
+  referralQuest1000: 25e6
+}, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e4, getTotalReferral = async t => {
+  var e = await memcache.get(`Referral:TELEGRAM:${t}:total:count`);
+  return e ? e.value : (e = await Referral.countDocuments({
+    referralType: "TELEGRAM",
+    account: t
+  }), await memcache.set(`Referral:TELEGRAM:${t}:total:count`, e), e);
+};
+
+app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, e) => {
+  if (!t.context.account) return e.status(401).json({
+    message: "Unauthorized"
+  });
+  var {
+    taps: a = 0,
+    boosts: r = {},
+    quests: o
+  } = t.body, n = t.context.account._id, c = await getFartapKey(), s = new Date();
+  let m = await cacheService.get({
+    key: c,
+    params: {
+      accountId: n
+    }
+  });
+  m = m ? JSON.parse(m) : {
+    passiveTaps: 0,
+    boosts: {},
+    score: 1e6,
+    gameLastUpdated: s
+  };
+  const p = (s - new Date(m.gameLastUpdated)) / 1e3;
+  var i = p * MAX_TAPS_PER_SECOND, a = Math.min(Math.max(a, m.score), i + m.score), i = Object.entries(m.boosts).reduce((t, [ e, a ]) => t + (boostsMultiplier[e] || 0) * a * p, 0), f = m.passiveTaps + i;
+  let u = a + i;
+  Object.entries(r).forEach(([ a, r ]) => {
+    if (boostsPrice[a]) {
+      var o = boostsPrice[a];
+      if ((m.boosts[a] || 0) < r) {
+        let e = 0;
+        for (let t = m.boosts[a] || 0; t < r; t++) e += Math.floor(o * Math.pow(MULTIPLIER, t));
+        u >= e && (m.boosts = {
+          ...m.boosts,
+          [a]: r
+        }, u -= e);
+      }
+    }
+  }), m.score = u, m.passiveTaps = f, m.gameLastUpdated = s;
+  a = await getTotalReferral(n), m.totalReferralCount = a, (!m.appliedRefCount || m.appliedRefCount < a) && (i = m.score + (a - m.appliedRefCount) * REFERRAL_BONUS, 
+  m.score = i, m.appliedRefCount = a), o && 0 < Object.keys(o).length && Object.entries(o).forEach(([ t ]) => {
+    questsPrice[t] && !m.quests?.[t] ? (m.score += questsPrice[t], m.quests = {
+      ...m.quests || {},
+      [t]: !0
+    }) : referralQuesPrice[t] && !m.quests?.[t] && (m.score += referralQuesPrice[t], 
+    m.quests = {
+      ...m.quests || {},
+      [t]: !0
+    });
+  }), await cacheService.set({
+    key: c,
+    params: {
+      accountId: n
+    },
+    value: JSON.stringify(m),
+    expiresAt: null
+  }), r = new _ScoreService(), await t.context.account.populate("addresses"), f = await getFartapScoreType();
+  return await r.setScore({
+    address: t.context.account.addresses[0].address,
+    score: Math.floor(u),
+    scoreType: f
+  }), e.json({
+    success: !0,
+    data: m
   });
 }), module.exports = {
   router: app

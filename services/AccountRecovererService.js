@@ -25,10 +25,10 @@ class AccountRecovererService {
   }) {
     try {
       var t = JSON.parse(e), a = t.response.clientDataJSON, s = t.response.attestationObject, i = this.bufferToAB(base64url.toBuffer(t.id)), {
-        id: n,
-        type: d
+        id: d,
+        type: n
       } = t;
-      if ("public-key" !== d) throw new Error("Invalid PassKey type");
+      if ("public-key" !== n) throw new Error("Invalid PassKey type");
       var o = new fido2.Fido2Lib({
         timeout: 6e4,
         challengeSize: 52,
@@ -49,7 +49,7 @@ class AccountRecovererService {
             clientDataJSON: a
           }
         }, c),
-        id: n
+        id: d
       };
     } catch (e) {
       throw console.error(e), new Error("Could not parse PassKey signature");
@@ -99,9 +99,9 @@ class AccountRecovererService {
     var s = getProvider({
       network: 10,
       node: process.env.OPTIMISM_NODE_URL
-    }), i = getFlags(), n = i.USE_GATEWAYS ? keyGatewayRegistryAddress : keyRegistrarAddress, i = i.USE_GATEWAYS ? idGatewayRegistryAddress : idRegistrarAddress, n = new ethers.Contract(n, keyRegistrarAbi, s), i = new ethers.Contract(i, idRegistrarAbi, s);
-    let d = a;
-    if (d = d || await i.idOf(t)) return 1 === (await n.keyDataOf(d, r))?.state ? d : null;
+    }), i = getFlags(), d = i.USE_GATEWAYS ? keyGatewayRegistryAddress : keyRegistrarAddress, i = i.USE_GATEWAYS ? idGatewayRegistryAddress : idRegistrarAddress, d = new ethers.Contract(d, keyRegistrarAbi, s), i = new ethers.Contract(i, idRegistrarAbi, s);
+    let n = a;
+    if (n = n || await i.idOf(t)) return 1 === (await d.keyDataOf(n, r))?.state ? n : null;
     throw new Error("Address does not own a valid FID");
   }
   async getFid(e, {
@@ -119,20 +119,20 @@ class AccountRecovererService {
     custodyAddress: a,
     signature: s,
     deadline: i,
-    metadata: n
+    metadata: d
   }) {
-    var d = getProvider({
+    var n = getProvider({
       network: 10,
       node: process.env.OPTIMISM_NODE_URL
-    }), o = await new Alchemy({
+    }), o = (await new Alchemy({
       apiKey: process.env.OPTIMISM_NODE_URL,
       network: Network.OPT_MAINNET
-    }).core.getGasPrice(), o = Utils.formatUnits(o, "gwei"), c = ethers.utils.parseUnits(o, "gwei"), g = ethers.utils.parseUnits("0.175", "gwei");
+    }).core.getGasPrice()).mul(110).div(100), o = Utils.formatUnits(o, "gwei"), c = ethers.utils.parseUnits(o, "gwei"), g = ethers.utils.parseUnits("0.5", "gwei");
     if (c.gt(g)) throw new Error(`Gas price is too high: ${o} gwei`);
     g = process.env.FARCAST_KEY;
     if (!g) throw new Error("Not configured!");
-    o = ethers.Wallet.fromMnemonic(g).connect(d), g = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, o), 
-    d = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, o), o = r, g = await g.keyDataOf(t, o);
+    o = ethers.Wallet.fromMnemonic(g).connect(n), g = new ethers.Contract(keyGatewayRegistryAddress, keyRegistrarAbi, o), 
+    n = new ethers.Contract(keyGatewayAddress, keyRegistrarAbi, o), o = r, g = await g.keyDataOf(t, o);
     if (1 === g?.state) return r;
     if (0 !== g?.state) throw new Error("Signer has been removed");
     {
@@ -141,19 +141,19 @@ class AccountRecovererService {
         keyType: 1,
         key: o,
         metadataType: 1,
-        metadata: n,
+        metadata: d,
         deadline: i,
         fidSignature: s
       });
-      var g = new _CacheService(), y = await g.get({
+      var g = new _CacheService(), l = await g.get({
         key: "AccountRecovererService:addOrGetSigner",
         params: {
           custodyAddress: a
         }
       });
       let e = 1;
-      if (y) {
-        if (5 <= (e = parseInt(y))) throw new Error("You can only add 5 signers per day. Please wait 24 hours and try again.");
+      if (l) {
+        if (5 <= (e = parseInt(l))) throw new Error("You can only add 5 signers per day. Please wait 24 hours and try again.");
         e++;
       }
       await g.set({
@@ -164,13 +164,13 @@ class AccountRecovererService {
         value: e,
         expiresAt: new Date(Date.now() + 864e5)
       });
-      y = await d.addFor(a, 1, o, 1, n, ethers.BigNumber.from(i), s, {
+      l = await n.addFor(a, 1, o, 1, d, ethers.BigNumber.from(i), s, {
         gasLimit: 25e4,
         maxFeePerGas: c,
         maxPriorityFeePerGas: c
       });
-      return await y.wait(), console.log("Added Signer"), console.log({
-        hash: y.hash,
+      return await l.wait(), console.log("Added Signer"), console.log({
+        hash: l.hash,
         signerAddress: r,
         fid: t,
         custodyAddress: a
@@ -223,9 +223,9 @@ class AccountRecovererService {
         if (e.recoverers.find(e => e.id === r.id && e.pubKey === r.pubKey)) return e;
         e.recoverers.push(r);
       } else e.recoverers = [ r ];
-      var n = await e.save();
+      var d = await e.save();
       return await Promise.all([ memcache.delete("Account:findById:" + e._id), memcache.delete(`FarcasterHubService:getFidByAccountId:${e._id}:false`), memcache.delete(`FarcasterHubService:getFidByAccountId:${e._id}:true`) ]), 
-      n;
+      d;
     } catch (e) {
       throw console.error(e), new Error("Could not add recoverer: " + e.message);
     }
