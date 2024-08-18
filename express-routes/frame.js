@@ -463,7 +463,7 @@ app.post("/v1/school/post_url", frameContext, async (t, e) => {
     `
                 <meta property="fc:frame:button:1" content="Share on X" />
         <meta property="fc:frame:button:1:action" content="link" />
-        <meta property="fc:frame:button:1:target" content="${"https://x.com/intent/tweet?text=" + encodeURIComponent(l)}" />
+        <meta property="fc:frame:button:1:target" content="${"https://x.com/intent/post?text=" + encodeURIComponent(l)}" />
                 <meta property="fc:frame:button:2" content="Share on 🟪" />
         <meta property="fc:frame:button:2:action" content="link" />
         <meta property="fc:frame:button:2:target" content="${u}" />

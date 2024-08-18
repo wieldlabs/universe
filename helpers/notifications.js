@@ -1,46 +1,58 @@
-const Expo = require("expo-server-sdk")["Expo"], _CacheService = require("../services/cache/CacheService")["Service"], getFarcasterUserByFid = require("./farcaster")["getFarcasterUserByFid"], Sentry = require("@sentry/node"), expo = new Expo({
+const Expo = require("expo-server-sdk")["Expo"], _CacheService = require("../services/cache/CacheService")["Service"], {
+  getFarcasterUserByFid,
+  getFarcasterCastByHash
+} = require("./farcaster"), Sentry = require("@sentry/node"), expo = new Expo({
   accessToken: process.env.EXPO_ACCESS_TOKEN
 }), memcache = require("../connectmemcache")["memcache"], CacheService = new _CacheService(), sendNotification = async ({
   fromFid: e,
-  toFid: a,
-  notificationType: i
+  toFid: t,
+  notificationType: c,
+  castHash: i
 }) => {
   try {
-    let t = 1;
-    var r = await memcache.get("getFarcasterUnseenNotificationsCount:" + a), c = (r ? t = r.value : await memcache.set("getFarcasterUnseenNotificationsCount:" + a, t), 
+    let a = 1;
+    var r = await memcache.get("getFarcasterUnseenNotificationsCount:" + t), s = (r ? a = r.value : await memcache.set("getFarcasterUnseenNotificationsCount:" + t, a), 
     await CacheService.get({
-      key: "expoTokens:" + a
+      key: "expoTokens:" + t
     }));
-    if (c) {
-      var s = (e?.toString() || "").trim(), o = await getFarcasterUserByFid(e);
-      if (o) {
-        let a;
-        var n = "fid:" + s.slice(0, 6) + (6 < s.length ? "..." : ""), m = o.displayName ? `${o.displayName?.trim()} (@${o.username?.trim() || n})` : "@" + (o.username?.trim() || n);
-        switch (i) {
+    if (s) {
+      var o = (e?.toString() || "").trim(), n = await getFarcasterUserByFid(e);
+      if (n) {
+        var m = "fid:" + o.slice(0, 6) + (6 < o.length ? "..." : ""), y = n.displayName ? `${n.displayName?.trim()} (@${n.username?.trim() || m})` : "@" + (n.username?.trim() || m);
+        let e;
+        i && (e = await getFarcasterCastByHash(i));
+        let t;
+        switch (c) {
          case "link":
-          a = m + " followed you";
+          t = y + " followed you";
           break;
 
          case "reply":
-          a = m + " replied to your cast";
+          t = y + " replied to your cast";
           break;
 
          case "like":
-          a = m + " liked your cast";
+          t = y + " liked your cast";
           break;
 
          case "recast":
-          a = m + " recasted your cast";
+          t = y + " recasted your cast";
           break;
 
          case "mention":
-          a = m + " mentioned you in a cast";
+          t = y + " mentioned you in a cast";
         }
-        a && expo.sendPushNotificationsAsync([ ...c.map(e => ({
-          to: e,
-          title: a,
-          badge: t
-        })) ]);
+        if (t) {
+          const d = {
+            title: t,
+            badge: a
+          };
+          e && "string" == typeof e.text && (d.body = e.text.slice(0, 100) + (100 < e.text.length ? "..." : "")), 
+          expo.sendPushNotificationsAsync([ ...s.map(e => ({
+            ...d,
+            to: e
+          })) ]);
+        }
       }
     }
   } catch (e) {

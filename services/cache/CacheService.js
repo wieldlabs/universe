@@ -20,7 +20,7 @@ class CacheService extends NormalizeCacheService {
       value: JSON.stringify({
         value: t
       }),
-      expiresAt: r
+      expiresAt: r || null
     });
     return await Promise.all([ memcache.set(getHash(e), a.value, r ? {
       lifetime: Math.floor((r - new Date()) / 1e3)
@@ -44,7 +44,7 @@ class CacheService extends NormalizeCacheService {
       value: JSON.stringify({
         value: t
       }),
-      expiresAt: r
+      expiresAt: r || null
     });
     return await Promise.all([ memcache.set(getHash(e), a.value, r ? {
       lifetime: Math.floor((r - new Date()) / 1e3)
@@ -130,8 +130,8 @@ class CacheService extends NormalizeCacheService {
         ...s
       });
       r && (e = e.sort(r));
-      var m, h = await (e = i ? e.limit(i) : e);
-      if (h) return m = h.map(e => JSON.parse(e.value).value), await memcache.set(getHash(JSON.stringify(a)), JSON.stringify(m), {
+      var m, n = await (e = i ? e.limit(i) : e);
+      if (n) return m = n.map(e => JSON.parse(e.value).value), await memcache.set(getHash(JSON.stringify(a)), JSON.stringify(m), {
         lifetime: 300
       }), m;
     } catch (e) {

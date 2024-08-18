@@ -31,7 +31,8 @@ class CommunityQuestMutationService extends CommunityQuestService {
       await ScoreService.setScore({
         address: o,
         scoreType: n,
-        modifier: e.quantity
+        modifier: e.quantity,
+        description: "Claimed reward ID " + e.rewardId
       });
     } else if ("IMAGE" === e.type) {
       if (!a.account) throw new Error("You must be logged in to claim this reward.");

@@ -34,9 +34,9 @@ async function getAddressPasses(e, a) {
     })), a) return {
       isHolder: t
     };
-    t && !i && (r = await fetchAndProcessNFTs(o, c, e), await memcache.set(s, JSON.stringify(r), {
+    t && !i && 0 < (r = await fetchAndProcessNFTs(o, c, e))?.length && await memcache.set(s, JSON.stringify(r), {
       lifetime: 60
-    }));
+    });
   } catch (e) {
     throw console.error(e), new Error("Failed to retrieve address passes");
   }
@@ -139,7 +139,7 @@ function extractAndReplaceMentions(e, s = {}) {
   const i = [], d = [];
   return e.split(/(\s|\n)/).forEach((e, a) => {
     var t, r;
-    e.startsWith("@") && (t = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)[1]) in s ? (r = Buffer.from(n).length, 
+    e.startsWith("@") && (t = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)?.[1]) && t in s ? (r = Buffer.from(n).length, 
     i.push(s[t]), d.push(r), n += e.replace("@" + t, "")) : n += e;
   }), {
     text: n,

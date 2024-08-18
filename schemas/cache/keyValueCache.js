@@ -8,8 +8,7 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
     type: String
   },
   expiresAt: {
-    type: Date,
-    default: () => new Date(Date.now() + 3e5)
+    type: Date
   }
 }, {
   timestamps: !0

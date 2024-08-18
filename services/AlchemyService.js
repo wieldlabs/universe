@@ -154,17 +154,23 @@ class AlchemyService {
     contractAddress: e,
     withTokenBalances: r
   }) {
-    var t = {
+    var a = {
       timeout: TIMEOUT_MS
-    }, r = this.getNFTBaseRoute() + "/getOwnersForCollection" + (r ? "?withTokenBalances=true" : ""), e = {
+    }, o = this.getNFTBaseRoute() + "/getOwnersForCollection" + (r ? "?withTokenBalances=true" : ""), s = {
       contractAddress: e
     };
     try {
-      var a = (await axios.get(r, {
-        params: e,
-        ...t
-      }))["data"];
-      return a;
+      let e = [], r = null, t = 0;
+      do {
+        var c = (await axios.get(o + (r ? "&pageKey=" + r : ""), {
+          params: s,
+          ...a
+        }))["data"];
+        e = [ ...e, ...c.ownerAddresses ], r = c.pageKey, t += 1;
+      } while (r && t < 50);
+      return {
+        ownerAddresses: e
+      };
     } catch (e) {
       throw Sentry.captureException(e), new Error("AlchemyService.getOwnersForCollection error, " + e.message);
     }

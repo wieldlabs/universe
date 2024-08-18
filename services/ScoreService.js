@@ -10,7 +10,8 @@ class ScoreService {
   async _setScoreRecord({
     address: e,
     scoreType: r,
-    score: s = 0
+    score: s = 0,
+    description: a
   }) {
     return await new _CacheService().setWithDupe({
       key: "BebScoreServiceRecord",
@@ -18,7 +19,10 @@ class ScoreService {
         address: e,
         scoreType: r
       },
-      value: s
+      value: {
+        score: s,
+        description: a
+      }
     });
   }
   async _setHighestScore({
@@ -53,18 +57,21 @@ class ScoreService {
     address: e,
     scoreType: r,
     score: s = 0,
-    modifier: a = null
+    modifier: a = null,
+    description: c = null,
+    shouldRecord: d = !0
   }) {
-    var c, e = validateAndConvertAddress(e);
-    let d = s;
-    return null !== a && (c = await this.getCommunityScore({
+    var o, e = validateAndConvertAddress(e);
+    let t = s;
+    return null !== a && (o = await this.getCommunityScore({
       address: e,
       bebdomain: r
-    }), d = c ? parseInt(c) + a : s + a), d = Math.min(Math.max(d, 0), Number.MAX_SAFE_INTEGER), 
-    this._setScoreRecord({
+    }), t = o ? parseInt(o) + a : s + a), t = Math.min(Math.max(t, 0), Number.MAX_SAFE_INTEGER), 
+    d && this._setScoreRecord({
       address: e,
       scoreType: r,
-      score: d
+      score: t,
+      description: c
     }), this._setHighestScore({
       address: e,
       scoreType: r,
@@ -75,7 +82,7 @@ class ScoreService {
     }, {
       address: e,
       scoreType: r,
-      score: padWithZeros(d.toString())
+      score: padWithZeros(t.toString())
     }, {
       upsert: !0
     });

@@ -33,7 +33,8 @@ app.get("/v2/:referralCode/verify", limiter, async (e, r) => {
       params: {
         address: validateAndConvertAddress(a)
       },
-      value: "" + s
+      value: "" + s,
+      expiresAt: null
     }), r.json({
       code: 200,
       success: !0

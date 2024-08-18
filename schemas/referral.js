@@ -18,6 +18,10 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   uniqueIdentifier: {
     type: String
   },
+  isValid: {
+    type: Boolean,
+    default: !1
+  },
   extraData: {
     type: Object
   }
@@ -37,7 +41,21 @@ schema.index({
   referralType: 1,
   code: 1
 }), schema.index({
+  referralType: 1,
+  code: 1,
+  uniqueIdentifier: 1
+}), schema.index({
+  referralType: 1,
+  account: 1,
+  uniqueIdentifier: 1
+}), schema.index({
+  referralType: 1,
+  account: 1,
+  isValid: 1
+}), schema.index({
   code: 1
+}), schema.index({
+  uniqueIdentifier: 1
 }), module.exports = {
   schema: schema
 };

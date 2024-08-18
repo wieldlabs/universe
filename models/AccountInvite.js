@@ -6,8 +6,8 @@ class AccountInviteClass {
   }
   static async findOrCreate({
     accountId: e,
-    useCount: o,
-    maxUseCount: t,
+    useCount: t,
+    maxUseCount: o,
     expiresAt: c
   }) {
     var n = await this.findOne({
@@ -15,10 +15,10 @@ class AccountInviteClass {
     });
     return n || this.create({
       account: e,
-      useCount: o,
-      maxUseCount: t,
+      useCount: t,
+      maxUseCount: o,
       expiresAt: c,
-      code: "" + crypto.randomInt(1e7, 1e8)
+      code: crypto.randomBytes(7).toString("base64").replace(/[+/=]/g, "").replace(/[a-z]/gi, e => "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"[e.charCodeAt(0) % 36]).slice(0, 8)
     });
   }
 }

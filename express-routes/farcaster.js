@@ -1035,7 +1035,9 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     return t.json({
       result: {
         trends: y,
-        casts: l
+        ...r.query.onlyTrends ? {} : {
+          casts: l
+        }
       },
       source: "v2"
     });
