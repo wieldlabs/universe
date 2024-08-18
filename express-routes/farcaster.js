@@ -63,14 +63,14 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
 }, limiter = rateLimit({
   windowMs: 5e3,
   max: getLimit(5),
-  message: "Too many requests or invalid API key! See docs.far.quest for more info.",
+  message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
   validate: {
     limit: !1
   }
 }), heavyLimiter = rateLimit({
   windowMs: 5e3,
   max: getLimit(1),
-  message: "Too many requests or invalid API key! See docs.far.quest for more info.",
+  message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
   validate: {
     limit: !1
   }
@@ -87,17 +87,17 @@ const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.
     var o = await Account.findByIdCached(n.payload.id);
     if (!o) throw new Error(`Account id ${n.payload.id} not found`);
     if (o.deleted) throw new Error(`Account id ${n.payload.id} deleted`);
-    var c = "true" === r.headers.external, i = (!c && n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal, c))?.toString().toLowerCase(), u = new _CacheService();
+    var i = "true" === r.headers.external, c = (!i && n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal, i))?.toString().toLowerCase(), u = new _CacheService();
     await u.get({
-      key: "enableNotifications_" + i
+      key: "enableNotifications_" + c
     }) || await u.set({
-      key: "enableNotifications_" + i,
+      key: "enableNotifications_" + c,
       value: "1",
       expiresAt: new Date(Date.now() + 2592e6)
     }), r.context = {
       ...r.context || {},
       accountId: n.payload.id,
-      fid: i,
+      fid: c,
       account: o,
       hubClient: a
     };
@@ -169,11 +169,11 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/casts-in-thread", [ authContext, limiter ], async (e, r) => {
   try {
-    var t, a, s = e.query.threadHash, n = e.query.parentHash, o = Math.min(e.query.limit || 10, 50), c = e.query.cursor || null;
+    var t, a, s = e.query.threadHash, n = e.query.parentHash, o = Math.min(e.query.limit || 10, 50), i = e.query.cursor || null;
     return s ? ([ t, a ] = await getFarcasterCastsInThread({
       threadHash: s,
       limit: o,
-      cursor: c,
+      cursor: i,
       parentHash: n,
       context: e.context
     }), r.json({
@@ -192,18 +192,18 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/casts", [ authContext, limiter ], async (e, r) => {
   try {
-    var t = e.query.fid, a = JSON.parse(e.query.filters || null), s = e.query.parentChain || null, n = Math.min(e.query.limit || 10, 100), o = e.query.cursor || null, c = "true" === e.query.explore, [ i, u ] = await getFarcasterCasts({
+    var t = e.query.fid, a = JSON.parse(e.query.filters || null), s = e.query.parentChain || null, n = Math.min(e.query.limit || 10, 100), o = e.query.cursor || null, i = "true" === e.query.explore, [ c, u ] = await getFarcasterCasts({
       fid: t,
       parentChain: s,
       limit: n,
       cursor: o,
       context: e.context,
-      explore: c,
+      explore: i,
       filters: a
     });
     return r.json({
       result: {
-        casts: i
+        casts: c
       },
       next: u,
       source: "v2"
@@ -594,16 +594,16 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     }, {
       name: "deadline",
       type: "uint256"
-    } ], c = Math.floor(Date.now() / 1e3) + 86400;
+    } ], i = Math.floor(Date.now() / 1e3) + 86400;
     return process.env.FARCAST_KEY ? (t = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY)._signTypedData(n, {
       SignedKeyRequest: o
     }, {
       requestFid: ethers.BigNumber.from(18548),
       key: s,
-      deadline: ethers.BigNumber.from(c)
+      deadline: ethers.BigNumber.from(i)
     }), a = (await axios.post("https://api.warpcast.com/v2/signed-key-requests", {
       requestFid: "18548",
-      deadline: c,
+      deadline: i,
       key: s,
       signature: t
     }))["data"], r.json({
@@ -650,13 +650,13 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     var o = new Alchemy({
       apiKey: prod().NODE_URL,
       network: Network.ETH_MAINNET
-    }), c = new Alchemy({
+    }), i = new Alchemy({
       apiKey: prod().OPTIMISM_NODE_URL,
       network: Network.OPT_MAINNET
     });
     let e = null;
-    var i, u, l = await memcache.get("getAddressPasses_isHolder:" + s);
-    if (null === (e = l ? "true" === l.value : e) && (e = await c.nft.verifyNftOwnership(s, prod().OPTIMISM_REGISTRAR_ADDRESS), 
+    var c, u, l = await memcache.get("getAddressPasses_isHolder:" + s);
+    if (null === (e = l ? "true" === l.value : e) && (e = await i.nft.verifyNftOwnership(s, prod().OPTIMISM_REGISTRAR_ADDRESS), 
     e ||= await o.nft.verifyNftOwnership(s, prod().REGISTRAR_ADDRESS), await memcache.set("getAddressPasses_isHolder:" + s, JSON.stringify(e), {
       lifetime: e ? 86400 : 1
     })), t.query.checkHolderOnly) return a.json({
@@ -666,11 +666,11 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       source: "v2"
     });
     let r;
-    return 0 < (r = e ? ([ i, u ] = await Promise.all([ o.nft.getNftsForOwner(s, {
+    return 0 < (r = e ? ([ c, u ] = await Promise.all([ o.nft.getNftsForOwner(s, {
       contractAddresses: [ prod().REGISTRAR_ADDRESS ]
-    }), c.nft.getNftsForOwner(s, {
+    }), i.nft.getNftsForOwner(s, {
       contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
-    }) ]), (i?.ownedNfts || []).concat(u?.ownedNfts || []).map(e => {
+    }) ]), (c?.ownedNfts || []).concat(u?.ownedNfts || []).map(e => {
       let r = e?.name;
       return r = r ? r.replace(".beb", "").replace(".cast", "") + ".cast" : null;
     }).filter(e => e && !e.includes("no_metadata"))) : []).length && await memcache.set("getAddressPasses:" + s, JSON.stringify(r), {
@@ -1020,7 +1020,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         lastCount: t,
         lastTimestamp: a?.computedAt || null
       };
-    })), c = await Promise.all(a?.casts?.map(e => getFarcasterCastByHash(e.hash, r.context))), [ i, u ] = await Promise.all([ o, c ]), l = u.filter(e => null !== e), y = i.reduce((e, {
+    })), i = await Promise.all(a?.casts?.map(e => getFarcasterCastByHash(e.hash, r.context))), [ c, u ] = await Promise.all([ o, i ]), l = u.filter(e => null !== e), y = c.reduce((e, {
       token: r,
       percentageDifference: t,
       count: a,
@@ -1055,11 +1055,11 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Token is required"
     });
     var {
-      castTimerange: c = "3d",
-      tokenTimerange: i = "7d"
+      castTimerange: i = "3d",
+      tokenTimerange: c = "7d"
     } = a.query;
     let e;
-    "1d" === c ? e = 1 : "3d" === c ? e = 3 : "7d" === c && (e = 7);
+    "1d" === i ? e = 1 : "3d" === i ? e = 3 : "7d" === i && (e = 7);
     var u = new Date(Date.now() - 24 * e * 60 * 60 * 1e3), l = n.find({
       key: "TrendingCastsHistory",
       params: {
@@ -1102,9 +1102,9 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Casts not found"
     });
     let r = null, t = [];
-    var f, S = v[v.length - 1];
-    return S?.contractAddress && (f = await Promise.allSettled([ fetchAssetMetadata(S.network, S.contractAddress), fetchPriceHistory(S.contractAddress, S.network, i) ]), 
-    r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
+    var S, f = v[v.length - 1];
+    return f?.contractAddress && (S = await Promise.allSettled([ fetchAssetMetadata(f.network, f.contractAddress), fetchPriceHistory(f.contractAddress, f.network, c) ]), 
+    r = "fulfilled" === S[0].status ? S[0].value : null, t = "fulfilled" === S[1].status ? S[1].value : []), 
     s.json({
       result: {
         casts: m,
@@ -1216,18 +1216,18 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   try {
     var a = r.query.fid;
     if (!a) throw new Error("Fid not found");
-    var s, n = [ getFarcasterFidByCustodyAddress(a), getFarcasterUserByFid(a), getFarcasterStorageByFid(a) ], [ o, c, i ] = await Promise.all(n);
+    var s, n = [ getFarcasterFidByCustodyAddress(a), getFarcasterUserByFid(a), getFarcasterStorageByFid(a) ], [ o, i, c ] = await Promise.all(n);
     let e = !1;
     r.query.signer && (s = new _AccountRecovererService(), e = await s.verifyFarcasterSignerAndGetFid(null, {
       signerAddress: r.query.signer,
-      fid: o || c?.fid
+      fid: o || i?.fid
     })), t.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
       stats: {
-        hasFid: o || !c?.external,
-        storage: i,
+        hasFid: o || !i?.external,
+        storage: c,
         validSigner: !!e
       }
     });

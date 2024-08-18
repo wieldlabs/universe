@@ -19,14 +19,14 @@ const Sentry = require("@sentry/node"), rateLimit = require("express-rate-limit"
 }, limiter = rateLimit({
   windowMs: 3e3,
   max: getLimit(2.5),
-  message: "Too many requests or invalid API key! See docs.far.quest for more info.",
+  message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
   validate: {
     limit: !1
   }
 }), heavyLimiter = rateLimit({
   windowMs: 2e3,
   max: getLimit(.3),
-  message: "Too many requests or invalid API key! See docs.far.quest for more info.",
+  message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
   validate: {
     limit: !1
   }

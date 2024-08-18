@@ -5,9 +5,9 @@
 Superhubs are open-source hosts built by the team behind
 [Wield Labs](https://wield.xyz), used for apps such as
 [far.quest](https://far.quest). To start building right away, check out
-[docs.far.quest](https://docs.far.quest).
+[docs.wield.xyz](https://docs.wield.xyz).
 
-**See our developer documents at [`docs.far.quest`](https://docs.far.quest).**
+**See our developer documents at [`docs.wield.xyz`](https://docs.wield.xyz).**
 
 ## Self-hosting Your Superhub
 
@@ -46,4 +46,4 @@ running instance, and play around with graphql commands at
 ## Useful Links
 
 - [Register a .cast domain](https://wield.xyz)
-- [Developer Documentation](https://docs.far.quest)
+- [Developer Documentation](https://docs.wield.xyz)

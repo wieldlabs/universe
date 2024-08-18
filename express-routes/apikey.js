@@ -1,7 +1,7 @@
 const app = require("express").Router(), Sentry = require("@sentry/node"), ApiKey = require("../models/ApiKey")["ApiKey"], rateLimit = require("express-rate-limit"), heavyLimiter = rateLimit({
   windowMs: 6e4,
   max: 1,
-  message: "Too many requests! See docs.far.quest for more info.",
+  message: "Too many requests! See docs.wield.xyz for more info.",
   validate: {
     limit: !1
   }

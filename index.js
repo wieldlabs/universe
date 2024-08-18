@@ -50,7 +50,7 @@ http.createServer(app));
     }
   })), app.get("/", (e, r) => {
     r.json({
-      message: "Welcome to github.com/wieldlabs/superhub, see docs.far.quest for the API!"
+      message: "Welcome to github.com/wieldlabs/superhub, see docs.wield.xyz for the API!"
     });
   }), app.get("/health", async (e, r) => {
     try {

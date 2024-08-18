@@ -14,14 +14,14 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
 } = require("../helpers/fartap"), heavyLimiter = rateLimit({
   windowMs: 6e4,
   max: 50,
-  message: "Too many requests! See docs.far.quest for more info.",
+  message: "Too many requests! See docs.wield.xyz for more info.",
   validate: {
     limit: !1
   }
 }), lightLimiter = rateLimit({
   windowMs: 6e4,
   max: 100,
-  message: "Too many requests! See docs.far.quest for more info.",
+  message: "Too many requests! See docs.wield.xyz for more info.",
   validate: {
     limit: !1
   }
