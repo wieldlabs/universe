@@ -6,7 +6,7 @@ The Wield Superhub is an open-source Farcaster L1 + L2 data layer built by
 [Wield Labs](https://wield.xyz), used for apps such as
 [far.quest](https://far.quest) and other Farcaster apps.
 
-**See our developer documents at [`docs.wield.xyz`](https://docs.wield.xyz).**
+**See our developer documents at: [`docs.wield.xyz`](https://docs.wield.xyz)**
 
 ## Useful Links
 
