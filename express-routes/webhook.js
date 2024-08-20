@@ -1,4 +1,4 @@
-const app = require("express").Router(), Sentry = require("@sentry/node"), {
+const express = require("express"), app = express.Router(), Sentry = require("@sentry/node"), {
   memcache,
   getHash
 } = require("../connectmemcache"), {
@@ -6,16 +6,43 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
   DEFAULT_LIMIT,
   DEFAULT_CURSORS,
   DEFAULT_FILTER_NO_SYMBOL
-} = require("../helpers/wallet");
+} = require("../helpers/wallet"), CastHandle = require("../models/CastHandle")["CastHandle"], Metadata = require("../models/Metadata")["Metadata"], prod = require("../helpers/registrar")["prod"], crypto = require("crypto");
 
-app.post("/address-activity", async (e, r) => {
+function isValidSignatureForStringBody(e, r, t) {
+  t = crypto.createHmac("sha256", t), t.update(e, "utf8"), e = t.digest("hex");
+  return r === e;
+}
+
+app.post("/nft-activity", express.raw({
+  type: "application/json"
+}), async (e, r) => {
   try {
-    var t, a = e.body, s = (console.log("Webhook received:", a), a?.event?.activity?.map(e => [ e.fromAddress.toLowerCase(), e.toAddress.toLowerCase() ])?.flat());
-    if (!s) return t = new Error("No addresses found"), Sentry.captureException(t), 
-    r.status(400).send("No addresses found");
-    var o = [ ...new Set(s) ];
-    await Promise.all(o.map(r => DEFAULT_NETWORKS.map(e => [ memcache.delete(getHash(`Wallet_getOnchainTransactions:${DEFAULT_LIMIT}:${e}:${DEFAULT_CURSORS[0]}:` + r)), memcache.delete(getHash(`Wallet_getOnchainNFTs:${DEFAULT_LIMIT}:${e}:${DEFAULT_CURSORS[0]}:` + r)), memcache.delete(getHash(`Wallet_getOnchainTokens:${DEFAULT_LIMIT}:${e}:${DEFAULT_CURSORS[0]}:${r}:` + DEFAULT_FILTER_NO_SYMBOL)) ])).flat()), 
-    r.status(200).send("Webhook received and processed");
+    var t = e.body.toString("utf8");
+    if (!process.env.ALCHEMY_WEBHOOK_SECRET_ETH_CAST || !process.env.ALCHEMY_WEBHOOK_SECRET_OP_CAST) throw new Error("Missing Alchemy webhook secrets! https://dashboard.alchemy.com/webhooks");
+    if (!isValidSignatureForStringBody(t, e.headers["x-alchemy-signature"], process.env.ALCHEMY_WEBHOOK_SECRET_ETH_CAST) && !isValidSignatureForStringBody(t, e.headers["x-alchemy-signature"], process.env.ALCHEMY_WEBHOOK_SECRET_OP_CAST)) return console.log("Invalid signature for webhook!"), 
+    r.status(400).send("Invalid signature for webhook!");
+    var o = JSON.parse(t);
+    if (!o.event?.activity) return console.log("No activity found in webhook!"), 
+    r.status(200).send("NFT activity webhook received");
+    for (const p of o.event.activity) {
+      var a, n, {
+        contractAddress: s,
+        erc721TokenId: i
+      } = p, d = i, c = p.toAddress.toLowerCase();
+      [ prod().REGISTRAR_ADDRESS, prod().OPTIMISM_REGISTRAR_ADDRESS ].includes(s) ? (a = await Metadata.findOne({
+        uri: d
+      }), n = s === prod().OPTIMISM_REGISTRAR_ADDRESS, await CastHandle.findOneAndUpdate({
+        handle: a?.domain || d
+      }, {
+        owner: c,
+        chain: n ? "OP" : "ETH",
+        tokenId: d
+      }, {
+        upsert: !0,
+        new: !0
+      }), console.log(`NFT Activity Webhook - Updated cast handle: ${a?.domain || d} to owner: ${c} on ` + (n ? "OP" : "ETH"))) : console.log("Skipping non-registrar contract:", s);
+    }
+    r.status(200).send("NFT activity webhook received");
   } catch (e) {
     console.error("Error handling webhook:", e), Sentry.captureException(e), r.status(500).send("Internal Server Error");
   }

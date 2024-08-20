@@ -58,7 +58,7 @@ http.createServer(app));
     } catch (e) {
       r.status(500).send("Error!");
     }
-  }), app.use(express.json()), app.use(function(e, r, t) {
+  }), app.use("/webhook", webhookRouter), app.use(express.json()), app.use(function(e, r, t) {
     r.setHeader("Access-Control-Allow-Origin", "*"), r.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, sentry-trace, Accept, Authorization, baggage, API-KEY, signer"), 
     t();
   }), app.use("/image", imageRouter), app.use("/profile", publicProfileRouter), 
@@ -66,9 +66,9 @@ http.createServer(app));
   app.use("/utils", utilsRouter), app.use("/referral", referralRouter), app.use("/farcaster", farcasterRouter), 
   app.use("/farcaster/rpg", farcasterRpgRouter), app.use("/wallet", walletRouter), 
   app.use("/apikey", apiKeyRouter), app.use("/auth", authRouter), app.use("/account", accountRouter), 
-  app.use("/webhook", webhookRouter), app.use("/frame", frameRouter), app.use("/wtf", wtfRouter), 
-  app.use("/contracts", contractsRouter), app.use("/opengraph", opengraphRouter), 
-  Sentry.setupExpressErrorHandler(app), require("yargs").command("$0", "Start your Superhub", e => {
+  app.use("/frame", frameRouter), app.use("/wtf", wtfRouter), app.use("/contracts", contractsRouter), 
+  app.use("/opengraph", opengraphRouter), Sentry.setupExpressErrorHandler(app), 
+  require("yargs").command("$0", "Start your Superhub", e => {
     e.option("self-hosted", {
       type: "boolean",
       default: !1,
