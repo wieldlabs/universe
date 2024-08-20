@@ -17,11 +17,16 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
     type: String,
     required: !0
   }
+}, {
+  timestamps: !0
 });
 
 schema.index({
   owner: 1
 }), schema.index({
+  tokenId: 1
+}), schema.index({
+  owner: 1,
   tokenId: 1
 }), schema.index({
   chain: 1

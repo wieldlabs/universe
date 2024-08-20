@@ -846,10 +846,10 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   referralQuest500: 5e8,
   referralQuest1000: 1e9
 }, paidQuests = {
-  dotCast: 1e9,
-  dotCast3: 1e9,
-  dotCast5: 1e9,
-  dotCast10: 1e9
+  dotCast: 11e8,
+  dotCast3: 11e8,
+  dotCast5: 11e8,
+  dotCast10: 15e8
 }, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e4, getTotalReferral = async t => {
   var e = await memcache.get(`ReferralV2:TELEGRAM:${t}:total:count`);
   return e ? e.value : (e = await Referral.countDocuments({

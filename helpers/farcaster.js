@@ -18,7 +18,7 @@ const {
   Reports,
   SyncedChannels,
   SyncedActions
-} = require("../models/farcaster"), mongoose = require("mongoose"), Score = require("../models/Score")["Score"], _AlchemyService = require("../services/AlchemyService")["Service"], {
+} = require("../models/farcaster"), CastHandle = require("../models/CastHandle")["CastHandle"], mongoose = require("mongoose"), Score = require("../models/Score")["Score"], _AlchemyService = require("../services/AlchemyService")["Service"], {
   config,
   prod
 } = require("../helpers/registrar"), getHexTokenIdFromLabel = require("../helpers/get-token-id-from-label")["getHexTokenIdFromLabel"], ethers = require("ethers")["ethers"], {
@@ -97,7 +97,7 @@ const getSyncedChannelById = async e => {
   } ])).length && await memcache.set(t, JSON.stringify(a), {
     lifetime: 21600
   }), a)) : [];
-}, postMessage = async ({
+}, USE_ALCHEMY = !1, postMessage = async ({
   isExternal: a = !1,
   externalFid: r,
   messageJSON: s,
@@ -122,32 +122,42 @@ const getSyncedChannelById = async e => {
       });
       let e = Buffer.from(t.data.userDataBody.value).toString("ascii").replace(".beb", "").replace(".cast", "");
       e.includes(".op") && (e = "op_" + e.replace(".op", ""));
-      var g = getHexTokenIdFromLabel(e), [ m, u ] = await Promise.all([ d.getNFTs({
-        owner: r,
-        contractAddresses: [ prod().REGISTRAR_ADDRESS ]
-      }), o.getNFTs({
-        owner: r,
-        contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
-      }) ]), h = (m?.ownedNfts || []).concat(u?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
-      if (!h.includes(g)) {
-        var y = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + h;
-        if ("production" === process.env.NODE_ENV) throw new Error(y);
-        console.error(y);
+      var g = getHexTokenIdFromLabel(e);
+      if (USE_ALCHEMY) {
+        var [ m, u ] = await Promise.all([ d.getNFTs({
+          owner: r,
+          contractAddresses: [ prod().REGISTRAR_ADDRESS ]
+        }), o.getNFTs({
+          owner: r,
+          contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
+        }) ]), h = (m?.ownedNfts || []).concat(u?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
+        if (!h.includes(g)) {
+          var y = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + h;
+          if ("production" === process.env.NODE_ENV) throw new Error(y);
+          console.error(y);
+        }
+      } else if (!await CastHandle.exists({
+        owner: r?.toLowerCase(),
+        tokenId: g.toLowerCase()
+      })) {
+        var F = `Invalid UserData for external user, could not find ${e}/${g} in CastHandles!`;
+        if ("production" === process.env.NODE_ENV) throw new Error(F);
+        console.error(F);
       }
     }
     if (!e) {
-      var F = await i.submitMessage(t), f = F.unwrapOr(null);
-      if (!f) throw new Error("Could not send message: " + F?.error);
+      var f = await i.submitMessage(t), p = f.unwrapOr(null);
+      if (!p) throw new Error("Could not send message: " + f?.error);
       t = {
-        ...f,
-        hash: f.hash,
-        signer: f.signer
+        ...p,
+        hash: p.hash,
+        signer: p.signer
       };
     }
-    var p = new Date(), w = {
+    var w = new Date(), A = {
       fid: e ? r : t.data.fid,
-      createdAt: p,
-      updatedAt: p,
+      createdAt: w,
+      updatedAt: w,
       messageType: t.data.type,
       timestamp: farcasterTimeToDate(t.data.timestamp),
       hash: bytesToHex(t.hash),
@@ -161,13 +171,13 @@ const getSyncedChannelById = async e => {
       bodyOverrides: n
     };
     try {
-      await Messages.create(w);
+      await Messages.create(A);
     } catch (e) {
       if (11e3 !== (e?.code || 0)) throw e;
       console.error("Message with this hash already exists, skipping!");
     }
     return {
-      result: w,
+      result: A,
       source: "v2"
     };
   } catch (e) {
