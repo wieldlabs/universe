@@ -18,9 +18,11 @@ app.post("/nft-activity", express.raw({
 }), async (e, r) => {
   try {
     var t = e.body.toString("utf8");
-    if (!process.env.ALCHEMY_WEBHOOK_SECRET_ETH_CAST || !process.env.ALCHEMY_WEBHOOK_SECRET_OP_CAST) throw new Error("Missing Alchemy webhook secrets! https://dashboard.alchemy.com/webhooks");
-    if (!isValidSignatureForStringBody(t, e.headers["x-alchemy-signature"], process.env.ALCHEMY_WEBHOOK_SECRET_ETH_CAST) && !isValidSignatureForStringBody(t, e.headers["x-alchemy-signature"], process.env.ALCHEMY_WEBHOOK_SECRET_OP_CAST)) return console.log("Invalid signature for webhook!"), 
-    r.status(400).send("Invalid signature for webhook!");
+    if ("production" === process.env.NODE_ENV) {
+      if (!process.env.ALCHEMY_WEBHOOK_SECRET_ETH_CAST || !process.env.ALCHEMY_WEBHOOK_SECRET_OP_CAST) throw new Error("Missing Alchemy webhook secrets! https://dashboard.alchemy.com/webhooks");
+      if (!isValidSignatureForStringBody(t, e.headers["x-alchemy-signature"], process.env.ALCHEMY_WEBHOOK_SECRET_ETH_CAST) && !isValidSignatureForStringBody(t, e.headers["x-alchemy-signature"], process.env.ALCHEMY_WEBHOOK_SECRET_OP_CAST)) return console.log("Invalid signature for webhook!"), 
+      r.status(400).send("Invalid signature for webhook!");
+    }
     var o = JSON.parse(t);
     if (!o.event?.activity) return console.log("No activity found in webhook!"), 
     r.status(200).send("NFT activity webhook received");
