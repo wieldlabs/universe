@@ -817,40 +817,40 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   farllama: 2e5,
   farlucky: 5e5
 }, questsPrice = {
-  followWieldLabs: 1e7,
-  likeWieldLabsLatest: 1e7,
-  followTwitch: 1e7,
-  followJcdenton: 1e7,
-  followNico: 1e7,
-  followTg: 1e7,
-  followTgAnnouncement: 1e7
+  followWieldLabs: 5e7,
+  likeWieldLabsLatest: 5e7,
+  followTwitch: 5e7,
+  followJcdenton: 5e7,
+  followNico: 5e7,
+  followTg: 5e7,
+  followTgAnnouncement: 5e7
 }, referralQuesPrice = {
-  referralQuest1: 24e6,
-  referralQuest2: 4e7,
-  referralQuest5: 1e8,
-  referralQuest10: 16e7,
-  referralQuest15: 2e8,
-  referralQuest20: 4e8,
-  referralQuest25: 4e8,
-  referralQuest30: 4e8,
-  referralQuest40: 4e8,
-  referralQuest50: 4e8,
-  referralQuest60: 4e8,
-  referralQuest70: 4e8,
-  referralQuest80: 4e8,
-  referralQuest90: 4e8,
-  referralQuest100: 4e8,
-  referralQuest200: 4e8,
-  referralQuest300: 4e8,
-  referralQuest400: 4e8,
-  referralQuest500: 5e8,
-  referralQuest1000: 1e9
+  referralQuest1: 1e8,
+  referralQuest2: 125e6,
+  referralQuest5: 25e7,
+  referralQuest10: 4e8,
+  referralQuest15: 5e8,
+  referralQuest20: 1e9,
+  referralQuest25: 125e7,
+  referralQuest30: 15e8,
+  referralQuest40: 175e7,
+  referralQuest50: 2e9,
+  referralQuest60: 225e7,
+  referralQuest70: 25e8,
+  referralQuest80: 275e7,
+  referralQuest90: 3e9,
+  referralQuest100: 325e7,
+  referralQuest200: 4e9,
+  referralQuest300: 5e9,
+  referralQuest400: 6e9,
+  referralQuest500: 7e9,
+  referralQuest1000: 8e9
 }, paidQuests = {
-  dotCast: 11e8,
-  dotCast3: 11e8,
-  dotCast5: 11e8,
-  dotCast10: 15e8
-}, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e4, getTotalReferral = async t => {
+  dotCast: 15e8,
+  dotCast3: 2e9,
+  dotCast5: 25e8,
+  dotCast10: 7e9
+}, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e7, getTotalReferral = async t => {
   var e = await memcache.get(`ReferralV2:TELEGRAM:${t}:total:count`);
   return e ? e.value : (e = await Referral.countDocuments({
     referralType: "TELEGRAM",

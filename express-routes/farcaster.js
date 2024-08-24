@@ -88,12 +88,12 @@ const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.
     if (!o) throw new Error(`Account id ${n.payload.id} not found`);
     if (o.deleted) throw new Error(`Account id ${n.payload.id} deleted`);
     var c = "true" === r.headers.external, i = (!c && n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal, c))?.toString().toLowerCase(), u = new _CacheService();
-    await u.get({
+    (!await u.get({
       key: "enableNotifications_" + i
-    }) || await u.set({
+    }) || Math.random() < .01) && u.set({
       key: "enableNotifications_" + i,
       value: "1",
-      expiresAt: new Date(Date.now() + 2592e6)
+      expiresAt: new Date(Date.now() + 7776e6)
     }), r.context = {
       ...r.context || {},
       accountId: n.payload.id,

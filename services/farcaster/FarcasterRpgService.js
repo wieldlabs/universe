@@ -344,8 +344,10 @@ class FarcasterRpgService {
       itemUniqueId: i.itemUniqueId,
       item: new mongoose.Types.ObjectId(this.referralItemUniqueIdToId[i.itemUniqueId]),
       quantity: i.quantity
-    }, a.consumableItems.push(n)), a.quests || (a.quests = {}), a.quests[e] = !0, 
-    await a.save(), {
+    }, a.consumableItems.push(n)), a.quests || (a.quests = {}), a.quests = {
+      ...a.quests,
+      [e]: !0
+    }, await a.save(), {
       item: t
     };
     await this.scoreService.setScore({
