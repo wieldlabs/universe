@@ -17,6 +17,28 @@ class AlchemyService {
   getNftV3BaseRoute() {
     return `https://${this.chain}.g.alchemy.com/nft/v3/` + this.apiKey;
   }
+  async getTransactionCount(e, r = "latest") {
+    var t = {
+      timeout: TIMEOUT_MS,
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      }
+    }, e = {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "eth_getTransactionCount",
+      params: [ e, r ]
+    }, r = this.getBaseRoute();
+    try {
+      var a = (await axios.post(r, e, t))["data"];
+      if (a.error) throw Sentry.captureException("AlchemyService.getTransactionCount error: " + a.error.message), 
+      new Error("AlchemyService.getTransactionCount error: " + a.error.message);
+      return parseInt(a.result, 16);
+    } catch (e) {
+      throw console.error(e), Sentry.captureException(e), new Error("AlchemyService.getTransactionCount error: " + e.message);
+    }
+  }
   async getBalance(e, r = "latest") {
     var t = {
       timeout: TIMEOUT_MS,
@@ -203,7 +225,7 @@ class AlchemyService {
     attributeValue: s,
     returnCount: c = !1
   }) {
-    if (!t || !r) return !1;
+    if (!t || !r) return !!c && 0;
     try {
       var n, i = await this.getNFTs({
         owner: t,

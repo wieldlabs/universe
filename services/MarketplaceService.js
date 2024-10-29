@@ -4,9 +4,10 @@ const ethers = require("ethers"), axios = require("axios"), Sentry = require("@s
   Fids,
   Offers,
   Appraisals
-} = require("../models/farcaster"), {
+} = require("../models/farcaster"), CastHandle = require("../models/CastHandle")["CastHandle"], {
   getFarcasterUserByFid,
-  searchFarcasterUserByMatch
+  searchFarcasterUserByMatch,
+  searchCastHandleByMatch
 } = require("../helpers/farcaster"), _CacheService = require("../services/cache/CacheService")["Service"];
 
 class MarketplaceService {
@@ -24,7 +25,8 @@ class MarketplaceService {
   }
   _getFidCollectionQuery(e) {
     return e ? "1k" === e ? {
-      $lte: 1e3
+      $lte: 1e3,
+      $gte: 0
     } : "5k" === e ? {
       $lte: 5e3,
       $gt: 1e3
@@ -32,8 +34,9 @@ class MarketplaceService {
       $lte: 1e4,
       $gt: 5e3
     } : "og" === e ? {
-      $lte: 2e4
-    } : null : null;
+      $lte: 2e4,
+      $gte: 0
+    } : "castHandle" === e ? -1 : null : null;
   }
   async ethToUsd(e) {
     if (!e) return "0";
@@ -70,30 +73,54 @@ class MarketplaceService {
     }) : null;
   }
   async getListing({
-    fid: e
+    fid: e,
+    tokenId: t,
+    chainId: r
   }) {
-    let t;
-    var r = await memcache.get("Listing:" + e);
-    return !(t = r ? new Listings(JSON.parse(r.value)) : t) && (r = {
-      fid: e,
-      canceledAt: null,
-      deadline: {
-        $gt: Math.floor(Date.now() / 1e3)
+    let a;
+    var i = "Listing:" + e + (t ? ":" + t : "") + (r ? ":" + r : ""), s = await memcache.get(i);
+    if (!(a = s ? new Listings(JSON.parse(s.value)) : a)) {
+      var s = {
+        fid: e,
+        canceledAt: null,
+        deadline: {
+          $gt: Math.floor(Date.now() / 1e3)
+        }
+      };
+      if (t) {
+        if (t.toString().startsWith("0x")) try {
+          t = ethers.BigNumber.from(t).toString();
+        } catch (e) {}
+        s.tokenId = t;
       }
-    }, t = (t = await Listings.findOne(r)) ? t._doc : null) && await memcache.set("Listing:" + e, JSON.stringify(t)), 
-    t ? ([ r, e ] = await Promise.all([ this.fetchUserData(e), this.ethToUsd(t.minFee) ]), 
-    e = this.usdFormatter.format(ethers.utils.formatEther(e)), {
-      ...JSON.parse(JSON.stringify(t)),
-      usd: e,
-      user: r
+      r && (s.chainId = r), (a = (a = await Listings.findOne(s)) ? a._doc : null) && await memcache.set(i, JSON.stringify(a));
+    }
+    return a ? ([ t, r ] = await Promise.all([ this.fetchUserData(e), this.ethToUsd(a.minFee) ]), 
+    s = this.usdFormatter.format(ethers.utils.formatEther(r)), {
+      ...JSON.parse(JSON.stringify(a)),
+      usd: s,
+      user: t
     }) : null;
   }
-  async fetchUserData(e) {
-    return getFarcasterUserByFid(e);
+  async fetchCastHandle(e, t) {
+    if (e && !e.toString().startsWith("0x")) try {
+      e = ethers.BigNumber.from(e).toHexString();
+    } catch (e) {
+      console.error("Error converting tokenId to 0x format:", e);
+    }
+    return CastHandle.findOne({
+      tokenId: e,
+      chainId: t
+    });
   }
-  async fetchListing(e) {
+  async fetchUserData(e, t, r) {
+    return -1 == e ? this.fetchCastHandle(t, r) : getFarcasterUserByFid(e);
+  }
+  async fetchListing(e, t, r) {
     return this.getListing({
-      fid: e
+      fid: e,
+      tokenId: t,
+      chainId: r
     });
   }
   async fetchDataForFids(e) {
@@ -120,7 +147,10 @@ class MarketplaceService {
     var s = 0 < Object.keys(a).length, n = await memcache.get(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""));
     n && (i = JSON.parse(n.value).map(e => new Listings(e)));
     const [ o, c ] = r ? r.split("-") : [ "0", null ];
-    var l, n = parseInt(o), f = (i || (l = {
+    var d, n = parseInt(o), h = (i || (d = {
+      fid: {
+        $gte: 0
+      },
       id: "-" !== e[0] ? {
         $lt: c || Number.MAX_SAFE_INTEGER
       } : {
@@ -130,11 +160,12 @@ class MarketplaceService {
         $gt: Math.floor(Date.now() / 1e3)
       },
       canceledAt: null
-    }, a.collection && (f = this._getFidCollectionQuery(a.collection)) && (l.fid = f), 
-    i = await Listings.find(l).limit(t).skip(n).sort(e + " _id"), r ? await memcache.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""), JSON.stringify(i)) : await memcache.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""), JSON.stringify(i), {
+    }, a.collection && (h = this._getFidCollectionQuery(a.collection)) && (d.fid = h), 
+    a.address && (d.ownerAddress = a.address), i = await Listings.find(d).limit(t).skip(n).sort(e + " _id"), 
+    r ? await memcache.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""), JSON.stringify(i)) : await memcache.set(`MarketplaceService:getOnlyBuyNowListings:${e}:${t}:` + r + (s ? ":" + JSON.stringify(a) : ""), JSON.stringify(i), {
       lifetime: 60
     })), await Promise.all(i.map(async e => {
-      var [ t, r ] = await Promise.all([ this.fetchUserData(e.fid), this.ethToUsd(e.minFee) ]), r = this.usdFormatter.format(ethers.utils.formatEther(r));
+      var [ t, r ] = await Promise.all([ this.fetchUserData(e.fid, e.tokenId, e.chainId), this.ethToUsd(e.minFee) ]), r = this.usdFormatter.format(ethers.utils.formatEther(r));
       return {
         fid: e.fid,
         user: t,
@@ -145,12 +176,12 @@ class MarketplaceService {
         }
       };
     })));
-    let h = null;
-    if (f.length >= t) {
-      const c = f[f.length - 1].listing._id;
-      h = n + f.length + "-" + c.toString();
+    let l = null;
+    if (h.length >= t) {
+      const c = h[h.length - 1].listing._id;
+      l = n + h.length + "-" + c.toString();
     }
-    return [ f.slice(0, t), h ];
+    return [ h.slice(0, t), l ];
   }
   async latestFid() {
     let e;
@@ -163,10 +194,12 @@ class MarketplaceService {
     limit: e = 20,
     filters: t = {}
   }) {
-    t = await searchFarcasterUserByMatch(t.query, e, "value", !1);
-    return [ await Promise.all(t.map(async e => {
-      var t = await this.fetchListing(e.fid);
-      return {
+    var r = [ searchFarcasterUserByMatch(t.query, e, "value", !1) ], [ t, e = [] ] = (config().ENABLE_NFT_MARKETPLACE && r.push(searchCastHandleByMatch(t.query, e, "value")), 
+    await Promise.all(r)), r = [ ...t, ...e ];
+    return [ await Promise.all(r.map(async e => {
+      let t = null;
+      return t = e.handle ? await this.fetchListing(-1, e.tokenId, "ETH" === e.chain ? 1 : 10) : await this.fetchListing(e.fid), 
+      {
         fid: e.fid,
         user: e,
         listing: t
@@ -197,6 +230,12 @@ class MarketplaceService {
       filters: a
     });
     if ("minFee" === e || "-minFee" === e || "updatedAt" === e || "-updatedAt" === e || a.onlyListing) return this.getOnlyBuyNowListings({
+      sort: e,
+      limit: t,
+      cursor: r,
+      filters: a
+    });
+    if ("castHandle" === a.collection) return this.getCastHandles({
       sort: e,
       limit: t,
       cursor: r,
@@ -386,9 +425,9 @@ class MarketplaceService {
         break;
       }
       if ("Bought" === a.name) {
-        var [ n, o ] = await Promise.all([ memcache.get("MarketplaceService:stats:highestSale"), memcache.get("MarketplaceService:stats:totalVolume") ]), c = n?.value, l = o?.value, f = a.args.amount.toString(), h = (c && !ethers.BigNumber.from(f).gt(ethers.BigNumber.from(c)) || await memcache.set("MarketplaceService:stats:highestSale", f), 
-        l ? ethers.BigNumber.from(l).add(ethers.BigNumber.from(f)).toString() : f);
-        await memcache.set("MarketplaceService:stats:totalVolume", h), await memcache.delete("MarketplaceService:getStats", {
+        var [ n, o ] = await Promise.all([ memcache.get("MarketplaceService:stats:highestSale"), memcache.get("MarketplaceService:stats:totalVolume") ]), c = n?.value, d = o?.value, h = a.args.amount.toString(), l = (c && !ethers.BigNumber.from(h).gt(ethers.BigNumber.from(c)) || await memcache.set("MarketplaceService:stats:highestSale", h), 
+        d ? ethers.BigNumber.from(d).add(ethers.BigNumber.from(h)).toString() : h);
+        await memcache.set("MarketplaceService:stats:totalVolume", l), await memcache.delete("MarketplaceService:getStats", {
           noreply: !0
         });
         break;
@@ -661,18 +700,18 @@ class MarketplaceService {
     let o = `MarketplaceService:getActivities:${e}:${t}:${r}:${a}:` + n + s;
     i && (o = o + ":" + i);
     let c;
-    var l = await memcache.get(o), [ l, f ] = (l && (c = JSON.parse(l.value).map(e => new ListingLogs(e))), 
-    n ? n.split("-") : [ Date.now(), null ]), e = (c || (l = {
+    var d = await memcache.get(o), [ d, h ] = (d && (c = JSON.parse(d.value).map(e => new ListingLogs(e))), 
+    n ? n.split("-") : [ Date.now(), null ]), e = (c || (d = {
       createdAt: {
-        $lt: l
+        $lt: d
       },
       id: {
-        $lt: f || Number.MAX_SAFE_INTEGER
+        $lt: h || Number.MAX_SAFE_INTEGER
       }
-    }, e && "all" !== e && "Bought" === (l.eventType = e) && (l.eventType = {
+    }, e && "all" !== e && "Bought" === (d.eventType = e) && (d.eventType = {
       $in: [ "Bought", "OfferApproved" ]
-    }), t ? l.fid = t : a && (f = this._getFidCollectionQuery(a)) && (l.fid = f), 
-    r && (l.from = r), i && (l.referrer = i), c = await ListingLogs.find(l).limit(s).sort({
+    }), t ? d.fid = t : a && (h = this._getFidCollectionQuery(a)) && (d.fid = h), 
+    r && (d.from = r), i && (d.referrer = i), c = await ListingLogs.find(d).limit(s).sort({
       createdAt: -1
     }), n ? await memcache.set(o, JSON.stringify(c)) : await memcache.set(o, JSON.stringify(c), {
       lifetime: 60
@@ -685,24 +724,32 @@ class MarketplaceService {
       return e.referrer && (a.referrerUsd = this.usdFormatter.format(config().FID_MARKETPLACE_REF_PERCENTAGE * ethers.utils.formatEther(r) / 100)), 
       a;
     })));
-    let h = null;
-    return [ e, h = c.length === s ? c[c.length - 1].createdAt.getTime() + "-" + c[c.length - 1].id : h ];
+    let l = null;
+    return [ e, l = c.length === s ? c[c.length - 1].createdAt.getTime() + "-" + c[c.length - 1].id : l ];
   }
   async getOffers({
     fid: e,
-    buyerAddress: t
+    buyerAddress: t,
+    tokenId: r,
+    chainId: a
   }) {
-    var r = {
+    var i = {
       canceledAt: null
     };
     if (e) try {
-      var a = parseInt(e, 10);
-      r.fid = isNaN(a) ? null : a;
+      var s = parseInt(e, 10);
+      i.fid = isNaN(s) ? null : s;
     } catch (e) {}
-    t && (r.buyerAddress = t);
-    e = await Offers.find(r).sort({
-      createdAt: -1
-    });
+    if (t && (i.buyerAddress = t), r) {
+      if (r.toString().startsWith("0x")) try {
+        r = ethers.BigNumber.from(r).toString();
+      } catch (e) {}
+      i.tokenId = r;
+    }
+    a && (i.chainId = a);
+    e = await Offers.find(i).sort({
+      amount: -1
+    }).limit(10);
     return await Promise.all((e || []).map(async e => {
       var [ t, r ] = await Promise.all([ this.fetchUserData(e.fid), this.ethToUsd(e.amount) ]), r = this.usdFormatter.format(ethers.utils.formatEther(r));
       return {
@@ -781,6 +828,569 @@ class MarketplaceService {
         average: r
       });
     }
+  }
+  async listTokenId({
+    txHash: e,
+    chainId: t
+  }) {
+    if (!e || !t) throw new Error("Missing txHash or chainId");
+    if (1 !== (t = parseInt(t)) && 10 !== t) throw new Error("Invalid chainId. Only 1 (Ethereum) and 10 (Optimism) are supported.");
+    var r = await ListingLogs.findOne({
+      txHash: e,
+      chainId: t
+    });
+    if (r) return Listings.findOne({
+      tokenId: r.tokenId,
+      chainId: t
+    });
+    r = await this.getReceipt({
+      txHash: e
+    });
+    if (!r) throw new Error("Transaction not found");
+    var a, i = new ethers.utils.Interface(config().NFT_MARKETPLACE_ABI), s = 10 === t ? config().NFT_MARKETPLACE_ADDRESS_OP : config().NFT_MARKETPLACE_ADDRESS_ETH;
+    let n = null;
+    for (a of r.logs) try {
+      if (a.address.toLowerCase() === s.toLowerCase()) {
+        var o = i.parseLog(a);
+        if ("Listed" === o.name) {
+          var c = o.args.tokenId.toString(), d = {
+            tokenId: c,
+            chainId: t
+          };
+          n = await Listings.findOneAndUpdate(d, {
+            ownerAddress: o.args.owner,
+            minFee: this._padWithZeros(o.args.price.toString()),
+            deadline: o.args.deadline,
+            txHash: e,
+            canceledAt: null,
+            tokenId: c,
+            fid: -1,
+            chainId: t
+          }, {
+            upsert: !0,
+            new: !0
+          }), await ListingLogs.updateOne({
+            txHash: e,
+            chainId: t
+          }, {
+            eventType: "Listed",
+            tokenId: c,
+            chainId: t,
+            fid: -1,
+            from: o.args.owner,
+            price: this._padWithZeros(o.args.price.toString()),
+            txHash: e
+          }, {
+            upsert: !0
+          }), await memcache.delete(`Listing:-1:${c}:` + t, {
+            noreply: !0
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing log:", e);
+    }
+    if (n) return await this.computeStatsTokenId({
+      txHash: e,
+      chainId: t
+    }), n;
+    throw new Error("Token not listed");
+  }
+  async buyTokenId({
+    txHash: e,
+    chainId: t
+  }) {
+    if (!e || !t) throw new Error("Missing txHash or chainId");
+    if (1 !== (t = parseInt(t)) && 10 !== t) throw new Error("Invalid chainId. Only 1 (Ethereum) and 10 (Optimism) are supported.");
+    var r = await ListingLogs.findOne({
+      txHash: e,
+      chainId: t
+    });
+    if (r) return Listings.findOne({
+      tokenId: r.tokenId,
+      chainId: t
+    });
+    r = await this.getReceipt({
+      txHash: e
+    });
+    if (!r) throw new Error("Transaction not found");
+    var a, i, s, n, o = new ethers.utils.Interface(config().NFT_MARKETPLACE_ABI), c = 10 === t ? config().NFT_MARKETPLACE_ADDRESS_OP : config().NFT_MARKETPLACE_ADDRESS_ETH;
+    let d = null, h = null;
+    for (a of r.logs) try {
+      a.address.toLowerCase() === c.toLowerCase() && ("Bought" === (i = o.parseLog(a)).name ? (n = {
+        tokenId: s = i.args.tokenId.toString(),
+        chainId: t
+      }, d = await Listings.findOneAndUpdate(n, {
+        txHash: e,
+        canceledAt: new Date()
+      }, {
+        upsert: !0,
+        new: !0
+      }), h = {
+        eventType: "Bought",
+        tokenId: s,
+        chainId: t,
+        fid: -1,
+        from: i.args.buyer,
+        price: this._padWithZeros(i.args.price.toString()),
+        txHash: e
+      }, await memcache.delete(`Listing:-1:${s}:` + t, {
+        noreply: !0
+      })) : "Referred" === i.name && (h = {
+        ...h || {},
+        referrer: i.args.referrer
+      }));
+    } catch (e) {
+      console.error("Error parsing log:", e);
+    }
+    if (h && await ListingLogs.updateOne({
+      txHash: e,
+      chainId: t
+    }, h, {
+      upsert: !0
+    }), d) return await this.computeStatsTokenId({
+      txHash: e,
+      chainId: t
+    }), d;
+    throw new Error("Token not bought");
+  }
+  async offerTokenId({
+    txHash: e,
+    chainId: t
+  }) {
+    if (!e || !t) throw new Error("Missing txHash or chainId");
+    if (1 !== (t = parseInt(t)) && 10 !== t) throw new Error("Invalid chainId. Only 1 (Ethereum) and 10 (Optimism) are supported.");
+    if (await ListingLogs.findOne({
+      txHash: e,
+      chainId: t
+    })) return Offers.findOne({
+      txHash: e,
+      chainId: t
+    });
+    var r = await this.getReceipt({
+      txHash: e
+    });
+    if (!r) throw new Error("Transaction not found");
+    var a, i = new ethers.utils.Interface(config().NFT_MARKETPLACE_ABI), s = 10 === t ? config().NFT_MARKETPLACE_ADDRESS_OP : config().NFT_MARKETPLACE_ADDRESS_ETH;
+    let n = null;
+    for (a of r.logs) try {
+      if (a.address.toLowerCase() === s.toLowerCase()) {
+        var o = i.parseLog(a);
+        if ("OfferMade" === o.name) {
+          var c = o.args.tokenId.toString(), d = {
+            tokenId: c,
+            chainId: t,
+            buyerAddress: o.args.buyer
+          };
+          n = await Offers.findOneAndUpdate(d, {
+            tokenId: c,
+            chainId: t,
+            txHash: e,
+            buyerAddress: o.args.buyer,
+            amount: this._padWithZeros(o.args.amount.toString()),
+            deadline: o.args.deadline,
+            fid: -1
+          }, {
+            upsert: !0,
+            new: !0
+          }), await ListingLogs.updateOne({
+            txHash: e,
+            chainId: t
+          }, {
+            eventType: "OfferMade",
+            tokenId: c,
+            chainId: t,
+            fid: -1,
+            from: o.args.buyer,
+            price: this._padWithZeros(o.args.amount.toString()),
+            txHash: e
+          }, {
+            upsert: !0
+          }), await memcache.delete(`getBestOffer:${c}:` + t, {
+            noreply: !0
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing log:", e);
+    }
+    if (n) return await this.computeStatsTokenId({
+      txHash: e,
+      chainId: t
+    }), n;
+    throw new Error("Token not offered");
+  }
+  async cancelOfferTokenId({
+    txHash: e,
+    chainId: t
+  }) {
+    if (!e || !t) throw new Error("Missing txHash or chainId");
+    if (1 !== (t = parseInt(t)) && 10 !== t) throw new Error("Invalid chainId. Only 1 (Ethereum) and 10 (Optimism) are supported.");
+    if (await ListingLogs.findOne({
+      txHash: e,
+      chainId: t
+    })) return Offers.findOne({
+      txHash: e,
+      chainId: t
+    });
+    var r = await this.getReceipt({
+      txHash: e
+    });
+    if (!r) throw new Error("Transaction not found");
+    var a, i = new ethers.utils.Interface(config().NFT_MARKETPLACE_ABI), s = 10 === t ? config().NFT_MARKETPLACE_ADDRESS_OP : config().NFT_MARKETPLACE_ADDRESS_ETH;
+    let n = null;
+    for (a of r.logs) try {
+      if (a.address.toLowerCase() === s.toLowerCase()) {
+        var o = i.parseLog(a);
+        if ("OfferCanceled" === o.name) {
+          var c = o.args.tokenId.toString(), d = {
+            tokenId: c,
+            chainId: t,
+            buyerAddress: o.args.buyer
+          };
+          n = await Offers.findOneAndUpdate(d, {
+            tokenId: c,
+            chainId: t,
+            txHash: e,
+            canceledAt: new Date(),
+            fid: -1
+          }, {
+            upsert: !0,
+            new: !0
+          }), await ListingLogs.updateOne({
+            txHash: e,
+            chainId: t
+          }, {
+            eventType: "OfferCanceled",
+            tokenId: c,
+            chainId: t,
+            fid: -1,
+            from: o.args.buyer,
+            txHash: e
+          }, {
+            upsert: !0
+          }), await memcache.delete(`getBestOffer:${c}:` + t, {
+            noreply: !0
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing log:", e);
+    }
+    if (n) return await this.computeStatsTokenId({
+      txHash: e,
+      chainId: t
+    }), n;
+    throw new Error("Token offer not canceled");
+  }
+  async approveOfferTokenId({
+    txHash: e,
+    chainId: t
+  }) {
+    if (!e || !t) throw new Error("Missing txHash or chainId");
+    if (1 !== (t = parseInt(t)) && 10 !== t) throw new Error("Invalid chainId. Only 1 (Ethereum) and 10 (Optimism) are supported.");
+    if (await ListingLogs.findOne({
+      txHash: e,
+      chainId: t
+    })) return Offers.findOne({
+      txHash: e,
+      chainId: t
+    });
+    var r = await this.getReceipt({
+      txHash: e
+    });
+    if (!r) throw new Error("Transaction not found");
+    var a, i = new ethers.utils.Interface(config().NFT_MARKETPLACE_ABI), s = 10 === t ? config().NFT_MARKETPLACE_ADDRESS_OP : config().NFT_MARKETPLACE_ADDRESS_ETH;
+    let n = null;
+    for (a of r.logs) try {
+      if (a.address.toLowerCase() === s.toLowerCase()) {
+        var o = i.parseLog(a);
+        if ("OfferApproved" === o.name) {
+          var c = o.args.tokenId.toString(), d = {
+            tokenId: c,
+            chainId: t,
+            buyerAddress: o.args.buyer
+          };
+          n = await Offers.findOneAndUpdate(d, {
+            txHash: e,
+            canceledAt: new Date(),
+            fid: -1
+          }, {
+            upsert: !0,
+            new: !0
+          }), await Listings.updateOne({
+            tokenId: c,
+            chainId: t,
+            canceledAt: null
+          }, {
+            canceledAt: new Date()
+          }), await ListingLogs.updateOne({
+            txHash: e,
+            chainId: t
+          }, {
+            eventType: "OfferApproved",
+            tokenId: c,
+            chainId: t,
+            fid: -1,
+            from: o.args.buyer,
+            price: this._padWithZeros(o.args.amount.toString()),
+            txHash: e
+          }, {
+            upsert: !0
+          }), await Promise.all([ memcache.delete(`getBestOffer:${c}:` + t, {
+            noreply: !0
+          }), memcache.delete(`Listing:-1:${c}:` + t, {
+            noreply: !0
+          }) ]);
+          break;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing log:", e);
+    }
+    if (n) return await this.computeStatsTokenId({
+      txHash: e,
+      chainId: t
+    }), n;
+    throw new Error("Token offer not approved");
+  }
+  async cancelListTokenId({
+    txHash: e,
+    chainId: t
+  }) {
+    if (!e || !t) throw new Error("Missing txHash or chainId");
+    if (1 !== (t = parseInt(t)) && 10 !== t) throw new Error("Invalid chainId. Only 1 (Ethereum) and 10 (Optimism) are supported.");
+    var r = await ListingLogs.findOne({
+      txHash: e,
+      chainId: t
+    });
+    if (r) return Listings.findOne({
+      tokenId: r.tokenId,
+      chainId: t
+    });
+    r = await this.getReceipt({
+      txHash: e
+    });
+    if (!r) throw new Error("Transaction not found");
+    var a, i = new ethers.utils.Interface(config().NFT_MARKETPLACE_ABI), s = 10 === t ? config().NFT_MARKETPLACE_ADDRESS_OP : config().NFT_MARKETPLACE_ADDRESS_ETH;
+    let n = null;
+    for (a of r.logs) try {
+      if (a.address.toLowerCase() === s.toLowerCase()) {
+        var o = i.parseLog(a);
+        if ("Canceled" === o.name) {
+          var c = o.args.tokenId.toString(), d = {
+            tokenId: c,
+            chainId: t
+          };
+          n = await Listings.findOneAndUpdate(d, {
+            txHash: e,
+            canceledAt: new Date()
+          }, {
+            upsert: !0,
+            new: !0
+          }), await ListingLogs.updateOne({
+            txHash: e,
+            chainId: t
+          }, {
+            eventType: "Canceled",
+            tokenId: c,
+            chainId: t,
+            fid: -1,
+            from: o.args.seller,
+            txHash: e
+          }, {
+            upsert: !0
+          }), await memcache.delete(`Listing:-1:${c}:` + t, {
+            noreply: !0
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      console.error("Error parsing log:", e);
+    }
+    if (n) return await this.computeStatsTokenId({
+      txHash: e,
+      chainId: t
+    }), n;
+    throw new Error("Token listing not canceled");
+  }
+  async getCastHandles({
+    sort: e = "createdAt",
+    limit: t = 20,
+    cursor: r = ""
+  }) {
+    var a = `MarketplaceService:getCastHandles:${e}:${t}:` + r, i = await memcache.get(a);
+    if (i) return JSON.parse(i.value);
+    var [ i, s ] = r ? r.split("-") : [ Date.now(), null ], r = parseInt(i);
+    let n;
+    var o = {};
+    switch (e) {
+     case "fid":
+      n = {
+        tokenId: 1
+      }, s && (o.tokenId = {
+        $gt: s
+      });
+      break;
+
+     case "-fid":
+      n = {
+        tokenId: -1
+      }, s && (o.tokenId = {
+        $lt: s
+      });
+      break;
+
+     case "createdAt":
+      n = {
+        createdAt: 1
+      }, s && (o.createdAt = {
+        $gt: new Date(parseInt(s))
+      });
+      break;
+
+     default:
+      n = {
+        createdAt: -1
+      }, s && (o.createdAt = {
+        $lt: new Date(parseInt(s))
+      });
+    }
+    var i = await CastHandle.find(o).limit(t).sort(n), c = i.map(e => ({
+      listing: null,
+      user: e,
+      fid: -1
+    }));
+    let d = null;
+    i.length === t && (i = i[i.length - 1], d = r + t + "-" + (e.includes("fid") ? i.tokenId : i.createdAt.getTime()));
+    r = [ c, d ];
+    return await memcache.set(a, JSON.stringify(r), {
+      lifetime: 300
+    }), r;
+  }
+  async computeStatsTokenId({
+    txHash: e,
+    chainId: t
+  }) {
+    var r, e = await this.getReceipt({
+      txHash: e
+    }), a = new ethers.utils.Interface(config().NFT_MARKETPLACE_ABI), i = 10 === t ? config().NFT_MARKETPLACE_ADDRESS_OP : config().NFT_MARKETPLACE_ADDRESS_ETH;
+    for (r of e.logs) try {
+      if (r.address.toLowerCase() === i.toLowerCase()) {
+        var s = a.parseLog(r);
+        if ("Listed" === s.name) {
+          var n = (await memcache.get("MarketplaceService:tokenId:stats:floor:" + t))?.value, o = !n || ethers.BigNumber.from(s.args.price).lt(ethers.BigNumber.from(n)) ? s.args.price.toString() : n;
+          await memcache.set("MarketplaceService:tokenId:stats:floor:" + t, o);
+          break;
+        }
+        if ("Bought" === s.name || "OfferApproved" === s.name) {
+          var [ c, d ] = await Promise.all([ memcache.get("MarketplaceService:tokenId:stats:highestSale:" + t), memcache.get("MarketplaceService:tokenId:stats:totalVolume:" + t) ]), h = c?.value, l = d?.value, f = s.args.price.toString(), g = (h && !ethers.BigNumber.from(f).gt(ethers.BigNumber.from(h)) || await memcache.set("MarketplaceService:tokenId:stats:highestSale:" + t, f), 
+          l ? ethers.BigNumber.from(l).add(ethers.BigNumber.from(f)).toString() : f);
+          await memcache.set("MarketplaceService:tokenId:stats:totalVolume:" + t, g), 
+          await memcache.delete("MarketplaceService:tokenId:getStats:" + t, {
+            noreply: !0
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      console.error("Error computing stats:", e);
+    }
+  }
+  async getTokenIdStats(t) {
+    try {
+      let e;
+      var r, a, i, s, n, o, c, d = "MarketplaceService:tokenId:getStats:" + t, h = await memcache.get(d);
+      return (e = h ? JSON.parse(h.value) : e) || ([ r, a, i, s, n ] = await Promise.all([ Listings.findOne({
+        canceledAt: null,
+        chainId: t
+      }).sort({
+        minFee: 1
+      }), Offers.findOne({
+        canceledAt: null,
+        chainId: t
+      }).sort({
+        amount: -1
+      }), memcache.get("MarketplaceService:tokenId:stats:highestSale:" + t), memcache.get("MarketplaceService:tokenId:stats:totalVolume:" + t), this.ethToUsd(1) ]), 
+      o = i?.value || "0", c = s?.value || "0", e = {
+        stats: {
+          floor: {
+            usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(r?.minFee || "0").mul(n))),
+            wei: r?.minFee || "0"
+          },
+          highestOffer: {
+            usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(a?.amount || "0").mul(n))),
+            wei: a?.amount || "0"
+          },
+          highestSale: {
+            usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(o).mul(n))),
+            wei: o
+          },
+          totalVolume: {
+            usd: this.usdFormatter.format(ethers.utils.formatEther(ethers.BigNumber.from(c).mul(n))),
+            wei: c
+          }
+        },
+        success: !0
+      }, await memcache.set(d, JSON.stringify(e), {
+        lifetime: 300
+      })), e;
+    } catch (e) {
+      return console.error(e), Sentry.captureException(e), {
+        success: !1,
+        stats: {}
+      };
+    }
+  }
+  async getHistoricalSales({
+    fid: e,
+    tokenId: t,
+    chainId: r,
+    timerange: a = "30d"
+  }) {
+    var i = {}, s = (e && (i.fid = e), t && (i.tokenId = t), r && (i.chainId = r), 
+    new Date()), n = new Date(s), [ o, e ] = a.match(/(\d+)(\w)/).slice(1);
+    switch (e) {
+     case "d":
+      n.setDate(s.getDate() - parseInt(o));
+      break;
+
+     case "w":
+      n.setDate(s.getDate() - 7 * parseInt(o));
+      break;
+
+     case "m":
+      n.setMonth(s.getMonth() - parseInt(o));
+      break;
+
+     case "y":
+      n.setFullYear(s.getFullYear() - parseInt(o));
+      break;
+
+     default:
+      throw new Error("Invalid timerange format");
+    }
+    i.createdAt = {
+      $gte: n,
+      $lte: s
+    }, i.eventType = {
+      $in: [ "Bought", "OfferApproved" ]
+    };
+    const [ c, d ] = await Promise.all([ ListingLogs.find(i).sort({
+      createdAt: 1
+    }), this.ethToUsd(1) ]);
+    t = c.reduce((e, t) => {
+      var r = t.createdAt.toISOString().split("T")[0], t = (e[r] || (e[r] = {
+        timestamp: new Date(r).getTime(),
+        count: 0
+      }), parseFloat(ethers.utils.formatEther(ethers.BigNumber.from(t.price).mul(d))));
+      return e[r].count += t, e;
+    }, {});
+    return Object.values(t).sort((e, t) => e.timestamp - t.timestamp);
   }
 }
 

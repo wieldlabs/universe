@@ -48,7 +48,7 @@ class RegistrarService {
           domain: e
         },
         value: i,
-        expiresAt: new Date(Date.now() + 9e5)
+        expiresAt: new Date(Date.now() + 864e5)
       }), i);
     } catch (e) {
       return Sentry.captureException(e), console.error(e), null;
@@ -57,9 +57,11 @@ class RegistrarService {
   async available(e) {
     return !!e && this.controller.available(e);
   }
-  async expiresAt(e) {
+  async expiresAt(e, {
+    tokenId: r
+  } = {}) {
     if (!e) return null;
-    var r = this.getTokenIdFromLabel(e);
+    r = r || this.getTokenIdFromLabel(e);
     try {
       var t, i = new _CacheService(), n = await i.get({
         key: "RegistrarService.expiresAt",

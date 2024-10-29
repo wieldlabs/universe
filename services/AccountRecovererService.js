@@ -146,23 +146,23 @@ class AccountRecovererService {
         fidSignature: s
       });
       var g = new _CacheService(), l = await g.get({
-        key: "AccountRecovererService:addOrGetSigner",
+        key: "AccountRecovererService:addOrGetSigner:V2",
         params: {
           custodyAddress: a
         }
       });
       let e = 1;
       if (l) {
-        if (5 <= (e = parseInt(l))) throw new Error("You can only add 5 signers per day. Please wait 24 hours and try again.");
+        if (5 <= (e = parseInt(l))) throw new Error("You've added 5 signers in 6 hours. Please wait 6 hours and try again.");
         e++;
       }
       await g.set({
-        key: "AccountRecovererService:addOrGetSigner",
+        key: "AccountRecovererService:addOrGetSigner:V2",
         params: {
           custodyAddress: a
         },
         value: e,
-        expiresAt: new Date(Date.now() + 864e5)
+        expiresAt: new Date(Date.now() + 216e5)
       });
       l = await n.addFor(a, 1, o, 1, d, ethers.BigNumber.from(i), s, {
         gasLimit: 25e4,

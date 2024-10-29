@@ -17,7 +17,8 @@ const {
   Frames,
   Reports,
   SyncedChannels,
-  SyncedActions
+  SyncedActions,
+  FarPay
 } = require("../models/farcaster"), CastHandle = require("../models/CastHandle")["CastHandle"], mongoose = require("mongoose"), Score = require("../models/Score")["Score"], _AlchemyService = require("../services/AlchemyService")["Service"], {
   config,
   prod
@@ -97,7 +98,7 @@ const getSyncedChannelById = async e => {
   } ])).length && await memcache.set(t, JSON.stringify(a), {
     lifetime: 21600
   }), a)) : [];
-}, USE_ALCHEMY = !1, postMessage = async ({
+}, postMessage = async ({
   isExternal: a = !1,
   externalFid: r,
   messageJSON: s,
@@ -113,51 +114,38 @@ const getSyncedChannelById = async e => {
     }), e = l?.external || e) : t.data.type == MessageType.MESSAGE_TYPE_CAST_REMOVE && (c = await Casts.findOne({
       hash: bytesToHex(t.data.castRemoveBody.targetHash)
     }), e = c?.external || e)), e && t.data.type === MessageType.MESSAGE_TYPE_USER_DATA_ADD && t.data.userDataBody.type === UserDataType.USER_DATA_TYPE_USERNAME) {
-      var d = new _AlchemyService({
+      new _AlchemyService({
         apiKey: prod().NODE_URL,
         chain: prod().NODE_NETWORK
-      }), o = new _AlchemyService({
+      }), new _AlchemyService({
         apiKey: prod().OPTIMISM_NODE_URL,
         chain: prod().OPTIMISM_NODE_NETWORK
       });
       let e = Buffer.from(t.data.userDataBody.value).toString("ascii").replace(".beb", "").replace(".cast", "");
       e.includes(".op") && (e = "op_" + e.replace(".op", ""));
-      var g = getHexTokenIdFromLabel(e);
-      if (USE_ALCHEMY) {
-        var [ m, u ] = await Promise.all([ d.getNFTs({
-          owner: r,
-          contractAddresses: [ prod().REGISTRAR_ADDRESS ]
-        }), o.getNFTs({
-          owner: r,
-          contractAddresses: [ prod().OPTIMISM_REGISTRAR_ADDRESS ]
-        }) ]), h = (m?.ownedNfts || []).concat(u?.ownedNfts || []).map(e => e.id?.tokenId).filter(e => e);
-        if (!h.includes(g)) {
-          var y = `Invalid UserData for external user, could not find ${e}/${g} in validPasses=` + h;
-          if ("production" === process.env.NODE_ENV) throw new Error(y);
-          console.error(y);
-        }
-      } else if (!await CastHandle.exists({
+      var d = getHexTokenIdFromLabel(e);
+      if (!await CastHandle.exists({
         owner: r?.toLowerCase(),
-        tokenId: g.toLowerCase()
+        tokenId: d.toLowerCase()
       })) {
-        var F = `Invalid UserData for external user, could not find ${e}/${g} in CastHandles!`;
-        if ("production" === process.env.NODE_ENV) throw new Error(F);
-        console.error(F);
+        var o = `Invalid UserData for external user, could not find ${e}/${d} in CastHandles!`;
+        if ("production" === process.env.NODE_ENV) throw new Error(o);
+        console.error(o);
       }
     }
     if (!e) {
-      var f = await i.submitMessage(t), p = f.unwrapOr(null);
-      if (!p) throw new Error("Could not send message: " + f?.error);
+      var g = await i.submitMessage(t), m = g.unwrapOr(null);
+      if (!m) throw new Error("Could not send message: " + g?.error);
       t = {
-        ...p,
-        hash: p.hash,
-        signer: p.signer
+        ...m,
+        hash: m.hash,
+        signer: m.signer
       };
     }
-    var w = new Date(), A = {
+    var u = new Date(), h = {
       fid: e ? r : t.data.fid,
-      createdAt: w,
-      updatedAt: w,
+      createdAt: u,
+      updatedAt: u,
       messageType: t.data.type,
       timestamp: farcasterTimeToDate(t.data.timestamp),
       hash: bytesToHex(t.hash),
@@ -171,13 +159,13 @@ const getSyncedChannelById = async e => {
       bodyOverrides: n
     };
     try {
-      await Messages.create(A);
+      await Messages.create(h);
     } catch (e) {
       if (11e3 !== (e?.code || 0)) throw e;
       console.error("Message with this hash already exists, skipping!");
     }
     return {
-      result: A,
+      result: h,
       source: "v2"
     };
   } catch (e) {
@@ -444,6 +432,8 @@ const getSyncedChannelById = async e => {
     value: a,
     type: UserDataType.USER_DATA_TYPE_USERNAME,
     deletedAt: null
+  }).sort({
+    createdAt: -1
   }), t = a?.fid), t ? (await memcache.set("getFarcasterFidByUsername:" + e, t), 
   t) : null;
 }, getFarcasterUserByUsername = async (e, t = 0) => {
@@ -501,12 +491,12 @@ const getSyncedChannelById = async e => {
     }
   })) || [], [ a, s, c, d, o, g, m, u ] = (s.push(Promise.all(a)), await Promise.all(s)), h = i.text || "";
   let y = 0;
-  var F, f, p, w, A, C = [];
+  var F, p, f, w, A, C = [];
   let S = Buffer.from(h, "utf-8");
-  for (let e = 0; e < m.length; e++) m[e] && (p = i.mentionsPositions[e], F = m[e].username || "fid:" + m[e].fid, 
-  F = Buffer.from("@" + F, "utf-8"), f = m[e].originalMention || "", f = Buffer.from(f, "utf-8").length, 
-  p = p + y, w = S.slice(0, p), A = S.slice(p + f), S = Buffer.concat([ w, F, A ]), 
-  y += F.length - f, C.push(p));
+  for (let e = 0; e < m.length; e++) m[e] && (f = i.mentionsPositions[e], F = m[e].username || "fid:" + m[e].fid, 
+  F = Buffer.from("@" + F, "utf-8"), p = m[e].originalMention || "", p = Buffer.from(p, "utf-8").length, 
+  f = f + y, w = S.slice(0, f), A = S.slice(f + p), S = Buffer.concat([ w, F, A ]), 
+  y += F.length - p, C.push(f));
   h = S.toString("utf-8"), h = {
     hash: i.hash,
     parentHash: i.parentHash,
@@ -862,7 +852,9 @@ const getSyncedChannelById = async e => {
   return (t = a ? JSON.parse(a.value).map(e => new Storage(e)) : t) || (t = await Storage.find({
     fid: e,
     deletedAt: null
-  }), await memcache.set("getFarcasterStorageByFid:" + e, JSON.stringify(t))), t.map(e => ({
+  }), await memcache.set("getFarcasterStorageByFid:" + e, JSON.stringify(t))), t.forEach(e => {
+    e.timestamp < new Date("2024-08-28T00:00:00Z") && (e.expiry = new Date(e.expiry.getTime() + 31536e6));
+  }), t.map(e => ({
     timestamp: e.timestamp,
     fid: e.fid,
     units: e.units,
@@ -1016,6 +1008,88 @@ const getSyncedChannelById = async e => {
   } catch (e) {
     throw console.error("Failed to create or update action:", e), e;
   }
+}, getFarPay = async e => {
+  var t = "farPay:" + e;
+  let a = await memcache.get(t);
+  return a ? a = JSON.parse(a.value) : (a = await FarPay.findOne({
+    uniqueId: e
+  })) && await memcache.set(t, JSON.stringify(a)), a;
+}, crypto = require("crypto"), updateFarPay = async ({
+  uniqueId: e,
+  ...t
+}) => {
+  if (!e) throw new Error("Missing required uniqueId");
+  t = await FarPay.findOneAndUpdate({
+    uniqueId: e
+  }, {
+    $set: {
+      txHash: t.txHash
+    }
+  }, {
+    new: !0
+  });
+  if (t) return await memcache.delete("farPay:" + e), t;
+  throw new Error("FarPay not found");
+}, createFarPay = async ({
+  ...e
+}) => {
+  var t;
+  if (e.txId) return t = crypto.randomBytes(16).toString("hex"), await (t = new FarPay({
+    uniqueId: t,
+    txId: e.txId,
+    data: JSON.stringify(e.data),
+    callbackUrl: e.callbackUrl
+  })).save(), t;
+  throw new Error("Missing required fields");
+}, getFarpayDeeplink = async ({
+  txId: e,
+  data: t,
+  callbackUrl: a
+}) => {
+  var r = await createFarPay({
+    txId: e,
+    data: t,
+    callbackUrl: a
+  });
+  return {
+    deepLinkUrl: `farquest://?txId=${e}&data=${encodeURIComponent(JSON.stringify(t))}&uniqueId=${r.uniqueId}&callbackUrl=` + encodeURIComponent(a),
+    uniqueId: r.uniqueId
+  };
+}, searchCastHandleByMatch = async (e, t = 10, a = "text") => {
+  if (!e) return [];
+  var r = escapeRegExp(e.toLowerCase()), s = "searchCastHandleByMatch:" + e, i = await memcache.get(getHash(s));
+  if (i) return JSON.parse(i.value);
+  let n;
+  if ("development" === process.env.NODE_ENV) n = await CastHandle.find({
+    handle: {
+      $regex: "^" + r,
+      $options: "i"
+    }
+  }).read("secondaryPreferred").limit(t).sort(a); else try {
+    n = await CastHandle.aggregate().search({
+      text: {
+        query: e,
+        path: "handle",
+        fuzzy: {
+          maxEdits: 2,
+          prefixLength: 0,
+          maxExpansions: 50
+        }
+      },
+      index: "search-casthandles"
+    }).limit(t);
+  } catch (e) {
+    return console.error("Error searching casthandles", e), Sentry.captureException(e), 
+    [];
+  }
+  i = n.map(e => ({
+    handle: e.handle,
+    owner: e.owner,
+    tokenId: e.tokenId
+  }));
+  return await memcache.set(getHash(s), JSON.stringify(i), {
+    lifetime: 300
+  }), i;
 };
 
 module.exports = {
@@ -1062,5 +1136,9 @@ module.exports = {
   getFarcasterSignersForFid: getFarcasterSignersForFid,
   getFarcasterReactionsCount: getFarcasterReactionsCount,
   getFarcasterFollowersCount: getFarcasterFollowersCount,
-  getFarcasterRepliesCount: getFarcasterRepliesCount
+  getFarcasterRepliesCount: getFarcasterRepliesCount,
+  getFarPay: getFarPay,
+  getFarpayDeeplink: getFarpayDeeplink,
+  updateFarPay: updateFarPay,
+  searchCastHandleByMatch: searchCastHandleByMatch
 };

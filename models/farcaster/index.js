@@ -19,7 +19,8 @@ const mongoose = require("mongoose"), {
   reportsSchema,
   syncedChannelsSchema,
   syncedActionsSchema,
-  syncedVerificationSchema
+  syncedVerificationSchema,
+  farpaySchema
 } = require("../../schemas/farcaster");
 
 class HubSubscriptionsClass {
@@ -235,6 +236,16 @@ syncedActionsSchema.loadClass(SyncedActionsClass);
 
 const SyncedActions = mongoose.models.SyncedActions || mongoose.model("farcaster.SyncedActions", syncedActionsSchema);
 
+class FarPayClass {
+  static ping() {
+    console.log("model: FarPayClass");
+  }
+}
+
+farpaySchema.loadClass(FarPayClass);
+
+const FarPay = mongoose.models.FarPay || mongoose.model("farcaster.FarPay", farpaySchema);
+
 class SyncedVerificationClass {
   static ping() {
     console.log("model: SyncedVerificationClass");
@@ -294,5 +305,6 @@ module.exports = {
   Reports: Reports,
   SyncedChannels: SyncedChannels,
   SyncedActions: SyncedActions,
-  SyncedVerification: SyncedVerification
+  SyncedVerification: SyncedVerification,
+  FarPay: FarPay
 };

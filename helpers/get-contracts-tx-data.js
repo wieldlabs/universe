@@ -33,7 +33,7 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
   } catch (e) {
     throw new Error("Invalid domain name: " + e.message);
   }
-  var e = e.context.frameData?.frameActionBody?.address, e = "0x" + Buffer.from(e).toString("hex"), a = 31536e3, t = await t.rentPrice(r, a), e = new ethers.utils.Interface(config().CONTROLLER_ABI).encodeFunctionData("register", [ r, e, a ]);
+  var a = e.context?.frameData?.frameActionBody?.address, a = a ? "0x" + Buffer.from(a).toString("hex") : e.query.address, e = 31536e3, t = await t.rentPrice(r, e), a = new ethers.utils.Interface(config().CONTROLLER_ABI).encodeFunctionData("register", [ r, a, e ]);
   return {
     chainId: "eip155:1",
     method: "eth_sendTransaction",
@@ -41,7 +41,7 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
     params: {
       abi: config().CONTROLLER_ABI,
       to: config().CONTROLLER_ADDRESS,
-      data: e,
+      data: a,
       value: makeBufferedRegistrationCost(t.base, t.premium)
     }
   };
@@ -59,8 +59,7 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
   } catch (e) {
     throw new Error("Invalid domain name: " + e.message);
   }
-  e = e.context.frameData?.frameActionBody?.address, e = "0x" + Buffer.from(e).toString("hex"), 
-  r = await r.rentPrice(a, t), t = new ethers.utils.Interface(config().CONTROLLER_ABI).encodeFunctionData("register", [ a, e, 31536e4 ]);
+  var n = e.context?.frameData?.frameActionBody?.address, n = n ? "0x" + Buffer.from(n).toString("hex") : e.query.address, e = await r.rentPrice(a, t), r = new ethers.utils.Interface(config().CONTROLLER_ABI).encodeFunctionData("register", [ a, n, 31536e4 ]);
   return {
     chainId: "eip155:10",
     method: "eth_sendTransaction",
@@ -68,18 +67,42 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
     params: {
       abi: config().CONTROLLER_ABI,
       to: config().CONTROLLER_ADDRESS_OP,
-      data: t,
-      value: r.base.toString()
+      data: r,
+      value: e.base.toString()
+    }
+  };
+}, getTxDataForBulkRegister = async e => {
+  var {
+    names: t,
+    durations: r,
+    chainId: a
+  } = e.query;
+  if (!t || !r) throw new Error("Missing required parameters: names, owners, or durations");
+  t = t.split(","), r = r.split(",").map(e => parseInt(e));
+  if (t.length !== r.length) throw new Error("Input arrays must have the same length");
+  var n = e.context?.frameData?.frameActionBody?.address;
+  const o = n ? "0x" + Buffer.from(n).toString("hex") : e.query.address;
+  var n = new ethers.providers.AlchemyProvider("10" === a ? 10 : 1, "10" === a ? config().OPTIMISM_NODE_URL : config().ETH_NODE_URL), e = "10" === a ? config().BULK_REGISTER_ADDRESS_OP : config().BULK_REGISTER_ADDRESS, i = config().BULK_REGISTER_ABI, n = await new ethers.Contract(e, i, n).calculateTotalPrice(t, r);
+  return {
+    chainId: "10" === a ? "eip155:10" : "eip155:1",
+    method: "eth_sendTransaction",
+    attribution: !1,
+    params: {
+      abi: i,
+      to: e,
+      data: new ethers.utils.Interface(i).encodeFunctionData("bulkRegister", [ t, t.map(() => o), r ]),
+      value: makeBufferedRegistrationCost(n, 0)
     }
   };
 }, getBebdomainTxData = async e => {
-  var t = e.query.bebdomain || e.context?.untrustedData?.inputText;
-  return (t && t.length < 7 ? getTxDataForEthController : getTxDataForOpController)(e);
+  var t = e.query.bebdomain || e.context?.untrustedData?.inputText, r = e.query.chainId, a = e.query.count;
+  return (a && 1 < parseInt(a) ? getTxDataForBulkRegister : "1" === r || t && t.length < 7 ? getTxDataForEthController : getTxDataForOpController)(e);
 };
 
 module.exports = {
   getTxDataForProxyRegister2Address: getTxDataForProxyRegister2Address,
   getTxDataForOpController: getTxDataForOpController,
   getTxDataForEthController: getTxDataForEthController,
-  getBebdomainTxData: getBebdomainTxData
+  getBebdomainTxData: getBebdomainTxData,
+  getTxDataForBulkRegister: getTxDataForBulkRegister
 };

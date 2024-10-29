@@ -32,7 +32,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   searchFarcasterCasts,
   getActions,
   createAction,
-  getFarcasterFidByCustodyAddress
+  getFarPay,
+  updateFarPay,
+  getFarcasterFidByCustodyAddress,
+  getFarpayDeeplink
 } = require("../helpers/farcaster"), {
   fetchAssetMetadata,
   fetchPriceHistory
@@ -45,7 +48,11 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
 } = require("alchemy-sdk"), requireAuth = require("../helpers/auth-middleware")["requireAuth"], {
   memcache,
   getHash
-} = require("../connectmemcache"), _ScoreService = require("../services/ScoreService")["Service"], getFartapScoreType = require("../helpers/fartap")["getFartapScoreType"], getAddressPasses = require("../helpers/farcaster-utils")["getAddressPasses"], apiKeyCache = new Map(), getLimit = n => async (e, r) => {
+} = require("../connectmemcache"), _ScoreService = require("../services/ScoreService")["Service"], getFartapScoreType = require("../helpers/fartap")["getFartapScoreType"], {
+  getAddressPasses,
+  getAddressInventory,
+  getListingDetails
+} = require("../helpers/farcaster-utils"), apiKeyCache = new Map(), getLimit = n => async (e, r) => {
   var t, a = e.header("API-KEY");
   if (!a) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
     tags: {
@@ -60,7 +67,14 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
     lifetime: 3600
   })), s ? Math.ceil(n * s.multiplier) : (t = `API-KEY ${a} not found! Returning 0 for ` + e.url, 
   console.error(t), Sentry.captureMessage(t), 0);
-}, limiter = rateLimit({
+}, lightLimiter = rateLimit({
+  windowMs: 1e3,
+  max: getLimit(5),
+  message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
+  validate: {
+    limit: !1
+  }
+}), limiter = rateLimit({
   windowMs: 5e3,
   max: getLimit(5),
   message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
@@ -87,17 +101,17 @@ const getHubClient = () => _hubClient = _hubClient || ("SECURE" === process.env.
     var o = await Account.findByIdCached(n.payload.id);
     if (!o) throw new Error(`Account id ${n.payload.id} not found`);
     if (o.deleted) throw new Error(`Account id ${n.payload.id} deleted`);
-    var c = "true" === r.headers.external, i = (!c && n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal, c))?.toString().toLowerCase(), u = new _CacheService();
+    var i = "true" === r.headers.external, c = (!i && n.payload.signerId || await s.getFidByAccountId(n.payload.id, n.payload.isExternal, i))?.toString().toLowerCase(), u = new _CacheService();
     (!await u.get({
-      key: "enableNotifications_" + i
+      key: "enableNotifications_" + c
     }) || Math.random() < .01) && u.set({
-      key: "enableNotifications_" + i,
+      key: "enableNotifications_" + c,
       value: "1",
       expiresAt: new Date(Date.now() + 7776e6)
     }), r.context = {
       ...r.context || {},
       accountId: n.payload.id,
-      fid: i,
+      fid: c,
       account: o,
       hubClient: a
     };
@@ -169,11 +183,11 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/casts-in-thread", [ authContext, limiter ], async (e, r) => {
   try {
-    var t, a, s = e.query.threadHash, n = e.query.parentHash, o = Math.min(e.query.limit || 10, 50), c = e.query.cursor || null;
+    var t, a, s = e.query.threadHash, n = e.query.parentHash, o = Math.min(e.query.limit || 10, 50), i = e.query.cursor || null;
     return s ? ([ t, a ] = await getFarcasterCastsInThread({
       threadHash: s,
       limit: o,
-      cursor: c,
+      cursor: i,
       parentHash: n,
       context: e.context
     }), r.json({
@@ -192,18 +206,18 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/casts", [ authContext, limiter ], async (e, r) => {
   try {
-    var t = e.query.fid, a = JSON.parse(e.query.filters || null), s = e.query.parentChain || null, n = Math.min(e.query.limit || 10, 100), o = e.query.cursor || null, c = "true" === e.query.explore, [ i, u ] = await getFarcasterCasts({
+    var t = e.query.fid, a = JSON.parse(e.query.filters || null), s = e.query.parentChain || null, n = Math.min(e.query.limit || 10, 100), o = e.query.cursor || null, i = "true" === e.query.explore, [ c, u ] = await getFarcasterCasts({
       fid: t,
       parentChain: s,
       limit: n,
       cursor: o,
       context: e.context,
-      explore: c,
+      explore: i,
       filters: a
     });
     return r.json({
       result: {
-        casts: i
+        casts: c
       },
       next: u,
       source: "v2"
@@ -594,16 +608,16 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     }, {
       name: "deadline",
       type: "uint256"
-    } ], c = Math.floor(Date.now() / 1e3) + 86400;
+    } ], i = Math.floor(Date.now() / 1e3) + 86400;
     return process.env.FARCAST_KEY ? (t = await ethers.Wallet.fromMnemonic(process.env.FARCAST_KEY)._signTypedData(n, {
       SignedKeyRequest: o
     }, {
       requestFid: ethers.BigNumber.from(18548),
       key: s,
-      deadline: ethers.BigNumber.from(c)
+      deadline: ethers.BigNumber.from(i)
     }), a = (await axios.post("https://api.warpcast.com/v2/signed-key-requests", {
       requestFid: "18548",
-      deadline: c,
+      deadline: i,
       key: s,
       signature: t
     }))["data"], r.json({
@@ -715,6 +729,25 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     var t = await new _MarketplaceService().getListing(e.query);
     return r.json({
       listing: t
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.get("/v2/marketplace/listing/details", [ limiter ], async (e, r) => {
+  try {
+    var {
+      listing: t,
+      userData: a,
+      offers: s,
+      history: n
+    } = await getListingDetails(e.query);
+    return r.json({
+      listing: t,
+      userData: a,
+      offers: s,
+      history: n
     });
   } catch (e) {
     console.error(e), r.status(500).json({
@@ -992,7 +1025,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         lastCount: t,
         lastTimestamp: a?.computedAt || null
       };
-    })), c = await Promise.all(a?.casts?.map(e => getFarcasterCastByHash(e.hash, r.context))), [ i, u ] = await Promise.all([ o, c ]), l = u.filter(e => null !== e), y = i.reduce((e, {
+    })), i = await Promise.all(a?.casts?.map(e => getFarcasterCastByHash(e.hash, r.context))), [ c, u ] = await Promise.all([ o, i ]), l = u.filter(e => null !== e), y = c.reduce((e, {
       token: r,
       percentageDifference: t,
       count: a,
@@ -1027,11 +1060,11 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: "Token is required"
     });
     var {
-      castTimerange: c = "3d",
-      tokenTimerange: i = "7d"
+      castTimerange: i = "3d",
+      tokenTimerange: c = "7d"
     } = a.query;
     let e;
-    "1d" === c ? e = 1 : "3d" === c ? e = 3 : "7d" === c && (e = 7);
+    "1d" === i ? e = 1 : "3d" === i ? e = 3 : "7d" === i && (e = 7);
     var u = new Date(Date.now() - 24 * e * 60 * 60 * 1e3), l = n.find({
       key: "TrendingCastsHistory",
       params: {
@@ -1052,7 +1085,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       sort: {
         createdAt: 1
       }
-    }), [ d, p ] = await Promise.all([ l, y ]), v = p.map(e => {
+    }), [ p, d ] = await Promise.all([ l, y ]), v = d.map(e => {
       var r = e.count;
       return {
         computedAt: e.computedAt,
@@ -1062,21 +1095,21 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
         contractAddress: e.contractAddress
       };
     });
-    if (!d || !d[0]) return s.status(404).json({
+    if (!p || !p[0]) return s.status(404).json({
       error: "No history found for this token"
     });
-    var h = d[0]["casts"];
-    if (!h || 0 === h.length) return s.status(404).json({
+    var g = p[0]["casts"];
+    if (!g || 0 === g.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var g = [ ...new Set(h?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    var h = [ ...new Set(g?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(h.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
     if (0 === m.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
-    var S, f = v[v.length - 1];
-    return f?.contractAddress && (S = await Promise.allSettled([ fetchAssetMetadata(f.network, f.contractAddress), fetchPriceHistory(f.contractAddress, f.network, i) ]), 
-    r = "fulfilled" === S[0].status ? S[0].value : null, t = "fulfilled" === S[1].status ? S[1].value : []), 
+    var f, S = v[v.length - 1];
+    return S?.contractAddress && (f = await Promise.allSettled([ fetchAssetMetadata(S.network, S.contractAddress), fetchPriceHistory(S.contractAddress, S.network, c) ]), 
+    r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
         casts: m,
@@ -1188,18 +1221,18 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   try {
     var a = r.query.fid;
     if (!a) throw new Error("Fid not found");
-    var s, n = [ getFarcasterFidByCustodyAddress(a), getFarcasterUserByFid(a), getFarcasterStorageByFid(a) ], [ o, c, i ] = await Promise.all(n);
+    var s, n = [ getFarcasterFidByCustodyAddress(a), getFarcasterUserByFid(a), getFarcasterStorageByFid(a) ], [ o, i, c ] = await Promise.all(n);
     let e = !1;
     r.query.signer && (s = new _AccountRecovererService(), e = await s.verifyFarcasterSignerAndGetFid(null, {
       signerAddress: r.query.signer,
-      fid: o || c?.fid
+      fid: o || i?.fid
     })), t.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
       stats: {
-        hasFid: o || !c?.external,
-        storage: i,
+        hasFid: o || !i?.external,
+        storage: c,
         validSigner: !!e
       }
     });
@@ -1208,6 +1241,190 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       code: "500",
       success: !1,
       message: e.message
+    });
+  }
+}), app.get("/v2/farpay/:uniqueId", [ lightLimiter ], async (e, r) => {
+  try {
+    var t = e.params["uniqueId"], a = await getFarPay(t);
+    return r.json({
+      farPay: a
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.post("/v2/farpay", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await updateFarPay(e.body);
+    return r.json({
+      farPay: t
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.post("/v2/farpay/deeplink", [ lightLimiter ], async (e, r) => {
+  try {
+    var {
+      txId: t,
+      data: a,
+      callbackUrl: s
+    } = e.body, {
+      deepLinkUrl: n,
+      uniqueId: o
+    } = await getFarpayDeeplink({
+      txId: t,
+      data: a,
+      callbackUrl: s
+    });
+    return r.json({
+      deepLinkUrl: n,
+      uniqueId: o
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.post("/v2/marketplace/listings/nft/complete", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().listTokenId(e.body);
+    r.json({
+      result: {
+        listing: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/listings/nft/buy", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().buyTokenId(e.body);
+    r.json({
+      result: {
+        listing: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/listings/nft/cancel", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().cancelListTokenId(e.body);
+    r.json({
+      result: {
+        listing: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/offers/nft/complete", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().offerTokenId(e.body);
+    r.json({
+      result: {
+        offer: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/offers/nft/cancel", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().cancelOfferTokenId(e.body);
+    r.json({
+      result: {
+        offer: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.post("/v2/marketplace/offers/nft/accept", [ heavyLimiter ], async (e, r) => {
+  try {
+    var t = await new _MarketplaceService().approveOfferTokenId(e.body);
+    r.json({
+      result: {
+        offer: t
+      },
+      success: !0
+    });
+  } catch (e) {
+    console.error(e), r.status(500).json({
+      error: e.message
+    });
+  }
+}), app.get("/v2/inventory", [ limiter ], async (e, r) => {
+  try {
+    var t, a, s, n, {
+      address: o,
+      limit: i = 100,
+      cursor: c = null,
+      filters: u = {},
+      sort: l
+    } = e.query;
+    return !o || o.length < 10 ? r.status(400).json({
+      error: "address is invalid"
+    }) : (t = parseInt(i) || 100, a = "string" == typeof u ? JSON.parse(u) : u, 
+    [ s, n ] = await getAddressInventory({
+      address: o,
+      limit: t,
+      cursor: c,
+      filters: a,
+      sort: l
+    }), r.json({
+      result: {
+        inventory: s
+      },
+      nextCursor: n,
+      source: "v2"
+    }));
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/marketplace/listings/history", [ limiter ], async (e, r) => {
+  try {
+    var t, {
+      fid: a,
+      tokenId: s,
+      chainId: n,
+      timerange: o
+    } = e.query;
+    return a || s ? (t = await new _MarketplaceService().getHistoricalSales({
+      fid: a || void 0,
+      tokenId: s || void 0,
+      chainId: n ? parseInt(n) : void 0,
+      timerange: o || "30d"
+    }), r.json({
+      result: t,
+      success: !0
+    })) : r.status(400).json({
+      error: "Either fid or tokenId is required"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error",
+      success: !1
     });
   }
 }), module.exports = {

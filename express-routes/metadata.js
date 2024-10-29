@@ -1,4 +1,4 @@
-const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = import("d3"), jsdom = require("jsdom"), validateAndCreateMetadata = require("../helpers/domain-metadata")["validateAndCreateMetadata"], ethers = require("ethers")["ethers"], _RegistrarService = require("../services/RegistrarService")["Service"], rateLimit = require("express-rate-limit"), getCharacterSet = t => t.match(/^[a-zA-Z]+$/) ? "letter" : t.match(/^[0-9]+$/) ? "digit" : t.match(/^[a-zA-Z0-9]+$/) ? "alphanumeric" : t.match(/[\u{1F300}-\u{1F5FF}]/u) ? "emoji" : "mixed", background = async t => "premium" === t ? `
+const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = import("d3"), jsdom = require("jsdom"), validateAndCreateMetadata = require("../helpers/domain-metadata")["validateAndCreateMetadata"], ethers = require("ethers")["ethers"], _RegistrarService = require("../services/RegistrarService")["Service"], rateLimit = require("express-rate-limit"), SHOW_FARHERO = !0, getCharacterSet = t => t.match(/^[a-zA-Z]+$/) ? "letter" : t.match(/^[0-9]+$/) ? "digit" : t.match(/^[a-zA-Z0-9]+$/) ? "alphanumeric" : t.match(/[\u{1F300}-\u{1F5FF}]/u) ? "emoji" : "mixed", background = async t => "premium" === t ? `
     <svg id="eAVy1O8efKQ1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
 
 <style><![CDATA[
@@ -36,17 +36,17 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
 <g id="eAVy1O8efKQ32_to" transform="translate(510.857224,602.567139)"><path d="M510.11,613.76c-6.43-5.14-13.6-12.47-17.61-19.91-.136638-.256167-.139739-.562879-.008309-.821757s.380869-.437377.668309-.478243q19.06-2.78,35.84.33c.126903.023444.233992.108147.286033.22624s.042294.254282-.026033.36376q-7.2,11.95-18.36,20.3c-.236468.172054-.557963.167985-.79-.01Z" transform="translate(-510.857224,-602.567139)" fill="#060606"/></g>
 <path d="M625.54,663.5c-21.33,9.81-43.14,12.49-66.54,12.59q-64.37.26-97.44.1c-33.75-.16-63.99-6.86-91.06-27.65q.7.09.68-.18c-.012244-.297064.019199-.532886.08-.6q1.54-1.74,3.32-.1q4.66,4.3,9.64,6.21.38.15.79.57.33.34.75.53q10.74,4.96,21.85,8.99c3.67,1.33,7.7,1.62,11.21,2.49c8.88,2.2,19.59,2.18,26.66,2.62c5.73.36,12.66.89,19.57.32q1.89-.16,1.92-.16q29.24.03,58.47.01.32,0,.93-.24.69-.27,1.88-.2q19.65,1.16,44.17.51c6.47-.18,13.28-1.15,20.02-1.67q8.76-.68,22.84-4.41c2.41-.64,5.32-.71,7.98-1.61.348726-.114625.69238-.054686.86.15l1.42,1.73Z" fill="#dddcdc"/>
 </svg>
-  `, Metadata = require("../models/Metadata")["Metadata"], JSDOM = jsdom["JSDOM"], lightLimiter = rateLimit({
+  `, Metadata = require("../models/Metadata")["Metadata"], CastHandle = require("../models/CastHandle")["CastHandle"], JSDOM = jsdom["JSDOM"], lightLimiter = rateLimit({
   windowMs: 1e3,
   max: 1e3,
   message: "Too many requests, please try again later.",
-  handler: (t, e, r) => {
+  handler: (t, e, a) => {
     e.status(429).send("Too many requests, please try again later.");
   }
 }), bebLogo = (app.get("/domain/:domain", lightLimiter, async (t, e) => {
   try {
-    var r = await validateAndCreateMetadata(t.params.domain);
-    return e.json(r);
+    var a = await validateAndCreateMetadata(t.params.domain);
+    return e.json(a);
   } catch (t) {
     return Sentry.captureException(t), e.json({
       code: "500",
@@ -54,58 +54,147 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
       message: t.message
     });
   }
-}), '<svg height="100%" fill="rgb(0,0,0,0.6)" version="1" viewBox="100 -50 1280 1280"></svg>'), processUriRequest = async (r, a) => {
+}), app.get("/bulk-domain", lightLimiter, async (t, e) => {
   try {
-    var i = r.params.uri;
-    if (!i || 0 == i.length) throw Error("uri invalid!");
-    var n = ethers.BigNumber.from(i), c = ethers.BigNumber.from(2).pow(256).sub(1);
-    if (n.gt(c)) throw new Error("The URI is too large to be represented in a 64-character-long hexadecimal string!");
-    var s, o = n.toHexString(), f = 64 - (o.length - 2), m = "0x" + "0".repeat(f) + o.slice(2), l = await Metadata.findOne({
-      uri: m
+    var a, r, i = t.query["domains"];
+    return i && Array.isArray(i) && 0 !== i.length ? (a = i.map(t => decodeURIComponent(t)), 
+    r = await Promise.all(a.map(async e => {
+      try {
+        return {
+          domain: e,
+          result: await validateAndCreateMetadata(e)
+        };
+      } catch (t) {
+        return {
+          domain: e,
+          error: t.message
+        };
+      }
+    })), e.json({
+      code: "200",
+      success: !0,
+      results: r
+    })) : e.status(400).json({
+      code: "400",
+      success: !1,
+      message: "Invalid input. Please provide an array of encoded domains in the query."
     });
-    if (!l) return s = {
+  } catch (t) {
+    return Sentry.captureException(t), e.status(500).json({
+      code: "500",
+      success: !1,
+      message: "An error occurred while processing the request."
+    });
+  }
+}), '<svg height="100%" fill="rgb(0,0,0,0.6)" version="1" viewBox="100 -50 1280 1280"></svg>'), parseWear = t => {
+  t = parseFloat(t);
+  return t < .05 ? "Pristine" : t < .2 ? "Mint" : t < .45 ? "Lightly Played" : t < .75 ? "Moderately Played" : "Heavily Played";
+}, processUriRequest = async (r, i) => {
+  try {
+    var n = r.params.uri;
+    if (!n || 0 == n.length) throw Error("uri invalid!");
+    var c = ethers.BigNumber.from(n), s = ethers.BigNumber.from(2).pow(256).sub(1);
+    if (c.gt(s)) throw new Error("The URI is too large to be represented in a 64-character-long hexadecimal string!");
+    var o, m = c.toHexString(), f = 64 - (m.length - 2), l = "0x" + "0".repeat(f) + m.slice(2), q = await Metadata.findOne({
+      uri: l
+    });
+    if (!q) return o = {
       name: "~no_metadata_please_search_domain",
       description: "This domain does not have metadata, navigate to far.quest or Wield and search the domain you minted again to refresh!"
-    }, a.json(s);
-    var q = l.domain, g = new JSDOM("<!DOCTYPE html><html><body></body></html>"), p = (await d3).select(g.window.document).select("body"), d = q.startsWith("op_"), _ = await new _RegistrarService(d ? "optimism" : null).expiresAt(q);
-    let t = [ ...q ].length;
-    q.match(/^[\u0000-\u007f]*$/) || (t *= 2);
-    var u = {
+    }, i.json(o);
+    var p, d = q.domain;
+    let e = await CastHandle.findOne({
+      handle: d
+    });
+    e || (p = "0x" + l.replace(/^0x0+/, ""), e = await CastHandle.findOne({
+      tokenId: p
+    }));
+    var g = e?.expiresAt, u = d.startsWith("op_") ? d.replace("op_", "") + ".op.cast" : d + ".cast", _ = d.replace("op_", "").length;
+    if (e?.displayItemId && SHOW_FARHERO) {
+      let t = [];
+      e.displayMetadata?.rarity && t.push({
+        trait_type: "Rarity",
+        value: e.displayMetadata.rarity
+      }), e.displayMetadata?.name && t.push({
+        trait_type: "FarHero",
+        value: e.displayMetadata.name
+      }), e.displayMetadata?.wear && (t.push({
+        trait_type: "Wear",
+        value: parseWear(e.displayMetadata.wear)
+      }), t.push({
+        trait_type: "Wear Value",
+        value: parseFloat(e.displayMetadata.wear),
+        display_type: "number",
+        max_value: 1
+      })), e.displayMetadata?.foil && t.push({
+        trait_type: "Foil",
+        value: e.displayMetadata.foil
+      }), t = [ ...t, {
+        trait_type: "Length",
+        value: _,
+        display_type: "number"
+      }, {
+        trait_type: "Category",
+        value: d.startsWith("op_") ? "Optimism Renewal" : d.length < 10 ? "Premium Renewal" : "Free Renewal"
+      }, {
+        trait_type: "Game",
+        value: "FarHero"
+      }, {
+        trait_type: "Character Set",
+        value: getCharacterSet(d.replace("op_", ""))
+      }, {
+        display_type: "date",
+        trait_type: "Expiration Date",
+        value: g
+      } ];
+      var y = d.startsWith("op_") ? "Check out far.quest/hero 👁️" : `Check the status of ${u} on wield.xyz, and check out far.quest/hero 👁️`, x = {
+        name: u,
+        description: e.displayMetadata?.description || y,
+        image: e.displayMetadata?.image.startsWith("/") ? "https://far.quest/" + e.displayMetadata.image : e.displayMetadata.image,
+        attributes: t
+      };
+      return "farhero" === e.displayMetadata?.displayType && (x.animation_url = "https://far.quest/~/metadata?metadata=" + encodeURIComponent(JSON.stringify(e.displayMetadata))), 
+      i.json(x);
+    }
+    var b = new JSDOM("<!DOCTYPE html><html><body></body></html>"), h = (await d3).select(b.window.document).select("body");
+    let t = [ ...d ].length;
+    d.match(/^[\u0000-\u007f]*$/) || (t *= 2);
+    var A = {
       free: "free",
       premium: "premium",
       optimism: "optimism"
     };
-    let e = u.free;
-    q.startsWith("op_") ? e = u.optimism : t < 10 && (e = u.premium);
-    var x = parseInt(80 * Math.pow(.95, t)), y = `
+    let a = A.free;
+    d.startsWith("op_") ? a = A.optimism : t < 10 && (a = A.premium);
+    var O = parseInt(80 * Math.pow(.95, t)), w = `
     <svg width="500" height="500">
-      ${await background(e)}
+      ${await background(a)}
     </svg>
-  `, b = q.startsWith("op_") ? q.replace("op_", "") + ".op.cast" : q + ".cast", h = q.replace("op_", "").length, A = (p.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(y + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", x + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(b), 
-    p.select(".container").html()), O = "data:image/svg+xml;base64," + Buffer.from(A).toString("base64"), V = (process.env.NODE_ENV, 
+  `, V = (h.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(w + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", O + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(u), 
+    h.select(".container").html()), K = "data:image/svg+xml;base64," + Buffer.from(V).toString("base64"), Q = (process.env.NODE_ENV, 
     {
-      name: b,
-      description: q.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${b} on wield.xyz, and check out far.quest 👁️`,
-      image: O,
+      name: u,
+      description: d.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${u} on wield.xyz, and check out far.quest 👁️`,
+      image: K,
       attributes: [ {
         trait_type: "Length",
-        value: h,
+        value: _,
         display_type: "number"
       }, {
         trait_type: "Category",
-        value: q.startsWith("op_") ? "Optimism Renewal" : q.length < 10 ? "Premium Renewal" : "Free Renewal"
+        value: d.startsWith("op_") ? "Optimism Renewal" : d.length < 10 ? "Premium Renewal" : "Free Renewal"
       }, {
         trait_type: "Character Set",
-        value: getCharacterSet(q.replace("op_", ""))
+        value: getCharacterSet(d.replace("op_", ""))
       }, {
         display_type: "date",
         trait_type: "Expiration Date",
-        value: _
+        value: g
       } ]
     });
-    return a.json(V);
+    return i.json(Q);
   } catch (t) {
-    return Sentry.captureException(t), console.error(t), a.json({
+    return Sentry.captureException(t), console.error(t), i.json({
       code: "500",
       success: !1,
       message: t.message
@@ -113,6 +202,14 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
   }
 };
 
-app.get("/uri/:uri", lightLimiter, processUriRequest), module.exports = {
+app.get("/uri/:uri", lightLimiter, processUriRequest), app.get("/uri/:uri/image", lightLimiter, async (e, t) => {
+  var a, r = await new Promise(t => {
+    processUriRequest(e, {
+      json: t
+    });
+  });
+  return "500" !== r.code && r.image ? (a = r.image.split(",")[1], a = Buffer.from(a, "base64"), 
+  t.setHeader("Content-Type", "image/svg+xml"), t.send(a)) : t.status(500).json(r);
+}), module.exports = {
   router: app
 };

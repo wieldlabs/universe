@@ -1,18 +1,4 @@
-const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Schema({
-  host: {
-    type: String,
-    required: !0,
-    unique: !0
-  },
-  lastEventId: Number,
-  lastBackfillFid: Number
-}), monsterSchema = (hubSubscriptionsSchema.index({
-  lastEventId: 1
-}), hubSubscriptionsSchema.index({
-  lastBackfillFid: 1
-}), hubSubscriptionsSchema.index({
-  host: 1
-}), new mongoose.Schema({
+const mongoose = require("mongoose"), monsterSchema = new mongoose.Schema({
   name: {
     type: String,
     required: !0
@@ -79,7 +65,7 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   awakenBonus: {
     type: String
   }
-})), playerSchema = (monsterSchema.index({
+}), playerSchema = (monsterSchema.index({
   name: 1,
   element: 1
 }), monsterSchema.index({

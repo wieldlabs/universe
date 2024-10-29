@@ -633,6 +633,13 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   amount: {
     type: String,
     required: !0
+  },
+  tokenId: {
+    type: String
+  },
+  chainId: {
+    type: Number,
+    default: 10
   }
 }, {
   timestamps: !0
@@ -648,6 +655,10 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   canceledAt: 1
 }), offerSchema.index({
   fid: 1,
+  canceledAt: 1
+}), offerSchema.index({
+  tokenId: 1,
+  chainId: 1,
   canceledAt: 1
 }), offerSchema.index({
   txHash: 1
@@ -675,6 +686,13 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   },
   canceledAt: {
     type: Date
+  },
+  tokenId: {
+    type: String
+  },
+  chainId: {
+    type: Number,
+    default: 10
   }
 }, {
   timestamps: !0
@@ -684,6 +702,13 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }), listingSchema.index({
   fid: 1,
   canceledAt: 1
+}), listingSchema.index({
+  tokenId: 1,
+  chainId: 1,
+  canceledAt: 1
+}), listingSchema.index({
+  tokenId: 1,
+  chainId: 1
 }), listingSchema.index({
   canceledAt: 1
 }), listingSchema.index({
@@ -698,6 +723,11 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   boughtAt: 1
 }), listingSchema.index({
   fid: 1,
+  deadline: 1,
+  canceledAt: 1
+}), listingSchema.index({
+  fid: 1,
+  ownerAddress: 1,
   deadline: 1,
   canceledAt: 1
 }), listingSchema.index({
@@ -764,6 +794,13 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   },
   referrer: {
     type: String
+  },
+  tokenId: {
+    type: String
+  },
+  chainId: {
+    type: Number,
+    default: 10
   }
 }, {
   timestamps: !0
@@ -771,6 +808,12 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   txHash: 1
 }), listingLogSchema.index({
   fid: 1
+}), listingLogSchema.index({
+  tokenId: 1,
+  chainId: 1
+}), listingLogSchema.index({
+  txHash: 1,
+  chainId: 1
 }), listingLogSchema.index({
   from: 1,
   eventType: 1
@@ -977,9 +1020,7 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   }
 }, {
   timestamps: !0
-}));
-
-syncedVerificationSchema.index({
+})), farpaySchema = (syncedVerificationSchema.index({
   verified: 1
 }), syncedVerificationSchema.index({
   fid: 1
@@ -990,7 +1031,31 @@ syncedVerificationSchema.index({
   updatedAt: 1
 }, {
   expireAfterSeconds: 604800
-}), module.exports = {
+}), new mongoose.Schema({
+  uniqueId: {
+    type: String,
+    index: !0
+  },
+  txId: {
+    type: String,
+    required: !0,
+    index: !0
+  },
+  data: {
+    type: String
+  },
+  txHash: {
+    type: String,
+    index: !0
+  },
+  callbackUrl: {
+    type: String
+  }
+}, {
+  timestamps: !0
+}));
+
+module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
   messagesSchema: messagesSchema,
   castsSchema: castsSchema,
@@ -1011,5 +1076,6 @@ syncedVerificationSchema.index({
   reportsSchema: reportsSchema,
   syncedChannelsSchema: syncedChannelsSchema,
   syncedActionsSchema: syncedActionsSchema,
-  syncedVerificationSchema: syncedVerificationSchema
+  syncedVerificationSchema: syncedVerificationSchema,
+  farpaySchema: farpaySchema
 };

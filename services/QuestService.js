@@ -1,4 +1,4 @@
-const _ContentService = require("./ContentService")["Service"], QuestRewardService = require("./QuestRewardService")["Service"], _IndexerRuleService = require("./IndexerRuleService")["Service"], _AlchemyService = require("./AlchemyService")["Service"], Quest = require("../models/quests/Quest")["Quest"], CommunityQuest = require("../models/quests/CommunityQuest")["CommunityQuest"], AccountAddress = require("../models/AccountAddress")["AccountAddress"], IndexerRule = require("../models/IndexerRule")["IndexerRule"], prod = require("../helpers/registrar")["prod"];
+const _ContentService = require("./ContentService")["Service"], QuestRewardService = require("./QuestRewardService")["Service"], _IndexerRuleService = require("./IndexerRuleService")["Service"], _AlchemyService = require("./AlchemyService")["Service"], Quest = require("../models/quests/Quest")["Quest"], CommunityQuest = require("../models/quests/CommunityQuest")["CommunityQuest"], AccountAddress = require("../models/AccountAddress")["AccountAddress"], IndexerRule = require("../models/IndexerRule")["IndexerRule"], prod = require("../helpers/registrar")["prod"], CastHandle = require("../models/CastHandle")["CastHandle"], getAddressPasses = require("../helpers/farcaster-utils")["getAddressPasses"];
 
 class QuestService extends QuestRewardService {
   requiredDataByRequirementType(e) {
@@ -33,18 +33,18 @@ class QuestService extends QuestRewardService {
   }, a) {
     t = t?.data?.find?.(e => "richBlockId" === e?.key)?.value;
     if (!t) return !1;
-    var n = new _IndexerRuleService();
+    var s = new _IndexerRuleService();
     try {
-      var s, i = await IndexerRule.findOne({
+      var n, i = await IndexerRule.findOne({
         ruleOwnerType: 2,
         ruleOwnerId: t
       });
-      return i ? !!(s = await AccountAddress.findOne({
+      return i ? !!(n = await AccountAddress.findOne({
         account: a.account._id || a.accountId
-      })) && n.canClaimRole(i, {
+      })) && s.canClaimRole(i, {
         data: {
           communityId: r,
-          address: s.address
+          address: n.address
         }
       }) : !1;
     } catch (e) {
@@ -60,25 +60,25 @@ class QuestService extends QuestRewardService {
     });
     var {
       contractAddress: t,
-      count: n = 1,
-      attributeType: s = null,
+      count: s = 1,
+      attributeType: n = null,
       attributeValue: i = null,
       chain: u = "eth-mainnet"
     } = a;
     if (!t) return !1;
-    var c = {
+    var d = {
       "eth-mainnet": prod().NODE_URL,
       "opt-mainnet": process.env.OPTIMISM_NODE_URL
-    }, c = new _AlchemyService({
-      apiKey: c[u],
+    }, d = new _AlchemyService({
+      apiKey: d[u],
       chain: u
     });
     try {
-      return await r.account?.populate?.("addresses"), await c.verifyOwnership({
+      return await r.account?.populate?.("addresses"), await d.verifyOwnership({
         address: r.account.addresses?.[0]?.address,
         contractAddresses: [ t ],
-        count: n,
-        attributeType: s,
+        count: s,
+        attributeType: n,
         attributeValue: i
       });
     } catch (e) {
@@ -88,34 +88,21 @@ class QuestService extends QuestRewardService {
   async _canCompleteTotalNFTQuest(e, {
     requirement: t
   }, r) {
-    const a = {}, {
-      contractAddress: n,
-      count: s = 1,
-      attributeType: i = null,
-      attributeValue: u = null
-    } = (t?.data?.forEach(e => {
+    const a = {};
+    t?.data?.forEach(e => {
       e?.key && (a[e.key] = e.value);
-    }), a);
-    if (!n) return !1;
-    const c = {
-      "eth-mainnet": prod().NODE_URL,
-      "opt-mainnet": process.env.OPTIMISM_NODE_URL
-    };
+    });
+    var {
+      contractAddress: t,
+      count: s = 1
+    } = a;
+    if (!t) return !1;
+    prod().NODE_URL, process.env.OPTIMISM_NODE_URL;
     try {
-      var d = n.split(","), o = (await r.account?.populate?.("addresses"), (await Promise.all(d.map(async e => {
-        var [ e, t ] = e.split(":");
-        return await new _AlchemyService({
-          apiKey: c[e],
-          chain: e
-        }).verifyOwnership({
-          address: r.account.addresses?.[0]?.address,
-          contractAddresses: [ t ],
-          attributeType: i,
-          attributeValue: u,
-          returnCount: !0
-        });
-      }))).reduce((e, t) => e + t, 0));
-      return s <= o;
+      t.split(",");
+      await r.account?.populate?.("addresses");
+      var n = r.account.addresses?.[0]?.address?.toLowerCase?.();
+      return s <= (await getAddressPasses(n, !1)).passes?.length;
     } catch (e) {
       return console.error(e), !1;
     }
@@ -176,11 +163,11 @@ class QuestService extends QuestRewardService {
     },
     schedule: r,
     imageUrl: a,
-    requirements: n = [],
-    rewards: s = [],
+    requirements: s = [],
+    rewards: n = [],
     community: i,
     startsAt: u,
-    endsAt: c
+    endsAt: d
   } = {}) {
     t = new _ContentService().makeContent({
       contentRaw: t.raw,
@@ -193,12 +180,12 @@ class QuestService extends QuestRewardService {
       schedule: r,
       community: i,
       startsAt: u,
-      endsAt: c
+      endsAt: d
     });
     return e.requirements = await this.createQuestRequirements({
-      requirements: n
+      requirements: s
     }), e.rewards = await this.createQuestRewards({
-      rewards: s
+      rewards: n
     }), await e.save(), await CommunityQuest.findOrCreate({
       communityId: i,
       questId: e._id

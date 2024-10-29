@@ -23,7 +23,10 @@ const BebRegistryBetaController = require("./abi/beb-controller-abi.json"), BebR
   FARCAST_FID: 18548,
   FARCAST_STAGING_FID: 0,
   FARCAST_KEY: process.env.FARCAST_KEY,
-  MOCK_SIGNER_KEY: "divert visual loan bachelor ready enlist put into tray camera left six"
+  MOCK_SIGNER_KEY: "divert visual loan bachelor ready enlist put into tray camera left six",
+  SHOULD_CREATE_PACKS: !0,
+  PACK_SET: "Genesis",
+  ALLOW_REASSIGN_PACKS: !0
 }), prod = () => ({
   NODE_URL: process.env.HOMESTEAD_NODE_URL,
   NODE_NETWORK: "homestead",
@@ -46,7 +49,10 @@ const BebRegistryBetaController = require("./abi/beb-controller-abi.json"), BebR
   FARCAST_FID: 18548,
   FARCAST_KEY: process.env.FARCAST_KEY,
   FARCAST_STAGING_FID: 0,
-  MOCK_SIGNER_KEY: "divert visual loan bachelor ready enlist put into tray camera left six"
+  MOCK_SIGNER_KEY: "divert visual loan bachelor ready enlist put into tray camera left six",
+  SHOULD_CREATE_PACKS: !0,
+  PACK_SET: "Genesis",
+  ALLOW_REASSIGN_PACKS: !1
 }), config = "production" === process.env.NODE_ENV ? prod : dev;
 
 module.exports = {

@@ -11,7 +11,8 @@ class ScoreService {
     address: e,
     scoreType: r,
     score: s = 0,
-    description: a
+    description: a,
+    previousScore: o
   }) {
     return await new _CacheService().setWithDupe({
       key: "BebScoreServiceRecord",
@@ -21,7 +22,8 @@ class ScoreService {
       },
       value: {
         score: s,
-        description: a
+        description: a,
+        previousScore: o
       }
     });
   }
@@ -30,22 +32,22 @@ class ScoreService {
     scoreType: r,
     modifier: s = 0
   }) {
-    var a, c, d;
-    if (s && !(s < 0)) return (d = await (a = new _CacheService()).get({
-      key: c = "BebScoreService",
+    var a, o, t;
+    if (s && !(s < 0)) return (t = await (a = new _CacheService()).get({
+      key: o = "BebScoreService",
       params: {
         address: e,
         scoreType: r
       }
-    })) ? (d = Math.max(parseInt(d) + s, parseInt(d)), a.set({
-      key: c,
+    })) ? (t = Math.max(parseInt(t) + s, parseInt(t)), a.set({
+      key: o,
       params: {
         address: e,
         scoreType: r
       },
-      value: d
+      value: t
     })) : a.set({
-      key: c,
+      key: o,
       params: {
         address: e,
         scoreType: r
@@ -58,20 +60,21 @@ class ScoreService {
     scoreType: r,
     score: s = 0,
     modifier: a = null,
-    description: c = null,
-    shouldRecord: d = !0
+    description: o = null,
+    shouldRecord: t = !0
   }) {
-    var o, e = validateAndConvertAddress(e);
-    let t = s;
-    return null !== a && (o = await this.getCommunityScore({
+    e = validateAndConvertAddress(e);
+    let d = s, c = 0;
+    return null !== a && (c = await this.getCommunityScore({
       address: e,
       bebdomain: r
-    }), t = o ? parseInt(o) + a : s + a), t = Math.min(Math.max(t, 0), Number.MAX_SAFE_INTEGER), 
-    d && this._setScoreRecord({
+    }), d = c ? parseInt(c) + a : s + a), d = Math.min(Math.max(d, 0), Number.MAX_SAFE_INTEGER), 
+    t && this._setScoreRecord({
       address: e,
       scoreType: r,
-      score: t,
-      description: c
+      score: d,
+      description: o,
+      previousScore: c
     }), this._setHighestScore({
       address: e,
       scoreType: r,
@@ -82,7 +85,7 @@ class ScoreService {
     }, {
       address: e,
       scoreType: r,
-      score: padWithZeros(t.toString())
+      score: padWithZeros(d.toString())
     }, {
       upsert: !0
     });
@@ -117,6 +120,42 @@ class ScoreService {
         $gt: padWithZeros(e.toString())
       }
     }) + 1;
+  }
+  async addXP({
+    address: e,
+    xp: r,
+    overloadPerPeriod: s,
+    periodInDays: a = 1,
+    overloadMultiplier: o = .1,
+    type: t
+  }) {
+    var e = validateAndConvertAddress(e), d = await this.getCommunityScore({
+      address: e,
+      bebdomain: t
+    }), c = new Date(), a = (c.setDate(c.getDate() - a), await this._getRecentXP(e, t, c));
+    let i = r;
+    c = d + (i = s < a + r ? s - a + (a + r - s) * o : i);
+    return await this.setScore({
+      address: e,
+      scoreType: t,
+      score: c,
+      description: `Added ${i} XP (${r} original)`
+    }), c;
+  }
+  async _getRecentXP(e, r, s) {
+    e = await new _CacheService().find({
+      key: "BebScoreServiceRecord",
+      params: {
+        address: e,
+        scoreType: r
+      },
+      createdAt: {
+        $gte: s
+      }
+    });
+    let a = 0;
+    if (e) for (const o of e) a += o.score - (o.previousScore || 0);
+    return a;
   }
 }
 

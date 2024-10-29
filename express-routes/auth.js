@@ -28,6 +28,27 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       message: e.message
     });
   }
+}), app.post("/v1/authenticate", heavyLimiter, async (e, s) => {
+  e = e.body;
+  try {
+    var {
+      account: t,
+      accessToken: a
+    } = await new _AuthService().authenticate(e);
+    s.status(201).json({
+      code: "201",
+      success: !0,
+      message: "Successfully authenticated",
+      account: t,
+      accessToken: a
+    });
+  } catch (e) {
+    Sentry.captureException(e), console.error(e), s.status(500).json({
+      code: "500",
+      success: !1,
+      message: e.message
+    });
+  }
 }), app.get("/v1/get-account-signin-message", heavyLimiter, async (e, s) => {
   var {
     address: e,
@@ -63,9 +84,9 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
     var t = e.context.account;
     if (!t) throw new Error("Account not found");
     var a = "true" === e.headers.external, r = (await t.populate("addresses profileImage"), 
-    t.addresses[0].address?.toLowerCase()), [ c, n, i ] = await Promise.all([ AccountInvite.findOrCreate({
+    t.addresses[0].address?.toLowerCase()), [ c, n, o ] = await Promise.all([ AccountInvite.findOrCreate({
       accountId: t._id
-    }), a ? null : getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), o = n || i;
+    }), a ? null : getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), i = n || o;
     s.status(201).json({
       code: "201",
       success: !0,
@@ -74,7 +95,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
         ...t.toObject(),
         invite: c,
         identities: {
-          farcaster: o
+          farcaster: i
         }
       }
     });
@@ -89,12 +110,12 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
   try {
     var t = e.context.account;
     if (!t) throw new Error("Account not found");
-    var a = "true" === e.headers.external, r = (await t.populate("addresses"), t.addresses[0].address?.toLowerCase()), [ c, n ] = await Promise.all([ a ? null : getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), i = c || n;
+    var a = "true" === e.headers.external, r = (await t.populate("addresses"), t.addresses[0].address?.toLowerCase()), [ c, n ] = await Promise.all([ a ? null : getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), o = c || n;
     s.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
-      farcaster: i
+      farcaster: o
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), s.status(500).json({
@@ -246,7 +267,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       revokeId: a._id
     }, {
       account: n,
-      accessToken: i
+      accessToken: o
     } = (a.signerData && a.signerData.key && (c.signerData = {
       recovererAddress: a.signerData.key,
       deadline: a.signerData.deadline,
@@ -258,7 +279,7 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       success: !0,
       message: "Successfully authenticated",
       account: n,
-      accessToken: i
+      accessToken: o
     });
   } catch (e) {
     Sentry.captureException(e), console.error(e), s.status(500).json({

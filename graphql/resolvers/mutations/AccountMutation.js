@@ -152,24 +152,32 @@ const Sentry = require("@sentry/node"), getGraphQLRateLimiter = require("graphql
       }
     },
     deleteAccount: async (e, r, c, t) => {
-      t = await rateLimiter({
-        root: e,
-        args: r,
-        context: c,
-        info: t
-      }, {
-        max: RATE_LIMIT_MAX,
-        window: "10s"
-      });
-      if (t) throw new Error(t);
-      t = await unauthorizedErrorOrAccount(e, r, c);
-      return t.account ? (await Account.deleteAllData({
-        account: t.account
-      }), {
-        code: "200",
-        success: !0,
-        message: "Succesfully deleted account"
-      }) : t;
+      try {
+        var a = await rateLimiter({
+          root: e,
+          args: r,
+          context: c,
+          info: t
+        }, {
+          max: RATE_LIMIT_MAX,
+          window: "10s"
+        });
+        if (a) throw new Error(a);
+        var o = await unauthorizedErrorOrAccount(e, r, c);
+        return o.account ? (await Account.deleteAllData({
+          account: o.account
+        }), {
+          code: "200",
+          success: !0,
+          message: "Succesfully deleted account"
+        }) : o;
+      } catch (e) {
+        return Sentry.captureException(e), console.error(e), {
+          code: "500",
+          success: !1,
+          message: e.message
+        };
+      }
     },
     updateCurrentAccount: async (e, r, c, t) => {
       t = await rateLimiter({
