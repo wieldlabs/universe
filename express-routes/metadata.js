@@ -93,9 +93,9 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
   try {
     var n = r.params.uri;
     if (!n || 0 == n.length) throw Error("uri invalid!");
-    var c = ethers.BigNumber.from(n), s = ethers.BigNumber.from(2).pow(256).sub(1);
-    if (c.gt(s)) throw new Error("The URI is too large to be represented in a 64-character-long hexadecimal string!");
-    var o, m = c.toHexString(), f = 64 - (m.length - 2), l = "0x" + "0".repeat(f) + m.slice(2), q = await Metadata.findOne({
+    var s = ethers.BigNumber.from(n), c = ethers.BigNumber.from(2).pow(256).sub(1);
+    if (s.gt(c)) throw new Error("The URI is too large to be represented in a 64-character-long hexadecimal string!");
+    var o, m = s.toHexString(), f = 64 - (m.length - 2), l = "0x" + "0".repeat(f) + m.slice(2), q = await Metadata.findOne({
       uri: l
     });
     if (!q) return o = {
@@ -147,9 +147,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
         trait_type: "Expiration Date",
         value: g
       } ];
-      var y = d.startsWith("op_") ? "Check out far.quest/hero 👁️" : `Check the status of ${u} on wield.xyz, and check out far.quest/hero 👁️`, x = {
+      var y = d.startsWith("op_") ? "Check out FarHero (https://far.quest/hero) and https://far.quest 👁️" : `Check the status of ${u} on https://wield.xyz, check out FarHero (https://far.quest/hero), and https://far.quest 👁️`, x = {
         name: u,
-        description: e.displayMetadata?.description || y,
+        description: (v = e.displayMetadata?.description, z = " Also check out https://far.quest 👁️", 
+        (v ? v.includes?.("Open this pack") ? "Open this pack on https://far.quest/hero to get a FarHero!" + z : v.includes?.("Play FarHero Alpha") ? "Play FarHero on https://far.quest/hero, the epic Farcaster trading card game!" + z : v : null) || y),
         image: e.displayMetadata?.image.startsWith("/") ? "https://far.quest/" + e.displayMetadata.image : e.displayMetadata.image,
         attributes: t
       };
@@ -174,7 +175,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
     b.select(".container").html()), K = "data:image/svg+xml;base64," + Buffer.from(V).toString("base64"), Q = (process.env.NODE_ENV, 
     {
       name: u,
-      description: d.startsWith("op_") ? "Check out https://far.quest 👁️" : `Check the status of ${u} on https://wield.xyz, and check out https://far.quest 👁️`,
+      description: d.startsWith("op_") ? "Check out https://far.quest and FarHero (https://far.quest/hero) 👁️" : `Check the status of ${u} on https://wield.xyz, check out https://far.quest and FarHero (https://far.quest/hero) 👁️`,
       image: K,
       attributes: [ {
         trait_type: "Length",
@@ -200,6 +201,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
       message: t.message
     });
   }
+  var v, z;
 };
 
 app.get("/uri/:uri", lightLimiter, processUriRequest), app.get("/uri/:uri/image", lightLimiter, async (e, t) => {

@@ -171,7 +171,7 @@ class FarcasterTcgService {
     this.PACK_GRACE_PERIOD_SECONDS = Math.floor(Date.now() / 1e3) + 15552e3, this.INVENTORY_CACHE_KEY = "tcg:inventory:first-page", 
     this.PACKS_CACHE_KEY = "tcg:packs:first-page", this.CACHE_TTL = 1, this.PLAYER_STARTING_HEALTH = 10, 
     this.OVERLOAD_PER_PERIOD = 1e4, this.PERIOD_IN_DAYS = 7, this.OVERLOAD_MULTIPLIER = .1, 
-    this.INTERNAL_INVITE_CODE = "ProjectEverest", this.INTERNAL_ACCOUNT_USERNAME = "jc", 
+    this.INTERNAL_INVITE_CODES = [ "projecteverest", "farquestloyalty" ], this.INTERNAL_ACCOUNT_USERNAME = "jc", 
     this.FARHERO_CHECK_PASSES_INVITE_CODE = "CheckPasses", this.FARHERO_HANDLES_REQUIRED_FOR_INVITE = "development" === process.env.NODE_ENV ? 1 : 25, 
     this.MAX_ROUNDS_BEFORE_DRAW = 15, this.quests = {
       followWieldLabs: {
@@ -591,7 +591,7 @@ class FarcasterTcgService {
                   name: e + " Booster Pack",
                   image: t,
                   displayType: "farpack",
-                  description: "Open this pack on https://far.quest/hero to get a FarHero card!"
+                  description: "Open this pack on https://far.quest/hero to get a FarHero!"
                 },
                 unsyncedMetadata: !0
               }
@@ -617,7 +617,7 @@ class FarcasterTcgService {
         createdPacks: o.length
       };
     } catch (e) {
-      throw console.error("Error during handle conversion:", e), new Error("Failed to convert handles to packs: " + e.message);
+      throw console.error("Error during handle conversion:", e), new Error("Failed to upgrade handles to packs: " + e.message);
     }
   }
   async _unboxCardWithTrialPack({
@@ -854,7 +854,7 @@ class FarcasterTcgService {
     if (!e) throw new Error("Match not found");
     if (!a) throw new Error("Player not found");
     if (!e.players.some(e => e.equals(a._id))) throw new Error("Player is not in the match");
-    var s = [], n = (await Promise.all(e.playerFavorites[e.players.findIndex(e => e.equals(a._id))].map(e => PlayableCard.findById(e)))).filter(a => !e.gameCards.some(e => e._id.equals(a._id))), o = (0 < n.length && r && (r = n[crypto.randomInt(n.length)], 
+    var s = [], n = await Promise.all(e.playerFavorites[e.players.findIndex(e => e.equals(a._id))].map(e => PlayableCard.findById(e))), o = (r && crypto.randomInt(MAX_FAVORITES) < n.length && (r = n[crypto.randomInt(n.length)], 
     n = await Card.findById(r.card)) && s.push(createGameCard(n, r)), await Card.find());
     let i = {
       Common: 50,
@@ -1050,19 +1050,19 @@ class FarcasterTcgService {
       let a = null;
       N || (a = await mongoose.startSession(), (N = a).startTransaction(), b = await Match.findById(b._id));
       try {
-        const A = b.players.findIndex(e => e.equals(O._id));
+        const S = b.players.findIndex(e => e.equals(O._id));
         var t = D ? b.players.findIndex(e => e.equals(D._id)) : -1;
         let r = b.rounds[b.rounds.length - 1], s = r.actions[r.actions.length - 1];
         if ("PurchaseCard" === x) {
-          if (s.playersEnergy[A] <= 0) throw new Error("Player has used all their energy for the round");
+          if (s.playersEnergy[S] <= 0) throw new Error("Player has used all their energy for the round");
           if ("Shop" !== r.state) throw new Error("Cannot purchase card when not in the shop state!");
-          if (s.playersHand[A].filter(e => -1 !== e).length >= this.MAX_CARDS_IN_HAND) throw new Error("Cannot purchase card when hand is full");
-          if (-1 === F || void 0 === F || !s.playersShop[A].includes(F)) throw new Error("Card not found in player's shop");
-          const S = s.playersShop[A].findIndex(e => e === F);
-          if (-1 === S || void 0 === S) throw new Error("Card not found at a valid position in player's shop");
+          if (s.playersHand[S].filter(e => -1 !== e).length >= this.MAX_CARDS_IN_HAND) throw new Error("Cannot purchase card when hand is full");
+          if (-1 === F || void 0 === F || !s.playersShop[S].includes(F)) throw new Error("Card not found in player's shop");
+          const A = s.playersShop[S].findIndex(e => e === F);
+          if (-1 === A || void 0 === A) throw new Error("Card not found at a valid position in player's shop");
           var e = s.gameCardStats[F];
           if (!e) throw new Error("Card not found in match");
-          if (e.cost > s.playersEnergy[A]) throw new Error("Player does not have enough energy to buy the card");
+          if (e.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to buy the card");
           var n = {
             ...jsonClone(s),
             player: O?._id || null,
@@ -1071,9 +1071,9 @@ class FarcasterTcgService {
             type: x,
             time: new Date(),
             cost: e.cost
-          }, o = s.playersHand[A].findIndex(e => -1 === e);
-          n.playersHand[A][o] = F, n.playersShop[A] = n.playersShop[A].filter((e, a) => a !== S), 
-          n.playersEnergy[A] -= e.cost, r.actions.push(n);
+          }, o = s.playersHand[S].findIndex(e => -1 === e);
+          n.playersHand[S][o] = F, n.playersShop[S] = n.playersShop[S].filter((e, a) => a !== A), 
+          n.playersEnergy[S] -= e.cost, r.actions.push(n);
         } else if ("DrawCards" == x) {
           if (1 !== b.rounds.length) throw new Error("Cannot do DrawCards after the first round");
           var i = await this.drawRandomMatchCards({
@@ -1093,7 +1093,7 @@ class FarcasterTcgService {
             gameCardStats: [ ...s.gameCardStats, ...i.map(e => e.stats) ]
           };
           b.gameCards.push(...i), i.forEach((e, a) => {
-            v.playersHand[A][a] = b.gameCards.indexOf(e);
+            v.playersHand[S][a] = b.gameCards.indexOf(e);
           }), r.actions.push(v);
         } else if ("RefreshShop" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot refresh shop when not in the shop state!");
@@ -1114,14 +1114,14 @@ class FarcasterTcgService {
             cost: 0,
             gameCardStats: [ ...s.gameCardStats, ...d.map(e => e.stats) ]
           };
-          b.gameCards.push(...d), l.playersShop[A] = [ ...d.map(e => b.gameCards.indexOf(e)) ], 
+          b.gameCards.push(...d), l.playersShop[S] = [ ...d.map(e => b.gameCards.indexOf(e)) ], 
           r.actions.push(l);
         } else if ("PlayCard" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot play card when not in the shop state!");
-          const I = s.playersHand[A][k];
+          const I = s.playersHand[S][k];
           if (-1 === I || void 0 === I) throw new Error("Card not found in hand");
           var c = s.gameCardStats[I];
-          if (c.cost > s.playersEnergy[A]) throw new Error("Player does not have enough energy to play the card");
+          if (c.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to play the card");
           const P = {
             ...jsonClone(s),
             player: O._id,
@@ -1130,18 +1130,18 @@ class FarcasterTcgService {
             type: x,
             time: new Date(),
             cost: c.cost
-          }, R = (P.playersHand[A][k] = -1, P.playersField[A][F] = I, P.playersEnergy[A] -= c.cost, 
+          }, R = (P.playersHand[S][k] = -1, P.playersField[S][F] = I, P.playersEnergy[S] -= c.cost, 
           this._applyCardAbilities({
             match: b,
             action: P,
-            attackerIndex: A,
+            attackerIndex: S,
             defenderIndex: -1,
             attackerCard: I,
             defenderCard: -1,
             trigger: TRIGGER.Summon
           }), b.gameCards[I]);
           let t = 0;
-          P.playersField[A].forEach(e => {
+          P.playersField[S].forEach(e => {
             var a;
             -1 === e || e === I || (a = b.gameCards[e]).class !== R.class && a.family !== R.family || (P.gameCardStats[e].health += 1, 
             t++);
@@ -1149,8 +1149,8 @@ class FarcasterTcgService {
         } else if ("CardAttack" === x) {
           if ("Battle" !== r.state) throw new Error("Cannot attack when not in the battle state!");
           if (!q) throw new Error("Cannot attack manually when auto-battling");
-          var h = s.playersField[A][k];
-          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${A}, sourceCardIdx=${k})`);
+          var h = s.playersField[S][k];
+          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${k})`);
           let e = -1;
           if (-1 === F) {
             if (0 !== s.playersField[t].filter(e => -1 !== e).length) throw new Error("Opponent must have no cards on the field for a direct attack!");
@@ -1167,10 +1167,10 @@ class FarcasterTcgService {
           -1 === e ? (p.playersHealth[t] -= u.attack, p.playersHealth[t] = Math.max(p.playersHealth[t], 0)) : (u.attack >= y.health ? (p.playersField[t][F] = -1, 
           p.gameCardStats[e].health = 0) : p.gameCardStats[e].health -= u.attack, 
           p.gameCardStats[h].health = Math.max(p.gameCardStats[h].health - y.attack, 0), 
-          0 === p.gameCardStats[h].health && (p.playersField[A][k] = -1)), this._applyCardAbilities({
+          0 === p.gameCardStats[h].health && (p.playersField[S][k] = -1)), this._applyCardAbilities({
             match: b,
             action: p,
-            attackerIndex: A,
+            attackerIndex: S,
             defenderIndex: t,
             attackerCard: h,
             defenderCard: e
@@ -1643,7 +1643,7 @@ class FarcasterTcgService {
       });
       if (!i) throw new Error("Player not found");
       if (i.invitedBy) throw new Error("Player has already been invited");
-      if (a === this.INTERNAL_INVITE_CODE) await s(i); else {
+      if (this.INTERNAL_INVITE_CODES.includes(a?.toLowerCase?.())) await s(i); else {
         if (a === this.FARHERO_CHECK_PASSES_INVITE_CODE) return await r.account.populate("addresses"), 
         n = r.account.addresses[0].address?.toLowerCase(), o = (await getAddressPasses(n, !1))["passes"], 
         o.length >= this.FARHERO_HANDLES_REQUIRED_FOR_INVITE ? (await s(i), {
