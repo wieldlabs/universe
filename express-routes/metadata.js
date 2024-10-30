@@ -156,7 +156,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
       return "farhero" === e.displayMetadata?.displayType && (x.animation_url = "https://far.quest/~/metadata?metadata=" + encodeURIComponent(JSON.stringify(e.displayMetadata))), 
       i.json(x);
     }
-    var b = new JSDOM("<!DOCTYPE html><html><body></body></html>"), h = (await d3).select(b.window.document).select("body");
+    var h = new JSDOM("<!DOCTYPE html><html><body></body></html>"), b = (await d3).select(h.window.document).select("body");
     let t = [ ...d ].length;
     d.match(/^[\u0000-\u007f]*$/) || (t *= 2);
     var A = {
@@ -170,11 +170,11 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
     <svg width="500" height="500">
       ${await background(a)}
     </svg>
-  `, V = (h.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(w + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", O + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(u), 
-    h.select(".container").html()), K = "data:image/svg+xml;base64," + Buffer.from(V).toString("base64"), Q = (process.env.NODE_ENV, 
+  `, V = (b.append("div").attr("class", "container").append("svg").attr("width", 500).attr("height", 500).attr("xmlns", "http://www.w3.org/2000/svg").html(w + bebLogo).append("text").attr("x", 250).attr("y", 475).attr("font-size", O + "px").attr("font-family", "Inter, sans-serif").attr("fill", "#fff").attr("text-anchor", "middle").style("font-weight", "900").style("text-shadow", "-1px 0 #111111, 0 1px #111111, 1px 0 #111111, 0 -1px #111111, 1px 2px 0px #111111").text(u), 
+    b.select(".container").html()), K = "data:image/svg+xml;base64," + Buffer.from(V).toString("base64"), Q = (process.env.NODE_ENV, 
     {
       name: u,
-      description: d.startsWith("op_") ? "Check out far.quest 👁️" : `Check the status of ${u} on wield.xyz, and check out far.quest 👁️`,
+      description: d.startsWith("op_") ? "Check out https://far.quest 👁️" : `Check the status of ${u} on https://wield.xyz, and check out https://far.quest 👁️`,
       image: K,
       attributes: [ {
         trait_type: "Length",

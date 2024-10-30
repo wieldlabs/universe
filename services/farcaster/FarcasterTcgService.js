@@ -14,7 +14,7 @@ const Account = require("../../models/Account")["Account"], {
 
 class FarcasterTcgService {
   constructor() {
-    this.scoreService = new ScoreService(), this.scoreType = "development" === process.env.NODE_ENV ? "beta" : "playground", 
+    this.scoreService = new ScoreService(), this.farpointsScoreType = "development" === process.env.NODE_ENV ? "beta" : "playground", 
     this.freeUnboxCost = 100, this.premiumUnboxCost = 1e3, this.freeUnboxItemId = "pack-normal", 
     this.premiumUnboxItemId = "pack-premium", this.referralRewardPerClaimCount = 10, 
     this.extraEnergyPerRound = 5, this.defaultReferralItemId = "pack-normal", this.referralItemUniqueIdToId = {
@@ -390,10 +390,9 @@ class FarcasterTcgService {
     xp: t
   }) {
     if (!t) throw new Error("XP is required");
-    if (!a && !e) throw new Error("Address or context is required");
-    var r = new _ScoreService(), a = (e && await e.account.populate("addresses"), 
-    a || e.account.addresses[0].address?.toLowerCase());
-    await r.addXP({
+    var r;
+    if (a || e) return r = new _ScoreService(), e && await e.account.populate("addresses"), 
+    a = a || e.account.addresses[0].address?.toLowerCase(), r.addXP({
       address: a,
       type: getFarheroXpScoreType(),
       xp: t,
@@ -401,6 +400,7 @@ class FarcasterTcgService {
       periodInDays: this.PERIOD_IN_DAYS,
       overloadMultiplier: this.OVERLOAD_MULTIPLIER
     });
+    throw new Error("Address or context is required");
   }
   async getLeaderboard({
     limit: e = 25
@@ -889,60 +889,60 @@ class FarcasterTcgService {
     return s;
   }
   async advanceMatch({
-    match: c,
-    player: h
+    match: h,
+    player: p
   }) {
-    if (!c) throw new Error("Match not found");
-    if (!h) throw new Error("Player not found");
-    if (c.players.some(e => e.equals(h._id))) return this._exponentialBackoff(async () => {
+    if (!h) throw new Error("Match not found");
+    if (!p) throw new Error("Player not found");
+    if (h.players.some(e => e.equals(p._id))) return this._exponentialBackoff(async () => {
       var a = await mongoose.startSession();
       a.startTransaction();
       try {
-        var e = (c = await Match.findById(c._id)).players.findIndex(e => e.equals(h._id)), t = c.rounds[c.rounds.length - 1];
-        const d = t.actions[t.actions.length - 1];
+        var e = (h = await Match.findById(h._id)).players.findIndex(e => e.equals(p._id)), t = h.rounds[h.rounds.length - 1];
+        const l = t.actions[t.actions.length - 1];
         var r = await Player.find({
           _id: {
-            $in: c.players
+            $in: h.players
           }
-        }).session(a), s = (c.rounds[c.rounds.length - 1].battleAcknowledgement[e] = !0, 
-        c.rounds[c.rounds.length - 1].battleAcknowledgement.every(e => e));
-        if (s) if (-1 !== d.playersHealth.findIndex(e => e <= 0) || c.rounds.length > this.MAX_ROUNDS_BEFORE_DRAW) {
-          var n, o, i = c.players.filter((e, a) => 0 < d.playersHealth[a] && c.rounds.length <= this.MAX_ROUNDS_BEFORE_DRAW);
-          c.winners = i, c.endTime = new Date();
-          for (const l of i) {
-            const h = await Player.findById(l);
-            h.isBot || (await (n = await Account.findById(h.account)).populate("addresses"), 
-            o = n?.addresses[0]?.address, await this.awardXp({
+        }).session(a), s = (h.rounds[h.rounds.length - 1].battleAcknowledgement[e] = !0, 
+        h.rounds[h.rounds.length - 1].battleAcknowledgement.every(e => e));
+        if (s) if (-1 !== l.playersHealth.findIndex(e => e <= 0) || h.rounds.length > this.MAX_ROUNDS_BEFORE_DRAW) {
+          var n, o, i, d = h.players.filter((e, a) => 0 < l.playersHealth[a] && h.rounds.length <= this.MAX_ROUNDS_BEFORE_DRAW);
+          h.winners = d, h.endTime = new Date();
+          for (const c of d) {
+            const p = await Player.findById(c);
+            p.isBot || (await (n = await Account.findById(p.account)).populate("addresses"), 
+            o = n?.addresses[0]?.address, i = await this.awardXp({
               address: o,
-              xp: this.getXpForOpponent(c.botOpponent)
-            }), c.playersRewards[e].push({
+              xp: this.getXpForOpponent(h.botOpponent)
+            }), h.playersRewards[e].push({
               type: "xp",
-              amount: this.getXpForOpponent(c.botOpponent)
+              amount: i
             }));
           }
-        } else c.rounds.push({
+        } else h.rounds.push({
           actions: [],
           start: new Date(),
           shopDeadline: new Date(Date.now() + 1e3 * this.SHOP_OPEN_SECONDS),
           end: null,
-          number: c.rounds.length,
+          number: h.rounds.length,
           battleAcknowledgement: r.map(e => e.isBot),
           state: "Shop"
-        }), c.rounds[c.rounds.length - 1].actions.push({
-          player: h,
+        }), h.rounds[h.rounds.length - 1].actions.push({
+          player: p,
           type: "InitializeRound",
           time: new Date(),
           cost: 0,
-          playersHealth: d.playersHealth,
-          playersEnergy: r.map(() => c.rounds.length + this.extraEnergyPerRound),
-          playersHand: d.playersHand,
-          playersField: d.playersField,
-          playersShop: d.playersShop,
-          gameCardStats: d.gameCardStats
+          playersHealth: l.playersHealth,
+          playersEnergy: r.map(() => h.rounds.length + this.extraEnergyPerRound),
+          playersHand: l.playersHand,
+          playersField: l.playersField,
+          playersShop: l.playersShop,
+          gameCardStats: l.gameCardStats
         });
-        return c.tick++, await c.save({
+        return h.tick++, await h.save({
           session: a
-        }), await a.commitTransaction(), c;
+        }), await a.commitTransaction(), h;
       } catch (e) {
         throw await a.abortTransaction(), e;
       } finally {
@@ -1058,8 +1058,8 @@ class FarcasterTcgService {
           if ("Shop" !== r.state) throw new Error("Cannot purchase card when not in the shop state!");
           if (s.playersHand[A].filter(e => -1 !== e).length >= this.MAX_CARDS_IN_HAND) throw new Error("Cannot purchase card when hand is full");
           if (-1 === F || void 0 === F || !s.playersShop[A].includes(F)) throw new Error("Card not found in player's shop");
-          const v = s.playersShop[A].findIndex(e => e === F);
-          if (-1 === v || void 0 === v) throw new Error("Card not found at a valid position in player's shop");
+          const S = s.playersShop[A].findIndex(e => e === F);
+          if (-1 === S || void 0 === S) throw new Error("Card not found at a valid position in player's shop");
           var e = s.gameCardStats[F];
           if (!e) throw new Error("Card not found in match");
           if (e.cost > s.playersEnergy[A]) throw new Error("Player does not have enough energy to buy the card");
@@ -1072,7 +1072,7 @@ class FarcasterTcgService {
             time: new Date(),
             cost: e.cost
           }, o = s.playersHand[A].findIndex(e => -1 === e);
-          n.playersHand[A][o] = F, n.playersShop[A] = n.playersShop[A].filter((e, a) => a !== v), 
+          n.playersHand[A][o] = F, n.playersShop[A] = n.playersShop[A].filter((e, a) => a !== S), 
           n.playersEnergy[A] -= e.cost, r.actions.push(n);
         } else if ("DrawCards" == x) {
           if (1 !== b.rounds.length) throw new Error("Cannot do DrawCards after the first round");
@@ -1082,7 +1082,7 @@ class FarcasterTcgService {
             limit: this.MAX_CARDS_IN_HAND,
             session: N
           });
-          const S = {
+          const v = {
             ...jsonClone(s),
             player: O._id,
             source: -1,
@@ -1093,8 +1093,8 @@ class FarcasterTcgService {
             gameCardStats: [ ...s.gameCardStats, ...i.map(e => e.stats) ]
           };
           b.gameCards.push(...i), i.forEach((e, a) => {
-            S.playersHand[A][a] = b.gameCards.indexOf(e);
-          }), r.actions.push(S);
+            v.playersHand[A][a] = b.gameCards.indexOf(e);
+          }), r.actions.push(v);
         } else if ("RefreshShop" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot refresh shop when not in the shop state!");
           if (r.actions.some(e => "RefreshShop" === e.type && e.player.equals(O._id))) throw new Error("Cannot refresh shop twice in a row");
@@ -1206,9 +1206,9 @@ class FarcasterTcgService {
                 if (a = 1 - a, t = 1 - a, 0 === s.playersField[a].filter(e => -1 !== e && !T[e]).length) break;
               } else {
                 const k = s.playersField[a].indexOf(C[0]);
-                var E, g = s.playersField[t], _ = g.filter(e => -1 !== e);
+                var g, E = s.playersField[t], _ = E.filter(e => -1 !== e);
                 let e = -1;
-                e = 0 < _.length ? (E = crypto.randomInt(_.length), g.indexOf(_[E])) : -1;
+                e = 0 < _.length ? (g = crypto.randomInt(_.length), E.indexOf(_[g])) : -1;
                 try {
                   b = await this.addAction({
                     match: b,
@@ -1286,7 +1286,8 @@ class FarcasterTcgService {
     packType: e = "normal",
     quantity: a = 1
   }, t) {
-    var r = this.scoreType, s = (await t.account.populate("addresses"), t.account.addresses[0].address.toLowerCase()), n = await this.scoreService.getCommunityScore({
+    var r = this.farpointsScoreType, s = (await t.account.populate("addresses"), 
+    t.account.addresses[0].address.toLowerCase()), n = await this.scoreService.getCommunityScore({
       address: s,
       bebdomain: r
     }), o = "premium" === e ? this.premiumUnboxCost : this.freeUnboxCost;
@@ -1378,7 +1379,7 @@ class FarcasterTcgService {
     t = t.reward;
     "farpoints" === t.itemUniqueId ? await this.scoreService.setScore({
       address: a.account.addresses[0].address,
-      scoreType: this.scoreType,
+      scoreType: this.farpointsScoreType,
       modifier: t.quantity
     }) : (await this._giveRentedPacksToPlayer({
       player: r,
@@ -1659,11 +1660,7 @@ class FarcasterTcgService {
         })) && await memcache.set("FarcasterTcgService:invite:" + a, JSON.stringify(e)), 
         !e) throw new Error("Invalid invite code");
         if (-1 !== e.maxUseCount && e.useCount >= e.maxUseCount) throw new Error("Invite code has reached the maximum use count");
-        var l = await Account.findById(e.account);
-        if (!l) throw new Error("Inviter not found");
-        await l.populate("addresses");
-        var c = l.addresses[0].address?.toLowerCase(), h = (await getAddressPasses(c, !1))["passes"];
-        if (h.length < this.FARHERO_HANDLES_REQUIRED_FOR_INVITE) throw new Error(`Inviter does not have ${this.FARHERO_HANDLES_REQUIRED_FOR_INVITE} .cast handles!`);
+        if (!await Account.findById(e.account)) throw new Error("Inviter not found");
         i.invitedBy = e.account, e.useCount = e.useCount + 1, await Promise.all([ i.save(), e.save() ]), 
         await Referral.updateOne({
           uniqueIdentifier: i._id
