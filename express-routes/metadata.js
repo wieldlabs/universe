@@ -123,7 +123,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
         value: parseWear(e.displayMetadata.wear)
       }), t.push({
         trait_type: "Wear Value",
-        value: parseFloat(e.displayMetadata.wear),
+        value: Number(e.displayMetadata.wear),
         display_type: "number",
         max_value: 1
       })), e.displayMetadata?.foil && t.push({

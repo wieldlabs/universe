@@ -1291,7 +1291,8 @@ class FarcasterTcgService {
       address: s,
       bebdomain: r
     }), o = "premium" === e ? this.premiumUnboxCost : this.freeUnboxCost;
-    if (n < o * parseInt(a)) throw new Error("Not enough score to claim FarPack");
+    if (!a || a < 1 || isNaN(parseInt(a))) throw new Error("Invalid quantity to rent FarPacks!");
+    if (!n || n < o * parseInt(a)) throw new Error("Not enough score to rent FarPacks!");
     try {
       var i, d, l = t.account._id || t.account, c = await Player.findOne({
         account: l
