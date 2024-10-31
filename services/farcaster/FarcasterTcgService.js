@@ -166,7 +166,7 @@ class FarcasterTcgService {
       }
     }, this.unboxQuests = {}, this.MAX_SHOP_CARDS = 3, this.MAX_CARDS_IN_HAND = 4, 
     this.FAVORITE_ODDS = .1, this._BOT_PLAYER = null, this.MAX_FIELD_CARDS = 4, 
-    this.DEBUG = "development" === process.env.NODE_ENV, this.SHOP_OPEN_SECONDS = 15, 
+    this.DEBUG = "development" === process.env.NODE_ENV, this.SHOP_OPEN_SECONDS = 17, 
     this.OPPONENT_OPTIONS = [ "opp1", "opp2", "opp3", "opp4", "opp5" ], this.ARENA_OPTIONS = [ "arena1", "arena2", "arena3", "arena4", "arena5" ], 
     this.PACK_GRACE_PERIOD_SECONDS = Math.floor(Date.now() / 1e3) + 15552e3, this.INVENTORY_CACHE_KEY = "tcg:inventory:first-page", 
     this.PACKS_CACHE_KEY = "tcg:packs:first-page", this.CACHE_TTL = 1, this.PLAYER_STARTING_HEALTH = 10, 
@@ -451,17 +451,21 @@ class FarcasterTcgService {
     }), await memcache.set(`Referral:TELEGRAM:${e}:total:count`, a), a);
   }
   async _verifyHandleUnbox({
-    handleId: e
-  }, a) {
+    handleId: e,
+    type: a
+  }, t) {
     e = await CastHandle.findById(e);
     if (!e) throw new Error("Invalid handle");
-    await a.account.populate("addresses");
-    a = a.account.addresses[0].address?.toLowerCase();
-    if (e.owner.toLowerCase() !== a) throw new Error("Invalid handle owner");
-    a = e.expiresAt;
-    if (!a) throw new Error("Unable to fetch expiration date for this handle");
-    var t = this.PACK_GRACE_PERIOD_SECONDS;
-    if (parseInt(a) <= t) throw new Error("Handle expires in less than 3 months");
+    await t.account.populate("addresses");
+    t = t.account.addresses[0].address?.toLowerCase();
+    if (e.owner.toLowerCase() !== t) throw new Error("Invalid handle owner");
+    if (![ "normal", "premium", "collector" ].includes(a)) throw new Error("Invalid pack type");
+    if ("premium" === a && "OP" !== e.chain) throw new Error("Premium packs can only be on OP");
+    if ("collector" === a && (isNaN(e.handle?.length) || 9 < e.handle?.length)) throw new Error("Collector pack has invalid handle length!");
+    t = e.expiresAt;
+    if (!t) throw new Error("Unable to fetch expiration date for this handle");
+    a = this.PACK_GRACE_PERIOD_SECONDS;
+    if (parseInt(t) <= a) throw new Error("Handle expires in less than 3 months");
     return e;
   }
   async _randomUnbox({
@@ -520,7 +524,11 @@ class FarcasterTcgService {
       var n = await this._verifyHandleUnbox({
         handleId: r,
         type: a
-      }, s);
+      }, s), o = await Pack.findOne({
+        handle: r,
+        openedAt: null
+      });
+      if (!o) throw new Error("Valid unopened FarPack not found");
       const {
         playableCard: d,
         ...l
@@ -530,11 +538,6 @@ class FarcasterTcgService {
         set: t,
         handleId: r
       });
-      var o = await Pack.findOne({
-        handle: r,
-        openedAt: null
-      });
-      if (!o) throw new Error("Pack not found");
       o.openedAt = new Date(), o.openedCard = d._id, await o.save(), await s.account.populate("addresses");
       var i = s.account.addresses[0].address?.toLowerCase();
       return await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + i, {
@@ -572,7 +575,7 @@ class FarcasterTcgService {
       var o = [], i = [];
       for (const c of s) if (!c.displayItemId) {
         let e, a, t;
-        t = c.isOp ? (e = "Premium", a = "booster-pack-p", "/farhero/cards/genesis-booster-p.webp") : c.handle?.length <= 9 ? (e = "Collector", 
+        t = "OP" === c.chain ? (e = "Premium", a = "booster-pack-p", "/farhero/cards/genesis-booster-p.webp") : c.handle?.length <= 9 ? (e = "Collector", 
         a = "booster-pack-c", "/farhero/cards/genesis-booster-c.webp") : (e = "Normal", 
         a = "booster-pack-n", "/farhero/cards/genesis-booster-n.webp"), o.push({
           set: config().PACK_SET,
@@ -1038,8 +1041,8 @@ class FarcasterTcgService {
   async addAction({
     match: b,
     player: O,
-    targetPlayer: D = null,
-    sourceCardIdx: k = -1,
+    targetPlayer: k = null,
+    sourceCardIdx: D = -1,
     targetCardIdx: F = -1,
     actionType: x,
     session: N = null,
@@ -1051,7 +1054,7 @@ class FarcasterTcgService {
       N || (a = await mongoose.startSession(), (N = a).startTransaction(), b = await Match.findById(b._id));
       try {
         const S = b.players.findIndex(e => e.equals(O._id));
-        var t = D ? b.players.findIndex(e => e.equals(D._id)) : -1;
+        var t = k ? b.players.findIndex(e => e.equals(k._id)) : -1;
         let r = b.rounds[b.rounds.length - 1], s = r.actions[r.actions.length - 1];
         if ("PurchaseCard" === x) {
           if (s.playersEnergy[S] <= 0) throw new Error("Player has used all their energy for the round");
@@ -1118,19 +1121,19 @@ class FarcasterTcgService {
           r.actions.push(l);
         } else if ("PlayCard" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot play card when not in the shop state!");
-          const I = s.playersHand[S][k];
+          const I = s.playersHand[S][D];
           if (-1 === I || void 0 === I) throw new Error("Card not found in hand");
           var c = s.gameCardStats[I];
           if (c.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to play the card");
           const P = {
             ...jsonClone(s),
             player: O._id,
-            source: k,
+            source: D,
             target: F,
             type: x,
             time: new Date(),
             cost: c.cost
-          }, R = (P.playersHand[S][k] = -1, P.playersField[S][F] = I, P.playersEnergy[S] -= c.cost, 
+          }, R = (P.playersHand[S][D] = -1, P.playersField[S][F] = I, P.playersEnergy[S] -= c.cost, 
           this._applyCardAbilities({
             match: b,
             action: P,
@@ -1149,8 +1152,8 @@ class FarcasterTcgService {
         } else if ("CardAttack" === x) {
           if ("Battle" !== r.state) throw new Error("Cannot attack when not in the battle state!");
           if (!q) throw new Error("Cannot attack manually when auto-battling");
-          var h = s.playersField[S][k];
-          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${k})`);
+          var h = s.playersField[S][D];
+          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${D})`);
           let e = -1;
           if (-1 === F) {
             if (0 !== s.playersField[t].filter(e => -1 !== e).length) throw new Error("Opponent must have no cards on the field for a direct attack!");
@@ -1158,7 +1161,7 @@ class FarcasterTcgService {
           var p = {
             ...jsonClone(s),
             player: O._id,
-            source: k,
+            source: D,
             target: F,
             type: x,
             time: new Date(),
@@ -1167,7 +1170,7 @@ class FarcasterTcgService {
           -1 === e ? (p.playersHealth[t] -= u.attack, p.playersHealth[t] = Math.max(p.playersHealth[t], 0)) : (u.attack >= y.health ? (p.playersField[t][F] = -1, 
           p.gameCardStats[e].health = 0) : p.gameCardStats[e].health -= u.attack, 
           p.gameCardStats[h].health = Math.max(p.gameCardStats[h].health - y.attack, 0), 
-          0 === p.gameCardStats[h].health && (p.playersField[S][k] = -1)), this._applyCardAbilities({
+          0 === p.gameCardStats[h].health && (p.playersField[S][D] = -1)), this._applyCardAbilities({
             match: b,
             action: p,
             attackerIndex: S,
@@ -1205,7 +1208,7 @@ class FarcasterTcgService {
               if (0 === C.length) {
                 if (a = 1 - a, t = 1 - a, 0 === s.playersField[a].filter(e => -1 !== e && !T[e]).length) break;
               } else {
-                const k = s.playersField[a].indexOf(C[0]);
+                const D = s.playersField[a].indexOf(C[0]);
                 var g, E = s.playersField[t], _ = E.filter(e => -1 !== e);
                 let e = -1;
                 e = 0 < _.length ? (g = crypto.randomInt(_.length), E.indexOf(_[g])) : -1;
@@ -1214,7 +1217,7 @@ class FarcasterTcgService {
                     match: b,
                     player: b.players[a],
                     targetPlayer: b.players[t],
-                    sourceCardIdx: k,
+                    sourceCardIdx: D,
                     targetCardIdx: e,
                     actionType: "CardAttack",
                     session: N,
