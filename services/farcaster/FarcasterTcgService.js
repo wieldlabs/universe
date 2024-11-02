@@ -600,8 +600,7 @@ class FarcasterTcgService {
       }), memcache.delete(this.PACKS_CACHE_KEY + ":" + t, {
         noreply: !0
       }) ]), {
-        convertedHandles: s.length,
-        createdPacks: packsToCreate.length
+        convertedHandles: s.length
       };
     } catch (e) {
       throw console.error("Error during handle conversion:", e), new Error("Failed to upgrade handles to packs: " + e.message);
@@ -1030,8 +1029,8 @@ class FarcasterTcgService {
   async addAction({
     match: b,
     player: O,
-    targetPlayer: k = null,
-    sourceCardIdx: D = -1,
+    targetPlayer: D = null,
+    sourceCardIdx: k = -1,
     targetCardIdx: F = -1,
     actionType: x,
     session: N = null,
@@ -1043,7 +1042,7 @@ class FarcasterTcgService {
       N || (a = await mongoose.startSession(), (N = a).startTransaction(), b = await Match.findById(b._id));
       try {
         const S = b.players.findIndex(e => e.equals(O._id));
-        var t = k ? b.players.findIndex(e => e.equals(k._id)) : -1;
+        var t = D ? b.players.findIndex(e => e.equals(D._id)) : -1;
         let r = b.rounds[b.rounds.length - 1], s = r.actions[r.actions.length - 1];
         if ("PurchaseCard" === x) {
           if (s.playersEnergy[S] <= 0) throw new Error("Player has used all their energy for the round");
@@ -1110,19 +1109,19 @@ class FarcasterTcgService {
           r.actions.push(l);
         } else if ("PlayCard" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot play card when not in the shop state!");
-          const I = s.playersHand[S][D];
+          const I = s.playersHand[S][k];
           if (-1 === I || void 0 === I) throw new Error("Card not found in hand");
           var c = s.gameCardStats[I];
           if (c.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to play the card");
           const P = {
             ...jsonClone(s),
             player: O._id,
-            source: D,
+            source: k,
             target: F,
             type: x,
             time: new Date(),
             cost: c.cost
-          }, R = (P.playersHand[S][D] = -1, P.playersField[S][F] = I, P.playersEnergy[S] -= c.cost, 
+          }, R = (P.playersHand[S][k] = -1, P.playersField[S][F] = I, P.playersEnergy[S] -= c.cost, 
           this._applyCardAbilities({
             match: b,
             action: P,
@@ -1141,8 +1140,8 @@ class FarcasterTcgService {
         } else if ("CardAttack" === x) {
           if ("Battle" !== r.state) throw new Error("Cannot attack when not in the battle state!");
           if (!q) throw new Error("Cannot attack manually when auto-battling");
-          var h = s.playersField[S][D];
-          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${D})`);
+          var h = s.playersField[S][k];
+          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${k})`);
           let e = -1;
           if (-1 === F) {
             if (0 !== s.playersField[t].filter(e => -1 !== e).length) throw new Error("Opponent must have no cards on the field for a direct attack!");
@@ -1150,7 +1149,7 @@ class FarcasterTcgService {
           var p = {
             ...jsonClone(s),
             player: O._id,
-            source: D,
+            source: k,
             target: F,
             type: x,
             time: new Date(),
@@ -1159,7 +1158,7 @@ class FarcasterTcgService {
           -1 === e ? (p.playersHealth[t] -= u.attack, p.playersHealth[t] = Math.max(p.playersHealth[t], 0)) : (u.attack >= y.health ? (p.playersField[t][F] = -1, 
           p.gameCardStats[e].health = 0) : p.gameCardStats[e].health -= u.attack, 
           p.gameCardStats[h].health = Math.max(p.gameCardStats[h].health - y.attack, 0), 
-          0 === p.gameCardStats[h].health && (p.playersField[S][D] = -1)), this._applyCardAbilities({
+          0 === p.gameCardStats[h].health && (p.playersField[S][k] = -1)), this._applyCardAbilities({
             match: b,
             action: p,
             attackerIndex: S,
@@ -1197,7 +1196,7 @@ class FarcasterTcgService {
               if (0 === C.length) {
                 if (a = 1 - a, t = 1 - a, 0 === s.playersField[a].filter(e => -1 !== e && !T[e]).length) break;
               } else {
-                const D = s.playersField[a].indexOf(C[0]);
+                const k = s.playersField[a].indexOf(C[0]);
                 var E, g = s.playersField[t], _ = g.filter(e => -1 !== e);
                 let e = -1;
                 e = 0 < _.length ? (E = crypto.randomInt(_.length), g.indexOf(_[E])) : -1;
@@ -1206,7 +1205,7 @@ class FarcasterTcgService {
                     match: b,
                     player: b.players[a],
                     targetPlayer: b.players[t],
-                    sourceCardIdx: D,
+                    sourceCardIdx: k,
                     targetCardIdx: e,
                     actionType: "CardAttack",
                     session: N,
