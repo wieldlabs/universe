@@ -99,6 +99,13 @@ schema.index({
 }), schema.index({
   tokenCount: -1,
   createdAt: -1
+}), schema.index({
+  slug: 1,
+  address: 1
+}), schema.index({
+  slug: 1,
+  address: 1,
+  chainId: 1
 }), module.exports = {
   schema: schema
 };

@@ -854,11 +854,11 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   dotCast50: 2e13
 }, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e6, getTotalReferral = async t => {
   var e = await memcache.get(`ReferralV2:TELEGRAM:${t}:total:count`);
-  return e ? e.value : (e = await Referral.countDocuments({
+  return e ? e.value : (e = await Referral.find({
     referralType: "TELEGRAM",
     account: t,
     isValid: !0
-  }), await memcache.set(`ReferralV2:TELEGRAM:${t}:total:count`, e), e);
+  }).count(), await memcache.set(`ReferralV2:TELEGRAM:${t}:total:count`, e), e);
 };
 
 app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {

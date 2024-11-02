@@ -45,6 +45,9 @@ schema.index({
 }), schema.index({
   chain: 1
 }), schema.index({
+  owner: 1,
+  expiresAt: 1
+}), schema.index({
   displayItemId: 1
 }), schema.index({
   "displayMetadata.wear": 1

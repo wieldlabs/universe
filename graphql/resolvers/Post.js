@@ -1,9 +1,9 @@
 const get = require("lodash/get"), AccountReaction = require("../../models/AccountReaction")["AccountReaction"], Post = require("../../models/Post")["Post"], _PostQueryService = require("../../services/queryServices/PostQueryService")["Service"], unauthorizedErrorOrAccount = require("../../helpers/auth-middleware")["unauthorizedErrorOrAccount"], PostQueryService = new _PostQueryService(), resolvers = {
   Post: {
     rootCommentCount: async e => {
-      return await Post.countDocuments({
+      return await Post.find({
         root: get(e, "_id")
-      });
+      }).count();
     },
     commentCount: async e => e.replies?.length || 0,
     reactionCount: async e => {

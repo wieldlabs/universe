@@ -88,10 +88,10 @@ const getGraphQLRateLimiter = require("graphql-rate-limit")["getGraphQLRateLimit
       return e.bannerImage ? await i.dataloaders.images.load(e.bannerImage) : null;
     },
     membersCount: async e => {
-      return e?._id ? await AccountCommunity.countDocuments({
+      return e?._id ? await AccountCommunity.find({
         joined: !0,
         community: e._id
-      }) : 0;
+      }).count() : 0;
     },
     accountCommunity: async (e, r, i) => CommunityQueryService.accountCommunity(e, r, i),
     tokenOwnerAddress: async (e, r, i, n) => {

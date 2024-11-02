@@ -155,7 +155,7 @@ class CardClass {
     console.log("model: CardClass");
   }
   static async randomUnbox({
-    type: e = "free",
+    type: e = "normal",
     set: a
   }) {
     var r, t, e = "premium" === e ? PREMIUM_ODDS : "collector" === e ? COLLECTOR_ODDS : FREE_ODDS, o = e.reduce((e, {

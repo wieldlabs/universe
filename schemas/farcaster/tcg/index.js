@@ -228,6 +228,38 @@ const mongoose = require("mongoose"), TRIGGER = {
   rentedTo: 1,
   expiresAt: 1,
   openedAt: 1
+}), packSchema.index({
+  openedAt: 1,
+  type: 1
+}), packSchema.index({
+  openedAt: 1,
+  type: 1,
+  createdAt: -1
+}), packSchema.index({
+  handle: 1,
+  openedAt: 1,
+  type: 1
+}), packSchema.index({
+  rentedTo: 1,
+  expiresAt: 1,
+  openedAt: 1,
+  type: 1
+}), packSchema.index({
+  handle: 1,
+  openedAt: 1,
+  type: 1,
+  expiresAt: 1
+}), packSchema.index({
+  rentedTo: 1,
+  openedAt: 1,
+  type: 1,
+  expiresAt: 1
+}), packSchema.index({
+  "card.rarity": 1,
+  handle: 1
+}), packSchema.index({
+  "card.type": 1,
+  handle: 1
 }), new mongoose.Schema({
   account: {
     type: mongoose.Schema.Types.ObjectId,
@@ -306,6 +338,12 @@ const mongoose = require("mongoose"), TRIGGER = {
 }), playerSchema.index({
   account: 1,
   favorites: 1
+}), playerSchema.index({
+  account: 1,
+  invitedBy: 1
+}), playerSchema.index({
+  "quests.id": 1,
+  account: 1
 }), new mongoose.Schema({
   tick: {
     type: Number,
@@ -455,6 +493,16 @@ const mongoose = require("mongoose"), TRIGGER = {
   winners: 1
 }), matchSchema.index({
   "winners.account": 1
+}), matchSchema.index({
+  players: 1,
+  endTime: 1
+}), matchSchema.index({
+  players: 1,
+  startTime: 1,
+  endTime: 1
+}), matchSchema.index({
+  "rounds.state": 1,
+  startTime: 1
 }), new mongoose.Schema({
   name: {
     type: String,
@@ -501,6 +549,19 @@ tournamentSchema.index({
   rentedTo: 1,
   expiresAt: 1,
   createdAt: -1
+}), playableCardSchema.index({
+  handle: 1,
+  card: 1
+}), playableCardSchema.index({
+  rentedTo: 1,
+  expiresAt: 1,
+  card: 1
+}), playableCardSchema.index({
+  "card.rarity": 1,
+  handle: 1
+}), playableCardSchema.index({
+  "card.type": 1,
+  handle: 1
 }), module.exports = {
   cardSchema: cardSchema,
   playerSchema: playerSchema,

@@ -6,10 +6,13 @@ const express = require("express"), app = express.Router(), Sentry = require("@s
   DEFAULT_LIMIT,
   DEFAULT_CURSORS,
   DEFAULT_FILTER_NO_SYMBOL
-} = require("../helpers/wallet"), CastHandle = require("../models/CastHandle")["CastHandle"], Metadata = require("../models/Metadata")["Metadata"], {
+} = require("../helpers/wallet"), CastHandle = require("../models/CastHandle")["CastHandle"], Account = require("../models/Account")["Account"], Metadata = require("../models/Metadata")["Metadata"], {
   prod,
   config
-} = require("../helpers/registrar"), crypto = require("crypto"), Pack = require("../models/farcaster/tcg")["Pack"], _RegistrarService = require("../services/RegistrarService")["Service"];
+} = require("../helpers/registrar"), crypto = require("crypto"), {
+  Pack,
+  Player
+} = require("../models/farcaster/tcg"), _RegistrarService = require("../services/RegistrarService")["Service"];
 
 function isValidSignatureForStringBody(e, r, t) {
   t = crypto.createHmac("sha256", t), t.update(e, "utf8"), e = t.digest("hex");
@@ -28,33 +31,33 @@ app.post("/nft-activity", express.raw({
     var a = JSON.parse(e);
     if (!a.event?.activity) throw new Error("No activity found in req.body.event webhook!");
     var o = new _RegistrarService("optimism"), n = new _RegistrarService();
-    for (const y of a.event.activity) {
+    for (const A of a.event.activity) {
       var {
-        contractAddress: s,
-        erc721TokenId: i
-      } = y, c = i?.toLowerCase(), d = y.toAddress?.toLowerCase();
-      if (!c || !c.startsWith("0x")) throw new Error(`Invalid tokenId! Must start with 0x: ${c} for contractAddress: ` + s);
+        contractAddress: i,
+        erc721TokenId: s
+      } = A, c = s?.toLowerCase(), d = A.toAddress?.toLowerCase();
+      if (!c || !c.startsWith("0x")) throw new Error(`Invalid tokenId! Must start with 0x: ${c} for contractAddress: ` + i);
       if (!d || !d.startsWith("0x")) throw new Error(`Invalid owner! Must start with 0x: ${d} for tokenId: ` + c);
-      if (![ prod().REGISTRAR_ADDRESS.toLowerCase(), prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase() ].includes(s.toLowerCase())) throw new Error("No valid registrar contract found for contractAddress: " + s);
+      if (![ prod().REGISTRAR_ADDRESS.toLowerCase(), prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase() ].includes(i.toLowerCase())) throw new Error("No valid registrar contract found for contractAddress: " + i);
       var l = await Metadata.findOne({
         uri: c
-      }), p = s.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), h = l?.domain || c, E = await CastHandle.findOne({
-        handle: h
-      }), w = p ? o : n;
+      }), h = i.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), p = l?.domain || c, w = await CastHandle.findOne({
+        handle: p
+      }), E = h ? o : n;
       let e = null;
       try {
-        E?.expiresAt || (e = await w.expiresAt(h, {
+        w?.expiresAt || (e = await E.expiresAt(p, {
           tokenId: c
         }));
       } catch (e) {
-        console.error(`Error getting expiresAt for handle: ${h} on ` + (p ? "OP" : "ETH"), e), 
+        console.error(`Error getting expiresAt for handle: ${p} on ` + (h ? "OP" : "ETH"), e), 
         Sentry.captureException(e);
       }
-      var S = await CastHandle.findOneAndUpdate({
-        handle: h
+      var u = await CastHandle.findOneAndUpdate({
+        handle: p
       }, {
         owner: d.toLowerCase(),
-        chain: p ? "OP" : "ETH",
+        chain: h ? "OP" : "ETH",
         tokenId: c.toLowerCase(),
         ...e ? {
           expiresAt: e
@@ -63,28 +66,33 @@ app.post("/nft-activity", express.raw({
         upsert: !0,
         new: !0
       });
-      if (config().SHOULD_CREATE_PACKS) {
+      if (config().SHOULD_CREATE_PACKS && l?.domain) {
         try {
-          await Promise.all([ memcache.delete("tcg:inventory:first-page:" + S.owner, {
+          await Promise.all([ memcache.delete("tcg:inventory:first-page:" + u.owner, {
             noreply: !0
-          }), memcache.delete("tcg:packs:first-page:" + S.owner, {
+          }), memcache.delete("tcg:packs:first-page:" + u.owner, {
             noreply: !0
           }) ]);
         } catch (e) {
           console.error(e);
         }
-        var u = await Pack.findOne({
-          handle: S._id
+        var S, y = await Pack.findOne({
+          handle: u._id
         });
         let e;
-        e = p ? "Premium" : h.length <= 9 ? "Collector" : "Normal", u ? (u.handle = S._id, 
-        u.type = e, await u.save()) : await Pack.create({
+        e = h ? "Premium" : p.length <= 9 ? "Collector" : "Normal", y ? (y.handle = u._id, 
+        y.type = e, await y.save()) : (await Pack.create({
           set: config().PACK_SET,
           type: e,
-          handle: S._id
-        });
+          handle: u._id
+        }), (S = await Account.findByAddressAndChainId({
+          address: d,
+          chainId: 1
+        })) && await Player.findOne({
+          account: S._id
+        }) && await u.setCastHandleMetadataForFarheroPacks(e));
       }
-      console.log(`NFT Activity Webhook - Updated cast handle: ${h} to owner: ${d} on ` + (p ? "OP" : "ETH"));
+      console.log(`NFT Activity Webhook - Updated cast handle: ${p} to owner: ${d} on ` + (h ? "OP" : "ETH"));
     }
     return t.status(200).send("NFT activity webhook received");
   } catch (e) {

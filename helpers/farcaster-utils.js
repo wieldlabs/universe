@@ -18,29 +18,29 @@ const {
   postMessage,
   getConnectedAddressForFid,
   getCustodyAddressByFid
-} = require("./farcaster"), Sentry = require("@sentry/node"), ethers = require("ethers")["ethers"], validateAndConvertAddress = require("./validate-and-convert-address")["validateAndConvertAddress"], DEFAULT_NETWORK = 1;
+} = require("./farcaster"), axios = require("axios"), Sentry = require("@sentry/node"), ethers = require("ethers")["ethers"], validateAndConvertAddress = require("./validate-and-convert-address")["validateAndConvertAddress"], DEFAULT_NETWORK = 1;
 
 async function getAddressPasses(e, t) {
   if (!e || e.length < 10) throw new Error("address is invalid");
-  let a = null, r = [];
+  let a = null, s = [];
   try {
-    var s = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, i = await memcache.get(s), d = await memcache.get(n);
-    if (i ? (r = JSON.parse(i.value), a = !0) : d ? a = JSON.parse(d.value) : (a = await CastHandle.exists({
+    var r = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, i = await memcache.get(r), d = await memcache.get(n);
+    if (i ? (s = JSON.parse(i.value), a = !0) : d ? a = JSON.parse(d.value) : (a = await CastHandle.exists({
       owner: e.toLowerCase()
     }), await memcache.set(n, JSON.stringify(a), {
       lifetime: a ? 3600 : 1
     })), t) return {
       isHolder: a,
-      passes: r
+      passes: s
     };
-    a && !i && 0 < (r = await getCastHandles(e))?.length && await memcache.set(s, JSON.stringify(r), {
+    a && !i && 0 < (s = await getCastHandles(e))?.length && await memcache.set(r, JSON.stringify(s), {
       lifetime: 10
     });
   } catch (e) {
     throw console.error(e), new Error("Failed to retrieve address passes");
   }
   return {
-    passes: r,
+    passes: s,
     isHolder: a
   };
 }
@@ -59,11 +59,11 @@ function setupAlchemyServices() {
 }
 
 async function checkIsHolderWithFallback(e, t, a) {
-  let r = await t.isHolderOfCollection({
+  let s = await t.isHolderOfCollection({
     wallet: a,
     contractAddress: prod().OPTIMISM_REGISTRAR_ADDRESS
   });
-  return r = r || await e.isHolderOfCollection({
+  return s = s || await e.isHolderOfCollection({
     wallet: a,
     contractAddress: prod().REGISTRAR_ADDRESS
   });
@@ -79,35 +79,35 @@ async function getCastHandlesWithMetadata({
   address: e,
   limit: t = 100,
   filters: a,
-  sort: r = "-fid",
-  cursor: s
+  sort: s = "-fid",
+  cursor: r
 }) {
   const n = new _MarketplaceService();
   if (a && 0 < Object.keys(a).length) return n.getListings({
-    sort: r,
+    sort: s,
     limit: t,
-    cursor: s,
+    cursor: r,
     filters: {
       ...a,
       collection: "castHandle",
       address: validateAndConvertAddress(e)
     }
   });
-  var [ , r ] = s ? s.split("-") : [ null, null ];
+  var [ , s ] = r ? r.split("-") : [ null, null ];
   let i;
-  (i = s && (a = `getCastHandlesWithMetadata:${e}:${t}:` + s, a = await memcache.get(a)) ? JSON.parse(a.value).map(e => new CastHandle(e)) : i) || (i = await CastHandle.find({
+  (i = r && (a = `getCastHandlesWithMetadata:${e}:${t}:` + r, a = await memcache.get(a)) ? JSON.parse(a.value).map(e => new CastHandle(e)) : i) || (i = await CastHandle.find({
     owner: e.toLowerCase(),
     id: {
-      $lt: r || Number.MAX_SAFE_INTEGER
+      $lt: s || Number.MAX_SAFE_INTEGER
     }
   }).sort({
     _id: -1
-  }).limit(t), s && (a = `getCastHandlesWithMetadata:${e}:${t}:` + s, await memcache.set(a, JSON.stringify(i), {
+  }).limit(t), r && (a = `getCastHandlesWithMetadata:${e}:${t}:` + r, await memcache.set(a, JSON.stringify(i), {
     lifetime: 60
   })));
-  r = i.filter(e => e?.handle);
+  s = i.filter(e => e?.handle);
   let d = null;
-  return [ await Promise.all(r.map(async e => {
+  return [ await Promise.all(s.map(async e => {
     var t = "ETH" === e.chain ? 1 : 10, [ t ] = await Promise.all([ n.getListing({
       fid: -1,
       tokenId: ethers.BigNumber.from(e.tokenId).toString(),
@@ -125,18 +125,18 @@ async function getListingDetails({
   tokenId: t,
   chainId: a
 }) {
-  var r = new _MarketplaceService(), [ r, e, t, a ] = (t = t ? t.toString() : void 0, 
-  a = a ? parseInt(a) : void 0, await Promise.all([ r.fetchUserData(e, t, a), r.fetchListing(e, t, a), r.getOffers({
+  var s = new _MarketplaceService(), [ s, e, t, a ] = (t = t ? t.toString() : void 0, 
+  a = a ? parseInt(a) : void 0, await Promise.all([ s.fetchUserData(e, t, a), s.fetchListing(e, t, a), s.getOffers({
     fid: e,
     tokenId: t,
     chainId: a
-  }), r.getHistoricalSales({
+  }), s.getHistoricalSales({
     fid: e,
     tokenId: t,
     chainId: a
   }) ]));
   return {
-    userData: r,
+    userData: s,
     listing: e,
     offers: t,
     history: a
@@ -169,19 +169,19 @@ const frameContext = async (t, e, a) => {
     connectedAddress: t.body?.untrustedData?.fid
   }, a();
   try {
-    var r = Message.decode(Buffer.from(t.body.trustedData.messageBytes, "hex")), s = {
+    var s = Message.decode(Buffer.from(t.body.trustedData.messageBytes, "hex")), r = {
       ...t.context || {},
-      frameData: r.data,
+      frameData: s.data,
       untrustedData: t.body.untrustedData,
       verifiedFrameData: !0
     };
-    if (ethers.utils.isAddress(t.body.untrustedData?.fid)) s.isExternal = !0, s.connectedAddress = t.body?.untrustedData?.fid; else {
-      if (!r.data?.fid) throw new Error("FID is missing, no fallback external FID: " + JSON.stringify(r.data));
-      var n, i = await getConnectedAddressForFid(r.data.fid);
-      s.isExternal = !1, s.connectedAddress = i, !t.body.untrustedData?.isCustodyWallet && i && ethers.utils.isAddress(i) || (n = await getCustodyAddressByFid(r.data.fid), 
-      s.connectedAddress = n);
+    if (ethers.utils.isAddress(t.body.untrustedData?.fid)) r.isExternal = !0, r.connectedAddress = t.body?.untrustedData?.fid; else {
+      if (!s.data?.fid) throw new Error("FID is missing, no fallback external FID: " + JSON.stringify(s.data));
+      var n, i = await getConnectedAddressForFid(s.data.fid);
+      r.isExternal = !1, r.connectedAddress = i, !t.body.untrustedData?.isCustodyWallet && i && ethers.utils.isAddress(i) || (n = await getCustodyAddressByFid(s.data.fid), 
+      r.connectedAddress = n);
     }
-    t.context = s;
+    t.context = r;
   } catch (e) {
     console.error(e), e?.message?.includes("FID is missing, no fallback external FID") || Sentry.captureException(e, {
       extra: {
@@ -207,13 +207,13 @@ function hexToBytes(t) {
   return a;
 }
 
-function extractAndReplaceMentions(e, s = {}) {
+function extractAndReplaceMentions(e, r = {}) {
   let n = "";
   const i = [], d = [];
   return e.split(/(\s|\n)/).forEach((e, t) => {
-    var a, r;
-    e.startsWith("@") && (a = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)?.[1]) && a in s ? (r = Buffer.from(n).length, 
-    i.push(s[a]), d.push(r), n += e.replace("@" + a, "")) : n += e;
+    var a, s;
+    e.startsWith("@") && (a = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)?.[1]) && a in r ? (s = Buffer.from(n).length, 
+    i.push(r[a]), d.push(s), n += e.replace("@" + a, "")) : n += e;
   }), {
     text: n,
     mentions: i,
@@ -225,8 +225,8 @@ const makeMessage = async ({
   privateKey: e,
   messageType: t,
   body: a = {},
-  fid: r,
-  overrides: s = {}
+  fid: s,
+  overrides: r = {}
 }) => {
   if (!e) throw new Error("No private key provided");
   var n = new NobleEd25519Signer(Buffer.from(e, "hex"));
@@ -235,7 +235,7 @@ const makeMessage = async ({
     switch (t) {
      case MessageType.CAST_ADD:
       i = await makeCastAddRpc(a, {
-        fid: parseInt(r),
+        fid: parseInt(s),
         network: DEFAULT_NETWORK
       }, n);
       break;
@@ -243,7 +243,7 @@ const makeMessage = async ({
      case MessageType.CAST_REMOVE:
       var d = Date.now() - 314496e5, o = toFarcasterTime(d).value;
       i = await makeCastRemoveRpc(a, {
-        fid: parseInt(r),
+        fid: parseInt(s),
         network: DEFAULT_NETWORK,
         timestamp: o
       }, n);
@@ -251,35 +251,35 @@ const makeMessage = async ({
 
      case MessageType.REACTION_ADD:
       i = await makeReactionAddRpc(a, {
-        fid: parseInt(r),
+        fid: parseInt(s),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.REACTION_REMOVE:
       i = await makeReactionRemoveRpc(a, {
-        fid: parseInt(r),
+        fid: parseInt(s),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.LINK_ADD:
       i = await makeLinkAddRpc(a, {
-        fid: parseInt(r),
+        fid: parseInt(s),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.LINK_REMOVE:
       i = await makeLinkRemoveRpc(a, {
-        fid: parseInt(r),
+        fid: parseInt(s),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.USER_DATA_ADD:
       i = await makeUserDataAddRpc(a, {
-        fid: parseInt(r),
+        fid: parseInt(s),
         network: DEFAULT_NETWORK
       }, n);
       break;
@@ -295,56 +295,67 @@ const makeMessage = async ({
     ...e,
     data: {
       ...e.data,
-      ...s
+      ...r
     }
   });
   throw i.error || new Error("Invalid Farcaster data");
-}, makeRequest = async (e, t, a, r, s = {}, n = {}, i = {}) => {
-  e = await makeMessage({
+}, makeRequest = async (e, t, a, s, r = {}, n = {}, i = {}) => {
+  var d = "production" === process.env.NODE_ENV ? "https://build.far.quest" : "http://localhost:8080", e = await makeMessage({
     privateKey: e,
     messageType: t,
     body: a,
-    fid: r,
-    overrides: s
+    fid: s,
+    overrides: r
   });
-  let d = "0x" === r?.slice(0, 2);
-  t = ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), 
-  d = d || Object.keys(n).some(t => "object" == typeof n[t] ? Object.keys(n[t]).some(e => "0x" === n[t][e]?.slice(0, 2)) : "0x" === n[t]?.slice?.(0, 2)), 
-  a = await postMessage({
-    isExternal: d || r.startsWith("0x") || !1,
-    externalFid: r,
+  let o = "0x" === s?.slice(0, 2);
+  o = o || Object.keys(n).some(t => "object" == typeof n[t] ? Object.keys(n[t]).some(e => "0x" === n[t][e]?.slice(0, 2)) : "0x" === n[t]?.slice?.(0, 2));
+  t = i.accessToken;
+  return t ? (await axios.post(d + "/farcaster/v2/message", {
+    isExternal: o,
+    message: e,
+    bodyOverrides: n
+  }, {
+    headers: {
+      "Content-Type": "application/json",
+      authorization: t ? "Bearer " + t : "",
+      "API-KEY": "far.quest-default-5477272"
+    }
+  })).data : (a = ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), 
+  await postMessage({
+    isExternal: o || s.startsWith("0x") || !1,
+    externalFid: s,
     messageJSON: e,
-    hubClient: t,
+    hubClient: a,
     errorHandler: i?.errorHandler || (e => {
       Sentry.captureException(e), console.error(e);
     }),
     bodyOverrides: n
-  });
-  return a;
+  }));
 }, makeCastAdd = async ({
   privateKey: e,
   text: t,
-  mentionsFids: r = [],
+  mentionsFids: s = [],
   mentionsUsernames: a = [],
-  embeds: s,
+  embeds: r,
   parentHash: n,
   parentFid: i,
   parentUrl: d,
-  fid: o
+  fid: o,
+  accessToken: c
 }) => {
   a = {
-    ...extractAndReplaceMentions(t, a.reduce((e, t, a) => (e[t] = r[a], e), {})),
-    embeds: s || []
-  }, s = {};
-  n && (a.parentCastId = {
+    ...extractAndReplaceMentions(t, a.reduce((e, t, a) => (e[t] = s[a], e), {})),
+    embeds: r || []
+  }, r = {}, n && (a.parentCastId = {
     hash: hexToBytes(n.slice(2)),
     fid: parseInt(i)
-  }, s.parentCastId = {
+  }, r.parentCastId = {
     fid: i
-  }), d && (a.parentUrl = d), s.mentions = a.mentions, a.mentions = a.mentions.map(e => parseInt(e)), 
-  a.type = 320 < Buffer.from(t, "utf-8").length ? 1 : 0;
+  }), d && (a.parentUrl = d), r.mentions = a.mentions, a.mentions = a.mentions.map(e => parseInt(e)), 
+  a.type = 320 < Buffer.from(t, "utf-8").length ? 1 : 0, n = {};
+  c && (n.accessToken = c);
   try {
-    return await makeRequest(e, MessageType.CAST_ADD, a, o, {}, s);
+    return await makeRequest(e, MessageType.CAST_ADD, a, o, {}, r, n);
   } catch (e) {
     throw console.error(e), new Error(e);
   }
@@ -352,36 +363,36 @@ const makeMessage = async ({
   privateKey: e,
   targetHash: t,
   fid: a
-}, r = {}) => {
+}, s = {}) => {
   t = {
     targetHash: hexToBytes(t.slice(2))
   };
-  return makeRequest(e, MessageType.CAST_REMOVE, t, a, {}, {}, r);
+  return makeRequest(e, MessageType.CAST_REMOVE, t, a, {}, {}, s);
 }, makeLinkAdd = async ({
   privateKey: e,
   type: t,
   displayTimestamp: a,
-  targetFid: r,
-  fid: s
+  targetFid: s,
+  fid: r
 }) => {
   t = {
     type: t,
     displayTimestamp: a,
-    targetFid: parseInt(r)
+    targetFid: parseInt(s)
   }, a = {
-    targetFid: r
+    targetFid: s
   };
-  return makeRequest(e, MessageType.LINK_ADD, t, s, {}, a);
+  return makeRequest(e, MessageType.LINK_ADD, t, r, {}, a);
 }, makeUsernameDataAdd = async ({
   privateKey: e,
   value: t,
   fid: a
 }) => {
-  var r = {
+  var s = {
     type: UserDataType.USERNAME,
     value: a?.slice(0, 15)
   };
-  return makeRequest(e, MessageType.USER_DATA_ADD, r, a, {
+  return makeRequest(e, MessageType.USER_DATA_ADD, s, a, {
     userDataBody: {
       value: t,
       type: UserDataType.USERNAME
@@ -391,18 +402,18 @@ const makeMessage = async ({
   privateKey: e,
   type: t,
   value: a,
-  fid: r
+  fid: s
 }) => {
   if (t === UserDataType.USERNAME) return makeUsernameDataAdd({
     value: a,
-    fid: r
+    fid: s
   });
   t = {
     type: t,
     value: a
   };
   try {
-    return await makeRequest(e, MessageType.USER_DATA_ADD, t, r);
+    return await makeRequest(e, MessageType.USER_DATA_ADD, t, s);
   } catch (e) {
     throw new Error(e);
   }
@@ -410,7 +421,7 @@ const makeMessage = async ({
   privateKey: e,
   type: t,
   targetFid: a,
-  fid: r
+  fid: s
 }) => {
   t = {
     type: t,
@@ -418,45 +429,46 @@ const makeMessage = async ({
   }, a = {
     targetFid: a
   };
-  return makeRequest(e, MessageType.LINK_REMOVE, t, r, {}, a);
+  return makeRequest(e, MessageType.LINK_REMOVE, t, s, {}, a);
 }, makeReactionAdd = async ({
   privateKey: e,
   type: t,
   castHash: a,
-  castAuthorFid: r,
-  fid: s
+  castAuthorFid: s,
+  fid: r,
+  accessToken: n
 }) => {
   t = {
     type: t,
     targetCastId: {
       hash: hexToBytes(a.slice(2)),
-      fid: parseInt(r)
+      fid: parseInt(s)
     }
   }, a = {
     targetCastId: {
-      fid: r
+      fid: s
     }
-  };
-  return makeRequest(e, 3, t, s, {}, a);
+  }, s = {};
+  return n && (s.accessToken = n), makeRequest(e, 3, t, r, {}, a, s);
 }, makeReactionRemove = async ({
   privateKey: e,
   type: t,
   castHash: a,
-  castAuthorFid: r,
-  fid: s
+  castAuthorFid: s,
+  fid: r
 }) => {
   t = {
     type: t,
     targetCastId: {
       hash: hexToBytes(a.slice(2)),
-      fid: parseInt(r)
+      fid: parseInt(s)
     }
   }, a = {
     targetCastId: {
-      fid: r
+      fid: s
     }
   };
-  return makeRequest(e, MessageType.REACTION_REMOVE, t, s, {}, a);
+  return makeRequest(e, MessageType.REACTION_REMOVE, t, r, {}, a);
 }, follow = async e => makeLinkAdd({
   type: "follow",
   ...e
@@ -481,16 +493,16 @@ async function getAddressInventory({
   address: e,
   limit: t = 100,
   cursor: a = null,
-  filters: r,
-  sort: s
+  filters: s,
+  sort: r
 }) {
   try {
     var [ n, i ] = await getCastHandlesWithMetadata({
       address: e,
       limit: t,
       cursor: a,
-      filters: r,
-      sort: s
+      filters: s,
+      sort: r
     });
     return [ n, i ];
   } catch (e) {

@@ -7,10 +7,10 @@ const Community = require("../../models/Community")["Community"], AccountCommuni
       }
     }),
     membersCount: async e => {
-      return await AccountCommunityRole.countDocuments({
+      return await AccountCommunityRole.find({
         isValid: !0,
         role: e._id
-      });
+      }).count();
     },
     members: async (e, r) => {
       return await AccountCommunityRole.findAndSort({

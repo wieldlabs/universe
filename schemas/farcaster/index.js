@@ -664,6 +664,19 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   txHash: 1
 }), offerSchema.index({
   canceledAt: 1
+}), offerSchema.index({
+  chainId: 1,
+  canceledAt: 1,
+  amount: -1
+}), offerSchema.index({
+  fid: 1,
+  canceledAt: 1,
+  amount: -1
+}), offerSchema.index({
+  tokenId: 1,
+  chainId: 1,
+  canceledAt: 1,
+  amount: -1
 }), new mongoose.Schema({
   ownerAddress: {
     type: String,
@@ -968,6 +981,8 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   url: 1
 }), syncedChannelsSchema.index({
   createdAt: 1
+}), syncedChannelsSchema.index({
+  channelId: "text"
 }), new mongoose.Schema({
   name: {
     type: String,

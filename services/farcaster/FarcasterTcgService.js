@@ -444,11 +444,11 @@ class FarcasterTcgService {
   }
   async _getTotalReferral(e) {
     var a = await memcache.get(`Referral:TELEGRAM:${e}:total:count`);
-    return a ? a.value : (a = await Referral.countDocuments({
+    return a ? a.value : (a = await Referral.find({
       referralType: "TELEGRAM",
       account: e,
       isValid: !0
-    }), await memcache.set(`Referral:TELEGRAM:${e}:total:count`, a), a);
+    }).count(), await memcache.set(`Referral:TELEGRAM:${e}:total:count`, a), a);
   }
   async _verifyHandleUnbox({
     handleId: e,
@@ -516,48 +516,56 @@ class FarcasterTcgService {
   }
   async _unboxCardWithHandle({
     player: e,
-    type: a = "normal",
-    set: t,
-    handleId: r
-  }, s) {
+    set: a,
+    handleId: t
+  }, r) {
+    var s = await mongoose.startSession();
+    s.startTransaction();
     try {
-      var n = await this._verifyHandleUnbox({
-        handleId: r,
-        type: a
-      }, s), o = await Pack.findOne({
-        handle: r,
+      var n = await Pack.findOne({
+        handle: t,
         openedAt: null
-      });
-      if (!o) throw new Error("Valid unopened FarPack not found");
+      }).session(s);
+      if (!n) throw new Error("Valid unopened FarPack not found");
+      var o = n.type.toLowerCase(), i = await this._verifyHandleUnbox({
+        handleId: t,
+        type: o
+      }, r);
       const {
-        playableCard: d,
-        ...l
+        playableCard: l,
+        ...c
       } = await this._randomUnbox({
         player: e,
-        type: a,
-        set: t,
-        handleId: r
+        type: o,
+        set: a,
+        handleId: t
       });
-      o.openedAt = new Date(), o.openedCard = d._id, await o.save(), await s.account.populate("addresses");
-      var i = s.account.addresses[0].address?.toLowerCase();
-      return await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + i, {
-        noreply: !0
-      }), memcache.delete(this.PACKS_CACHE_KEY + ":" + i, {
-        noreply: !0
-      }) ]), n.displayItemId = l._id, n.displayMetadata = {
-        name: l.name,
-        image: l.image,
-        rarity: l.rarity,
-        wear: d.wear,
-        foil: d.foil,
+      n.openedAt = new Date(), n.openedCard = l._id, await n.save({
+        session: s
+      }), await r.account.populate("addresses");
+      var d = r.account.addresses[0].address?.toLowerCase();
+      return i.displayItemId = c._id, i.displayMetadata = {
+        name: c.name,
+        image: c.image,
+        rarity: c.rarity,
+        wear: l.wear,
+        foil: l.foil,
         displayType: "farhero",
         description: "Play FarHero Alpha on https://far.quest/hero, the epic Farcaster trading card game!"
-      }, n.unsyncedMetadata = !0, await n.save(), {
-        card: l,
-        pack: o
+      }, i.unsyncedMetadata = !0, await i.save({
+        session: s
+      }), await s.commitTransaction(), await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + d, {
+        noreply: !0
+      }), memcache.delete(this.PACKS_CACHE_KEY + ":" + d, {
+        noreply: !0
+      }) ]), {
+        card: c,
+        pack: n
       };
     } catch (e) {
-      throw new Error("Invalid handle unbox: " + e.message);
+      throw await s.abortTransaction(), new Error("Invalid handle unbox: " + e.message);
+    } finally {
+      await s.endSession();
     }
   }
   async convertHandlesToPacks(e, a) {
@@ -572,52 +580,28 @@ class FarcasterTcgService {
         account: a.accountId || a.account?._id
       });
       if (!n) throw new Error("Player not found");
-      var o = [], i = [];
-      for (const c of s) if (!c.displayItemId) {
-        let e, a, t;
-        t = "OP" === c.chain ? (e = "Premium", a = "booster-pack-p", "/farhero/cards/genesis-booster-p.webp") : c.handle?.length <= 9 ? (e = "Collector", 
-        a = "booster-pack-c", "/farhero/cards/genesis-booster-c.webp") : (e = "Normal", 
-        a = "booster-pack-n", "/farhero/cards/genesis-booster-n.webp"), o.push({
-          set: config().PACK_SET,
-          type: e,
-          handle: c._id,
-          openedAt: null
-        }), i.push({
-          updateOne: {
-            filter: {
-              _id: c._id
-            },
-            update: {
-              $set: {
-                displayItemId: a,
-                displayMetadata: {
-                  name: e + " Booster Pack",
-                  image: t,
-                  displayType: "farpack",
-                  description: "Open this pack on https://far.quest/hero to get a FarHero!"
-                },
-                unsyncedMetadata: !0
-              }
-            }
-          }
-        });
+      var o = [];
+      for (const l of s) if (!l.displayItemId) {
+        let e;
+        e = "OP" === l.chain ? "Premium" : l.handle?.length <= 9 ? "Collector" : "Normal", 
+        o.push(l.setCastHandleMetadataForFarheroPacks(e));
       }
-      var d = !n.dropClaimed, l = (n.dropClaimed = !0, [ CastHandle.bulkWrite(i), n.save() ]);
-      return d && (l.push(this._giveRentedPacksToPlayer({
+      var i = !n.dropClaimed, d = (n.dropClaimed = !0, [ ...o, n.save() ]);
+      return i && (d.push(this._giveRentedPacksToPlayer({
         player: n,
         packType: "normal",
         quantity: 2
-      })), l.push([ this._giveRentedPacksToPlayer({
+      })), d.push([ this._giveRentedPacksToPlayer({
         player: n,
         packType: "premium",
         quantity: 1
-      }) ])), await Promise.all(l), await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + t, {
+      }) ])), await Promise.all(d), await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + t, {
         noreply: !0
       }), memcache.delete(this.PACKS_CACHE_KEY + ":" + t, {
         noreply: !0
       }) ]), {
         convertedHandles: s.length,
-        createdPacks: o.length
+        createdPacks: packsToCreate.length
       };
     } catch (e) {
       throw console.error("Error during handle conversion:", e), new Error("Failed to upgrade handles to packs: " + e.message);
@@ -625,33 +609,38 @@ class FarcasterTcgService {
   }
   async _unboxCardWithTrialPack({
     player: e,
-    type: a = "normal",
-    set: t,
-    packId: r
-  }, s) {
+    set: a,
+    packId: t
+  }, r) {
+    var s = await mongoose.startSession();
+    s.startTransaction();
     try {
-      var n = await Pack.findById(r);
-      if (!n || !n.rentedTo.equals(e._id)) throw new Error("Invalid Pack");
-      if (n.openedAt) throw new Error("Pack already opened");
-      if (n.expiresAt && n.expiresAt < Date.now()) throw new Error("Pack expired");
-      var o = await this._randomTrialUnbox({
+      var n = await Pack.findById(t).session(s);
+      if (!n || !n.rentedTo.equals(e._id)) throw new Error("Invalid Trial FarPack");
+      var o = n.type.toLowerCase();
+      if (n.openedAt) throw new Error("Trial FarPack already opened");
+      if (n.expiresAt && n.expiresAt < Date.now()) throw new Error("Trial FarPack expired");
+      var i = await this._randomTrialUnbox({
         player: e,
-        type: a,
-        set: t,
+        type: o,
+        set: a,
         expiresAt: new Date(Date.now() + this.RENTED_PACK_TIME),
         playerId: e._id
-      }), i = (n.openedAt = new Date(), n.openedCard = o.playableCard._id, await n.save(), 
-      await s.account.populate("addresses"), s.account.addresses[0].address?.toLowerCase());
-      return await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + i, {
+      }), d = (n.openedAt = new Date(), n.openedCard = i.playableCard._id, await n.save({
+        session: s
+      }), await s.commitTransaction(), await r.account.populate("addresses"), r.account.addresses[0].address?.toLowerCase());
+      return await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + d, {
         noreply: !0
-      }), memcache.delete(this.PACKS_CACHE_KEY + ":" + i, {
+      }), memcache.delete(this.PACKS_CACHE_KEY + ":" + d, {
         noreply: !0
       }) ]), {
-        card: o,
+        card: i,
         pack: n
       };
     } catch (e) {
-      throw new Error("Invalid handle unbox: " + e.message);
+      throw await s.abortTransaction(), new Error("Invalid trial pack unbox: " + e.message);
+    } finally {
+      await s.endSession();
     }
   }
   async unboxCard({
@@ -1061,8 +1050,8 @@ class FarcasterTcgService {
           if ("Shop" !== r.state) throw new Error("Cannot purchase card when not in the shop state!");
           if (s.playersHand[S].filter(e => -1 !== e).length >= this.MAX_CARDS_IN_HAND) throw new Error("Cannot purchase card when hand is full");
           if (-1 === F || void 0 === F || !s.playersShop[S].includes(F)) throw new Error("Card not found in player's shop");
-          const A = s.playersShop[S].findIndex(e => e === F);
-          if (-1 === A || void 0 === A) throw new Error("Card not found at a valid position in player's shop");
+          const v = s.playersShop[S].findIndex(e => e === F);
+          if (-1 === v || void 0 === v) throw new Error("Card not found at a valid position in player's shop");
           var e = s.gameCardStats[F];
           if (!e) throw new Error("Card not found in match");
           if (e.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to buy the card");
@@ -1075,7 +1064,7 @@ class FarcasterTcgService {
             time: new Date(),
             cost: e.cost
           }, o = s.playersHand[S].findIndex(e => -1 === e);
-          n.playersHand[S][o] = F, n.playersShop[S] = n.playersShop[S].filter((e, a) => a !== A), 
+          n.playersHand[S][o] = F, n.playersShop[S] = n.playersShop[S].filter((e, a) => a !== v), 
           n.playersEnergy[S] -= e.cost, r.actions.push(n);
         } else if ("DrawCards" == x) {
           if (1 !== b.rounds.length) throw new Error("Cannot do DrawCards after the first round");
@@ -1085,7 +1074,7 @@ class FarcasterTcgService {
             limit: this.MAX_CARDS_IN_HAND,
             session: N
           });
-          const v = {
+          const A = {
             ...jsonClone(s),
             player: O._id,
             source: -1,
@@ -1096,8 +1085,8 @@ class FarcasterTcgService {
             gameCardStats: [ ...s.gameCardStats, ...i.map(e => e.stats) ]
           };
           b.gameCards.push(...i), i.forEach((e, a) => {
-            v.playersHand[S][a] = b.gameCards.indexOf(e);
-          }), r.actions.push(v);
+            A.playersHand[S][a] = b.gameCards.indexOf(e);
+          }), r.actions.push(A);
         } else if ("RefreshShop" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot refresh shop when not in the shop state!");
           if (r.actions.some(e => "RefreshShop" === e.type && e.player.equals(O._id))) throw new Error("Cannot refresh shop twice in a row");
@@ -1209,9 +1198,9 @@ class FarcasterTcgService {
                 if (a = 1 - a, t = 1 - a, 0 === s.playersField[a].filter(e => -1 !== e && !T[e]).length) break;
               } else {
                 const D = s.playersField[a].indexOf(C[0]);
-                var g, E = s.playersField[t], _ = E.filter(e => -1 !== e);
+                var E, g = s.playersField[t], _ = g.filter(e => -1 !== e);
                 let e = -1;
-                e = 0 < _.length ? (g = crypto.randomInt(_.length), E.indexOf(_[g])) : -1;
+                e = 0 < _.length ? (E = crypto.randomInt(_.length), g.indexOf(_[E])) : -1;
                 try {
                   b = await this.addAction({
                     match: b,
@@ -1558,7 +1547,7 @@ class FarcasterTcgService {
         totalCount: 0
       };
       o.rarity && (c["card.rarity"] = o.rarity), o.type && (c["card.type"] = o.type);
-      var h = await PlayableCard.countDocuments(c);
+      var h = await PlayableCard.find(c).count();
       let e = PlayableCard.find(c).populate("card handle").sort({
         [i]: -1
       }).limit(s), a = await (e = n ? e.skip(parseInt(n)) : e).exec();
@@ -1614,7 +1603,7 @@ class FarcasterTcgService {
         totalCount: 0
       };
       n.type && (c.type = n.type);
-      var h = await Pack.countDocuments(c);
+      var h = await Pack.find(c).count();
       let e = Pack.find(c).sort({
         [o]: -1
       }).limit(r);
