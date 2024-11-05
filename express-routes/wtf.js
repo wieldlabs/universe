@@ -823,7 +823,8 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   followJcdenton: 1e10,
   followNico: 1e10,
   followTg: 1e10,
-  followTgAnnouncement: 1e10
+  followTgAnnouncement: 1e10,
+  followDiscord: 1e10
 }, referralQuesPrice = {
   referralQuest1: 5e9,
   referralQuest2: 75e8,
@@ -843,15 +844,15 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   referralQuest200: 205e8,
   referralQuest300: 3e10,
   referralQuest400: 25e10,
-  referralQuest500: 12e12,
-  referralQuest1000: 2e13
+  referralQuest500: 15e12,
+  referralQuest1000: 25e12
 }, paidQuests = {
   dotCast: 2e11,
   dotCast3: 3e11,
   dotCast5: 5e11,
   dotCast10: 15e11,
-  dotCast25: 12e12,
-  dotCast50: 2e13
+  dotCast25: 15e12,
+  dotCast50: 25e12
 }, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e6, getTotalReferral = async t => {
   var e = await memcache.get(`ReferralV2:TELEGRAM:${t}:total:count`);
   return e ? e.value : (e = await Referral.find({

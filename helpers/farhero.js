@@ -1,4 +1,4 @@
-const getFarheroXpScoreType = () => "farhero-xp", getXpFarscore = e => e <= 1 ? 1500 : e <= 10 ? 500 : e <= 20 ? 250 : e <= 50 ? 100 : 0;
+const getFarheroXpScoreType = () => "farhero-xp", getXpFarscore = e => e <= 1 ? 1500 : e <= 10 ? 500 : e <= 20 ? 250 : e <= 50 ? 100 : e <= 100 ? 50 : 0;
 
 module.exports = {
   getFarheroXpScoreType: getFarheroXpScoreType,

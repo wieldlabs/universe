@@ -171,8 +171,9 @@ class FarcasterTcgService {
     this.PACK_GRACE_PERIOD_SECONDS = Math.floor(Date.now() / 1e3) + 15552e3, this.INVENTORY_CACHE_KEY = "tcg:inventory:first-page", 
     this.PACKS_CACHE_KEY = "tcg:packs:first-page", this.CACHE_TTL = 1, this.PLAYER_STARTING_HEALTH = 10, 
     this.OVERLOAD_PER_PERIOD = 1e4, this.PERIOD_IN_DAYS = 7, this.OVERLOAD_MULTIPLIER = .1, 
-    this.INTERNAL_INVITE_CODES = [ "projecteverest", "farquestloyalty" ], this.INTERNAL_ACCOUNT_USERNAME = "jc", 
-    this.FARHERO_CHECK_PASSES_INVITE_CODE = "CheckPasses", this.FARHERO_HANDLES_REQUIRED_FOR_INVITE = "development" === process.env.NODE_ENV ? 1 : 25, 
+    this.INTERNAL_INVITE_CODES = [ "projecteverest", "farquestloyalty", "jcdenton" ], 
+    this.INTERNAL_ACCOUNT_USERNAME = "jc", this.FARHERO_CHECK_PASSES_INVITE_CODE = "CheckPasses", 
+    this.FARHERO_HANDLES_REQUIRED_FOR_INVITE = "development" === process.env.NODE_ENV ? 1 : 25, 
     this.MAX_ROUNDS_BEFORE_DRAW = 15, this.quests = {
       followWieldLabs: {
         id: "followWieldLabs",
@@ -196,6 +197,10 @@ class FarcasterTcgService {
       },
       followTg: {
         id: "followTg",
+        score: 100
+      },
+      followDiscord: {
+        id: "followDiscord",
         score: 100
       },
       followTgAnnouncement: {

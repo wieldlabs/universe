@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Schema({
+const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_LABEL = "expireFarcasterL1Data", hubSubscriptionsSchema = new mongoose.Schema({
   host: {
     type: String,
     required: !0,
@@ -182,6 +182,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   external: 1,
   _id: 1,
   timestamp: 1
+}), castsSchema.index({
+  timestamp: 1
+}, {
+  name: L1_RETENTION_LABEL,
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: L1_RETENTION_TIME
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -232,6 +240,14 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   reactionType: 1,
   fid: 1,
   targetUrl: 1
+}), reactionsSchema.index({
+  timestamp: 1
+}, {
+  name: L1_RETENTION_LABEL,
+  partialFilterExpression: {
+    external: !1
+  },
+  expireAfterSeconds: L1_RETENTION_TIME
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -500,10 +516,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
 }), linksSchema.index({
   fid: 1,
   type: 1,
-  deletedAt: 1
-}), linksSchema.index({
-  fid: 1,
-  type: 1,
   deletedAt: 1,
   timestamp: -1
 }), linksSchema.index({
@@ -511,10 +523,6 @@ const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Sche
   type: 1,
   deletedAt: 1,
   timestamp: -1
-}), linksSchema.index({
-  targetFid: 1,
-  type: 1,
-  deletedAt: 1
 }), linksSchema.index({
   deletedAt: 1
 }, {
