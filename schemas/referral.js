@@ -24,6 +24,9 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   },
   extraData: {
     type: Object
+  },
+  referralOrigin: {
+    type: String
   }
 }, {
   timestamps: !0
@@ -56,6 +59,12 @@ schema.index({
   code: 1
 }), schema.index({
   uniqueIdentifier: 1
+}), schema.index({
+  referralOrigin: 1
+}), schema.index({
+  referralOrigin: 1,
+  isValid: 1,
+  account: 1
 }), module.exports = {
   schema: schema
 };

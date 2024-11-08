@@ -448,12 +448,12 @@ class FarcasterTcgService {
     }), this._BOT_PLAYER.save()), this._BOT_PLAYER;
   }
   async _getTotalReferral(e) {
-    var a = await memcache.get(`Referral:TELEGRAM:${e}:total:count`);
+    var a = await memcache.get(`Referral:FARHERO:${e}:total:count`);
     return a ? a.value : (a = await Referral.find({
-      referralType: "TELEGRAM",
       account: e,
-      isValid: !0
-    }).count(), await memcache.set(`Referral:TELEGRAM:${e}:total:count`, a), a);
+      isValid: !0,
+      referralOrigin: "FARHERO"
+    }).count(), await memcache.set(`Referral:FARHERO:${e}:total:count`, a), a);
   }
   async _verifyHandleUnbox({
     handleId: e,
@@ -549,7 +549,7 @@ class FarcasterTcgService {
         session: s
       }), await r.account.populate("addresses");
       var d = r.account.addresses[0].address?.toLowerCase();
-      return i.displayItemId = c._id, i.displayMetadata = {
+      i.displayItemId = c._id, i.displayMetadata = {
         name: c.name,
         image: c.image,
         rarity: c.rarity,
@@ -563,7 +563,15 @@ class FarcasterTcgService {
         noreply: !0
       }), memcache.delete(this.PACKS_CACHE_KEY + ":" + d, {
         noreply: !0
-      }) ]), {
+      }) ]);
+      try {
+        new _OpenseaService({
+          apiKey: process.env.OPENSEA_API_KEY
+        }).refreshHandle(i);
+      } catch (e) {
+        Sentry.captureException(e), console.error(`Error refreshing handle ${i.handle} in _unboxCardWithHandle!`);
+      }
+      return {
         card: c,
         pack: n
       };
@@ -1035,8 +1043,8 @@ class FarcasterTcgService {
     match: b,
     player: O,
     targetPlayer: D = null,
-    sourceCardIdx: k = -1,
-    targetCardIdx: F = -1,
+    sourceCardIdx: F = -1,
+    targetCardIdx: k = -1,
     actionType: x,
     session: N = null,
     autoBattle: q = !1
@@ -1053,22 +1061,22 @@ class FarcasterTcgService {
           if (s.playersEnergy[S] <= 0) throw new Error("Player has used all their energy for the round");
           if ("Shop" !== r.state) throw new Error("Cannot purchase card when not in the shop state!");
           if (s.playersHand[S].filter(e => -1 !== e).length >= this.MAX_CARDS_IN_HAND) throw new Error("Cannot purchase card when hand is full");
-          if (-1 === F || void 0 === F || !s.playersShop[S].includes(F)) throw new Error("Card not found in player's shop");
-          const v = s.playersShop[S].findIndex(e => e === F);
-          if (-1 === v || void 0 === v) throw new Error("Card not found at a valid position in player's shop");
-          var e = s.gameCardStats[F];
+          if (-1 === k || void 0 === k || !s.playersShop[S].includes(k)) throw new Error("Card not found in player's shop");
+          const A = s.playersShop[S].findIndex(e => e === k);
+          if (-1 === A || void 0 === A) throw new Error("Card not found at a valid position in player's shop");
+          var e = s.gameCardStats[k];
           if (!e) throw new Error("Card not found in match");
           if (e.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to buy the card");
           var n = {
             ...jsonClone(s),
             player: O?._id || null,
             source: -1,
-            target: F,
+            target: k,
             type: x,
             time: new Date(),
             cost: e.cost
           }, o = s.playersHand[S].findIndex(e => -1 === e);
-          n.playersHand[S][o] = F, n.playersShop[S] = n.playersShop[S].filter((e, a) => a !== v), 
+          n.playersHand[S][o] = k, n.playersShop[S] = n.playersShop[S].filter((e, a) => a !== A), 
           n.playersEnergy[S] -= e.cost, r.actions.push(n);
         } else if ("DrawCards" == x) {
           if (1 !== b.rounds.length) throw new Error("Cannot do DrawCards after the first round");
@@ -1078,7 +1086,7 @@ class FarcasterTcgService {
             limit: this.MAX_CARDS_IN_HAND,
             session: N
           });
-          const A = {
+          const v = {
             ...jsonClone(s),
             player: O._id,
             source: -1,
@@ -1089,8 +1097,8 @@ class FarcasterTcgService {
             gameCardStats: [ ...s.gameCardStats, ...i.map(e => e.stats) ]
           };
           b.gameCards.push(...i), i.forEach((e, a) => {
-            A.playersHand[S][a] = b.gameCards.indexOf(e);
-          }), r.actions.push(A);
+            v.playersHand[S][a] = b.gameCards.indexOf(e);
+          }), r.actions.push(v);
         } else if ("RefreshShop" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot refresh shop when not in the shop state!");
           if (r.actions.some(e => "RefreshShop" === e.type && e.player.equals(O._id))) throw new Error("Cannot refresh shop twice in a row");
@@ -1114,19 +1122,19 @@ class FarcasterTcgService {
           r.actions.push(l);
         } else if ("PlayCard" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot play card when not in the shop state!");
-          const I = s.playersHand[S][k];
+          const I = s.playersHand[S][F];
           if (-1 === I || void 0 === I) throw new Error("Card not found in hand");
           var c = s.gameCardStats[I];
           if (c.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to play the card");
           const P = {
             ...jsonClone(s),
             player: O._id,
-            source: k,
-            target: F,
+            source: F,
+            target: k,
             type: x,
             time: new Date(),
             cost: c.cost
-          }, R = (P.playersHand[S][k] = -1, P.playersField[S][F] = I, P.playersEnergy[S] -= c.cost, 
+          }, R = (P.playersHand[S][F] = -1, P.playersField[S][k] = I, P.playersEnergy[S] -= c.cost, 
           this._applyCardAbilities({
             match: b,
             action: P,
@@ -1145,25 +1153,25 @@ class FarcasterTcgService {
         } else if ("CardAttack" === x) {
           if ("Battle" !== r.state) throw new Error("Cannot attack when not in the battle state!");
           if (!q) throw new Error("Cannot attack manually when auto-battling");
-          var h = s.playersField[S][k];
-          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${k})`);
+          var h = s.playersField[S][F];
+          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${F})`);
           let e = -1;
-          if (-1 === F) {
+          if (-1 === k) {
             if (0 !== s.playersField[t].filter(e => -1 !== e).length) throw new Error("Opponent must have no cards on the field for a direct attack!");
-          } else if (-1 === (e = s.playersField[t][F]) || void 0 === e) throw new Error(`[PlayCard]: Target card not found in field (playerIndex=${t}, targetCardIdx=${F})`);
+          } else if (-1 === (e = s.playersField[t][k]) || void 0 === e) throw new Error(`[PlayCard]: Target card not found in field (playerIndex=${t}, targetCardIdx=${k})`);
           var p = {
             ...jsonClone(s),
             player: O._id,
-            source: k,
-            target: F,
+            source: F,
+            target: k,
             type: x,
             time: new Date(),
             cost: 0
           }, u = p.gameCardStats[h], y = p.gameCardStats[e];
-          -1 === e ? (p.playersHealth[t] -= u.attack, p.playersHealth[t] = Math.max(p.playersHealth[t], 0)) : (u.attack >= y.health ? (p.playersField[t][F] = -1, 
+          -1 === e ? (p.playersHealth[t] -= u.attack, p.playersHealth[t] = Math.max(p.playersHealth[t], 0)) : (u.attack >= y.health ? (p.playersField[t][k] = -1, 
           p.gameCardStats[e].health = 0) : p.gameCardStats[e].health -= u.attack, 
           p.gameCardStats[h].health = Math.max(p.gameCardStats[h].health - y.attack, 0), 
-          0 === p.gameCardStats[h].health && (p.playersField[S][k] = -1)), this._applyCardAbilities({
+          0 === p.gameCardStats[h].health && (p.playersField[S][F] = -1)), this._applyCardAbilities({
             match: b,
             action: p,
             attackerIndex: S,
@@ -1201,7 +1209,7 @@ class FarcasterTcgService {
               if (0 === C.length) {
                 if (a = 1 - a, t = 1 - a, 0 === s.playersField[a].filter(e => -1 !== e && !T[e]).length) break;
               } else {
-                const k = s.playersField[a].indexOf(C[0]);
+                const F = s.playersField[a].indexOf(C[0]);
                 var E, g = s.playersField[t], _ = g.filter(e => -1 !== e);
                 let e = -1;
                 e = 0 < _.length ? (E = crypto.randomInt(_.length), g.indexOf(_[E])) : -1;
@@ -1210,7 +1218,7 @@ class FarcasterTcgService {
                     match: b,
                     player: b.players[a],
                     targetPlayer: b.players[t],
-                    sourceCardIdx: k,
+                    sourceCardIdx: F,
                     targetCardIdx: e,
                     actionType: "CardAttack",
                     session: N,
@@ -1668,7 +1676,9 @@ class FarcasterTcgService {
           uniqueIdentifier: i._id,
           extraData: {
             username: r.account.username
-          }
+          },
+          referralOrigin: "FARHERO",
+          isValid: !0
         }, {
           upsert: !0
         }), await memcache.delete(`Referral:FARHERO:${e.account}:total:count`, {

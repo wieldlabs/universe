@@ -330,14 +330,14 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         context: {
           fid: p
         }
-      }) ]), e = l, t = l.isFollowing && (d.isFollowing || "274" === p.toString()) && (y.isFollowing || "251" === p.toString()));
-      l = r.query.count ? parseInt(r.query.count) : 0, d = l >= ANGRY_MODE_COUNT;
+      }) ]), e = l, t = (l.isFollowing || e.external || !e.username) && (d.isFollowing || "274" === p.toString()) && (y.isFollowing || "251" === p.toString()));
+      var l = r.query.count ? parseInt(r.query.count) : 0, d = l >= ANGRY_MODE_COUNT, y = e.username || "fid:" + o, g = e.username && !e.external ? "https://warpcast.com/" + y : "https://far.quest/" + y;
       if (!t && !d) {
         n = "https://i.imgur.com/Bvfd03f.png", c = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustFollow=` + o + (s ? "&mustLikeAndRecast=" + s : ""), 
         m = `
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="https://warpcast.com/${e.username}" />
-          <meta property="fc:frame:button:1" content="@${e.username}" />
+          <meta property="fc:frame:button:1:target" content="${g}" />
+          <meta property="fc:frame:button:1" content="${y}" />
               <meta property="fc:frame:button:2" content="@jc" />
           <meta property="fc:frame:button:2:action" content="link" />
           <meta property="fc:frame:button:2:target" content="https://warpcast.com/jc" />
@@ -353,7 +353,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
       let a;
       if (r.context.frameData?.frameActionBody?.castId?.hash && (a = "0x" + Buffer.from(r.context.frameData?.frameActionBody?.castId?.hash).toString("hex")), 
       s && a && a !== TEST_HASH && !d) {
-        var [ y, d ] = await Promise.all([ Reactions.exists({
+        var [ g, y ] = await Promise.all([ Reactions.exists({
           targetHash: a,
           deletedAt: null,
           fid: p,
@@ -364,7 +364,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           reactionType: 2,
           fid: p
         }) ]);
-        if (!y || !d) {
+        if (!g || !y) {
           n = "https://i.imgur.com/3urlLNk.png", c = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + s, 
           m = `
           <meta property="fc:frame:button:1:action" content="post" />
@@ -376,18 +376,18 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         }
       }
       try {
-        var g = await mint({
+        var h = await mint({
           to: i,
           contractAddress: f.address
-        }), h = g?.hash;
+        }), b = h?.hash;
         if (n = "https://i.imgur.com/MfWeABe.png", f.isSet) {
-          var b = ((await g.wait()).events?.find(t => "Transfer" === t.event))?.args?.[2];
-          if (b) try {
-            var C = await createContractSetToken({
+          var C = ((await h.wait()).events?.find(t => "Transfer" === t.event))?.args?.[2];
+          if (C) try {
+            var w = await createContractSetToken({
               contract: f,
-              tokenId: b.toString()
+              tokenId: C.toString()
             });
-            n = C?.metadata?.rawImageUrl || C?.metadata?.imageUrl || n;
+            n = w?.metadata?.rawImageUrl || w?.metadata?.imageUrl || n;
           } catch (t) {
             console.error(t);
           }
@@ -398,18 +398,18 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
             connectedAddress: i,
             contractId: f._id
           },
-          value: h,
+          value: b,
           expiresAt: null
         }) ]), c = "";
-        var w = "https://explorer.degen.tips/tx/" + h, A = "https://far.quest/contracts/degen/" + f.slug, v = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + A)}&embeds[]=${A}&rand=` + Math.random().toString().slice(0, 7);
+        var v = "https://explorer.degen.tips/tx/" + b, A = "https://far.quest/contracts/degen/" + f.slug, x = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + A)}&embeds[]=${A}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View Tx" />
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="${w}" />
+          <meta property="fc:frame:button:1:target" content="${v}" />
 
           <meta property="fc:frame:button:2" content="Share Mint" />
           <meta property="fc:frame:button:2:action" content="link" />
-          <meta property="fc:frame:button:2:target" content="${v}" />
+          <meta property="fc:frame:button:2:target" content="${x}" />
 
              
           <meta property="fc:frame:button:3" content="Install Action" />
@@ -686,7 +686,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         };
         if (e.query.isSet) try {
           var b = s;
-          const v = 100 / b.length;
+          const A = 100 / b.length;
           h.isSet = !0, h.setData = {
             type: "RANDOM",
             metadata: b.map((t, e) => ({
@@ -694,7 +694,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
               rawImageUrl: t,
               name: o,
               description: "Image #" + e + " of Collection " + o,
-              percentage: v
+              percentage: A
             }))
           };
         } catch (t) {
@@ -720,7 +720,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         <meta property="fc:frame:input:text" content="Error: Invalid step provided." />
       `;
     }
-    var A = `
+    var v = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -730,7 +730,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         ${n}
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(A);
+    a.setHeader("Content-Type", "text/html"), a.send(v);
   } catch (t) {
     console.error(t), Sentry.captureException(t, {
       extra: {
@@ -740,7 +740,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         context: e.context
       }
     });
-    A = `
+    v = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -752,7 +752,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
           <meta property="fc:frame:button:1:post_url" content="${i}?step=fillImage" />
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(A);
+    a.setHeader("Content-Type", "text/html"), a.send(v);
   }
 }), app.get("/v1/frames/add-action", (t, e) => {
   var a = {
