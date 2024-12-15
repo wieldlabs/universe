@@ -231,66 +231,80 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, t) => {
 }), app.get("/v1/0x/price", async (e, t) => {
   var {
     sellToken: r,
-    buyToken: a
+    buyToken: a,
+    sellAmount: s,
+    buyAmount: o
   } = e.query;
   if (!r || !a) return t.status(400).json({
     error: "Missing required query parameters"
   });
-  let s;
+  var n = getHash(`0x-price:${r}:${a}:${s}:` + o), i = await memcache.get(n);
+  if (i) return t.json(JSON.parse(i.value));
+  let c;
   switch (e.query.network) {
    case "Ethereum (Mainnet)":
-    s = "https://api.0x.org/";
+    c = "https://api.0x.org/";
     break;
 
    case "Ethereum (Sepolia)":
-    s = "https://sepolia.api.0x.org/";
+    c = "https://sepolia.api.0x.org/";
     break;
 
    case "Arbitrum":
-    s = "https://arbitrum.api.0x.org/";
+    c = "https://arbitrum.api.0x.org/";
     break;
 
    case "Avalanche":
-    s = "https://avalanche.api.0x.org/";
+    c = "https://avalanche.api.0x.org/";
     break;
 
    case "Base":
-    s = "https://base.api.0x.org/";
+    c = "https://base.api.0x.org/";
     break;
 
    case "Binance Smart Chain":
-    s = "https://bsc.api.0x.org/";
+    c = "https://bsc.api.0x.org/";
     break;
 
    case "Celo":
-    s = "https://celo.api.0x.org/";
+    c = "https://celo.api.0x.org/";
     break;
 
    case "Fantom":
-    s = "https://fantom.api.0x.org/";
+    c = "https://fantom.api.0x.org/";
     break;
 
    case "Optimism":
-    s = "https://optimism.api.0x.org/";
+    c = "https://optimism.api.0x.org/";
     break;
 
    case "Polygon":
-    s = "https://polygon.api.0x.org/";
+    c = "https://polygon.api.0x.org/";
     break;
 
    case "Polygon (Mumbai)":
-    s = "https://mumbai.api.0x.org/";
+    c = "https://mumbai.api.0x.org/";
     break;
 
    default:
-    s = "https://api.0x.org/";
+    c = "https://api.0x.org/";
   }
+  let u = c + `swap/v1/quote?sellToken=${r}&buyToken=${a}&feeRecipient=0x79F6D03D54dCfF1081988f2F886BB235493742F1&buyTokenPercentageFee=0.01`;
+  s && (u += "&sellAmount=" + s), o && (u += "&buyAmount=" + o);
+  i = {
+    headers: {
+      "Content-Type": "application/json",
+      "0x-api-key": process.env.ZERO_X_API_KEY
+    }
+  };
   try {
-    var o = await axios.get(url);
-    return t.json({
+    var p = {
       success: !0,
-      data: o.data
-    });
+      data: (await axios.get(u, i)).data
+    };
+    return await memcache.set(n, JSON.stringify(p), {
+      lifetime: 5
+    }), t.json(p);
   } catch (e) {
     return Sentry.captureException(e), console.error(e), t.status(500).json({
       success: !1,
@@ -307,69 +321,155 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, t) => {
   if (!r || !a) return t.status(400).json({
     error: "Missing required query parameters"
   });
-  let n;
+  var n = getHash(`0x-quote:${r}:${a}:${s}:` + o), i = await memcache.get(n);
+  if (i) return t.json(JSON.parse(i.value));
+  let c;
   switch (e.query.network) {
    case "Ethereum (Mainnet)":
-    n = "https://api.0x.org/";
+    c = "https://api.0x.org/";
     break;
 
    case "Ethereum (Sepolia)":
-    n = "https://sepolia.api.0x.org/";
+    c = "https://sepolia.api.0x.org/";
     break;
 
    case "Arbitrum":
-    n = "https://arbitrum.api.0x.org/";
+    c = "https://arbitrum.api.0x.org/";
     break;
 
    case "Avalanche":
-    n = "https://avalanche.api.0x.org/";
+    c = "https://avalanche.api.0x.org/";
     break;
 
    case "Base":
-    n = "https://base.api.0x.org/";
+    c = "https://base.api.0x.org/";
     break;
 
    case "Binance Smart Chain":
-    n = "https://bsc.api.0x.org/";
+    c = "https://bsc.api.0x.org/";
     break;
 
    case "Celo":
-    n = "https://celo.api.0x.org/";
+    c = "https://celo.api.0x.org/";
     break;
 
    case "Fantom":
-    n = "https://fantom.api.0x.org/";
+    c = "https://fantom.api.0x.org/";
     break;
 
    case "Optimism":
-    n = "https://optimism.api.0x.org/";
+    c = "https://optimism.api.0x.org/";
     break;
 
    case "Polygon":
-    n = "https://polygon.api.0x.org/";
+    c = "https://polygon.api.0x.org/";
     break;
 
    case "Polygon (Mumbai)":
-    n = "https://mumbai.api.0x.org/";
+    c = "https://mumbai.api.0x.org/";
     break;
 
    default:
-    n = "https://api.0x.org/";
+    c = "https://api.0x.org/";
   }
-  let i = n + `swap/v1/quote?sellToken=${r}&buyToken=${a}&feeRecipient=0x79F6D03D54dCfF1081988f2F886BB235493742F1&buyTokenPercentageFee=0.01`;
-  s && (i += "&sellAmount=" + s), o && (i += "&buyAmount=" + o);
-  e = {
+  let u = c + `swap/v1/quote?sellToken=${r}&buyToken=${a}&feeRecipient=0x79F6D03D54dCfF1081988f2F886BB235493742F1&buyTokenPercentageFee=0.01`;
+  s && (u += "&sellAmount=" + s), o && (u += "&buyAmount=" + o);
+  i = {
     headers: {
       "Content-Type": "application/json",
       "0x-api-key": process.env.ZERO_X_API_KEY
     }
   };
   try {
-    var c = await axios.get(i, e), u = c.data;
-    return (200 === c.status ? t : t.status(c.status)).json(u);
+    var p = await axios.get(u, i), l = p.data;
+    return (200 === p.status ? (await memcache.set(n, JSON.stringify(l), {
+      lifetime: 5
+    }), t) : t.status(p.status)).json(l);
   } catch (e) {
     return console.error("Error fetching 0x quote:", e), t.status(500).json({
       error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/0x/quote", [ limiter ], async (e, t) => {
+  var {
+    sellToken: e,
+    buyToken: r,
+    sellAmount: a,
+    taker: s,
+    chainId: o,
+    slippageBps: n = 100
+  } = e.query;
+  if (!(e && r && s && a && o)) return t.status(400).json({
+    error: "Missing required query parameters"
+  });
+  var i = {
+    address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    symbol: "WETH"
+  };
+  let c = `https://api.0x.org/swap/permit2/quote?sellToken=${e}&buyToken=${r}&taker=${s}&chainId=${o}&swapFeeRecipient=0x79F6D03D54dCfF1081988f2F886BB235493742F1&swapFeeBps=100`, u = (a && (c += "&sellAmount=" + a), 
+  i.address);
+  r.toLowerCase() !== i.address.toLowerCase() && e.toLowerCase() !== i.address.toLowerCase() && (u = r), 
+  c += "&swapFeeToken=" + u, n && (c += "&slippageBps=" + n);
+  s = {
+    headers: {
+      "Content-Type": "application/json",
+      "0x-api-key": process.env.ZERO_X_API_KEY,
+      "0x-version": "v2"
+    }
+  };
+  try {
+    var p = await axios.get(c, s);
+    return t.json({
+      success: !0,
+      data: p.data
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), t.status(500).json({
+      success: !1,
+      error: "Failed to fetch price"
+    });
+  }
+}), app.get("/v2/0x/price", [ limiter ], async (e, t) => {
+  var {
+    sellToken: e,
+    buyToken: r,
+    sellAmount: a,
+    chainId: s,
+    slippageBps: o = 100,
+    taker: n
+  } = e.query;
+  if (!(e && r && a && s)) return t.status(400).json({
+    error: "Missing required query parameters"
+  });
+  var i = getHash(`0x-price-v2:${e}:${r}:${a}:${s}:${o}:` + n), c = await memcache.get(i);
+  if (c) return t.json(JSON.parse(c.value));
+  c = {
+    address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+    symbol: "ETH"
+  };
+  let u = `https://api.0x.org/swap/permit2/price?sellToken=${e}&buyToken=${r}&taker=${n}&chainId=${s}&swapFeeRecipient=0x79F6D03D54dCfF1081988f2F886BB235493742F1&swapFeeBps=100`, p = (a && (u += "&sellAmount=" + a), 
+  c.address);
+  r.toLowerCase() !== c.address.toLowerCase() && e.toLowerCase() !== c.address.toLowerCase() && (p = r), 
+  u += "&swapFeeToken=" + p, o && (u += "&slippageBps=" + o);
+  n = {
+    headers: {
+      "Content-Type": "application/json",
+      "0x-api-key": process.env.ZERO_X_API_KEY,
+      "0x-version": "v2"
+    }
+  };
+  try {
+    var l = {
+      success: !0,
+      data: (await axios.get(u, n)).data
+    };
+    return await memcache.set(i, JSON.stringify(l), {
+      lifetime: 2
+    }), t.json(l);
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), t.status(500).json({
+      success: !1,
+      error: "Failed to fetch price"
     });
   }
 }), module.exports = {

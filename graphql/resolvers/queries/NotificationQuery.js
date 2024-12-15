@@ -34,13 +34,13 @@ const Notification = require("../../../models/Notification")["Notification"], ge
       });
       if (e) throw new Error(e);
       e = await unauthorizedErrorOrAccount(t, i, r);
-      return e.account ? Notification.find({
+      return e.account ? Notification.countDocuments({
         receiver: e.account._id,
         initiator: {
           $ne: e.account._id
         },
         lastSeen: null
-      }).count() : 0;
+      }) : 0;
     }
   }
 };

@@ -1,0 +1,60 @@
+const wowTokenFactoryABI = [ {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "factoryAddress",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "tokenCreator",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "address",
+    name: "platformReferrer",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "address",
+    name: "protocolFeeRecipient",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "address",
+    name: "bondingCurve",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "string",
+    name: "tokenURI",
+    type: "string"
+  }, {
+    indexed: !1,
+    internalType: "string",
+    name: "name",
+    type: "string"
+  }, {
+    indexed: !1,
+    internalType: "string",
+    name: "symbol",
+    type: "string"
+  }, {
+    indexed: !1,
+    internalType: "address",
+    name: "tokenAddress",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "address",
+    name: "poolAddress",
+    type: "address"
+  } ],
+  name: "WowTokenCreated",
+  type: "event"
+} ];
+
+module.exports = {
+  wowTokenFactoryABI: wowTokenFactoryABI
+};

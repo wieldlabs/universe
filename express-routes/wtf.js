@@ -42,11 +42,11 @@ async function createContract({
     if (!(e && a && r && o)) throw new Error("Missing required fields!");
     var n = process.env.FARCAST_KEY;
     if (!n) throw new Error("Not configured!");
-    var c = ethers.Wallet.fromMnemonic(n), m = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), i = c.connect(m), p = await new ethers.Contract(factoryContractAddress, factoryContractAbi.abi, i).deployCappedNFTContract(e, a, r, o, s), f = (console.log("Deploying mint contract"), 
+    var c = ethers.Wallet.fromMnemonic(n), m = new ethers.providers.JsonRpcProvider("https://rpc.degen.tips", 666666666), i = c.connect(m), p = await new ethers.Contract(factoryContractAddress, factoryContractAbi.abi, i).deployCappedNFTContract(e, a, r, o, s), u = (console.log("Deploying mint contract"), 
     console.log(p), await p.wait());
     let t;
-    var u = (f.events || []).find(t => "ContractDeployed" === t.event);
-    return u ? (t = u.args[0], console.log("New contract deployed at address: " + t)) : console.log("No 'ContractDeployed' event found."), 
+    var f = (u.events || []).find(t => "ContractDeployed" === t.event);
+    return f ? (t = f.args[0], console.log("New contract deployed at address: " + t)) : console.log("No 'ContractDeployed' event found."), 
     console.log("Contract deployed at address: " + p.address), {
       contractAddress: t,
       txHash: p.hash
@@ -250,18 +250,18 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
     success: !1,
     message: "Unauthorized"
   });
-  let f;
-  var a = "contract:" + r.params.contractId, u = await memcache.get(a);
-  if (u ? f = JSON.parse(u.value) : (f = await Contract.findById(r.params.contractId), 
-  await memcache.set(a, JSON.stringify(f), {
+  let u;
+  var a = "contract:" + r.params.contractId, f = await memcache.get(a);
+  if (f ? u = JSON.parse(f.value) : (u = await Contract.findById(r.params.contractId), 
+  await memcache.set(a, JSON.stringify(u), {
     lifetime: 604800
-  })), !f || !f.metadata?.frame) return t.status(404).json({
+  })), !u || !u.metadata?.frame) return t.status(404).json({
     success: !1,
     message: "No Contract Frame found"
   });
   switch (e) {
    case void 0:
-    n = f.metadata.frame.frameImageUrl, c = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint`, 
+    n = u.metadata.frame.frameImageUrl, c = config().DEFAULT_URI + `/wtf/v1/contracts/${u._id}/frames/post_url?step=mint`, 
     m = `
         <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="Mint" />
@@ -270,17 +270,17 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
 
    case "mint":
     {
-      if (!f.isVerified) throw new Error("Contract is not verified");
+      if (!u.isVerified) throw new Error("Contract is not verified");
       var d = await cacheService.get({
         key: "Wtf:Frame:Minted",
         params: {
           connectedAddress: i,
-          contractId: f._id
+          contractId: u._id
         }
       });
       if (d && "development" !== process.env.NODE_ENV) {
         n = "https://i.imgur.com/yByoglU.png", c = "";
-        var l = "https://far.quest/contracts/degen/" + f.slug, l = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + l)}&embeds[]=${l}&rand=` + Math.random().toString().slice(0, 7);
+        var l = "https://far.quest/contracts/degen/" + u.slug, l = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + u.metadata?.name + " for free ✨\n\n" + l)}&embeds[]=${l}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -301,7 +301,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         `;
         break;
       }
-      var d = "Wtf:Frame:MintedOut:" + f._id;
+      var d = "Wtf:Frame:MintedOut:" + u._id;
       if ("1" === (await memcache.get(d))?.value) {
         n = "https://i.imgur.com/zSqLZoV.png", m = `
           <meta property="fc:frame:button:1" content="Install Action" />
@@ -315,7 +315,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         break;
       }
       let t = !0, e = {};
-      o && o.toString() !== p.toString() && ([ l, d, y ] = await Promise.all([ getFarcasterUserAndLinksByFid({
+      o && o.toString() !== p.toString() && ([ l, d, g ] = await Promise.all([ getFarcasterUserAndLinksByFid({
         fid: o,
         context: {
           fid: p
@@ -330,14 +330,14 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         context: {
           fid: p
         }
-      }) ]), e = l, t = (l.isFollowing || e.external || !e.username) && (d.isFollowing || "274" === p.toString()) && (y.isFollowing || "251" === p.toString()));
-      var l = r.query.count ? parseInt(r.query.count) : 0, d = l >= ANGRY_MODE_COUNT, y = e.username || "fid:" + o, g = e.username && !e.external ? "https://warpcast.com/" + y : "https://far.quest/" + y;
+      }) ]), e = l, t = (l.isFollowing || e.external || !e.username) && (d.isFollowing || "274" === p.toString()) && (g.isFollowing || "251" === p.toString()));
+      var l = r.query.count ? parseInt(r.query.count) : 0, d = l >= ANGRY_MODE_COUNT, g = e.username || "fid:" + o, y = e.username && !e.external ? "https://warpcast.com/" + g : "https://far.quest/" + g;
       if (!t && !d) {
-        n = "https://i.imgur.com/Bvfd03f.png", c = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustFollow=` + o + (s ? "&mustLikeAndRecast=" + s : ""), 
+        n = "https://i.imgur.com/Bvfd03f.png", c = config().DEFAULT_URI + `/wtf/v1/contracts/${u._id}/frames/post_url?step=mint&count=${l + 1}&mustFollow=` + o + (s ? "&mustLikeAndRecast=" + s : ""), 
         m = `
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="${g}" />
-          <meta property="fc:frame:button:1" content="${y}" />
+          <meta property="fc:frame:button:1:target" content="${y}" />
+          <meta property="fc:frame:button:1" content="${g}" />
               <meta property="fc:frame:button:2" content="@jc" />
           <meta property="fc:frame:button:2:action" content="link" />
           <meta property="fc:frame:button:2:target" content="https://warpcast.com/jc" />
@@ -353,7 +353,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
       let a;
       if (r.context.frameData?.frameActionBody?.castId?.hash && (a = "0x" + Buffer.from(r.context.frameData?.frameActionBody?.castId?.hash).toString("hex")), 
       s && a && a !== TEST_HASH && !d) {
-        var [ g, y ] = await Promise.all([ Reactions.exists({
+        var [ y, g ] = await Promise.all([ Reactions.exists({
           targetHash: a,
           deletedAt: null,
           fid: p,
@@ -364,8 +364,8 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           reactionType: 2,
           fid: p
         }) ]);
-        if (!g || !y) {
-          n = "https://i.imgur.com/3urlLNk.png", c = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + s, 
+        if (!y || !g) {
+          n = "https://i.imgur.com/3urlLNk.png", c = config().DEFAULT_URI + `/wtf/v1/contracts/${u._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + s, 
           m = `
           <meta property="fc:frame:button:1:action" content="post" />
           <meta property="fc:frame:button:1" content="Mint ➡️" />
@@ -378,14 +378,14 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
       try {
         var h = await mint({
           to: i,
-          contractAddress: f.address
-        }), b = h?.hash;
-        if (n = "https://i.imgur.com/MfWeABe.png", f.isSet) {
-          var C = ((await h.wait()).events?.find(t => "Transfer" === t.event))?.args?.[2];
-          if (C) try {
+          contractAddress: u.address
+        }), C = h?.hash;
+        if (n = "https://i.imgur.com/MfWeABe.png", u.isSet) {
+          var b = ((await h.wait()).events?.find(t => "Transfer" === t.event))?.args?.[2];
+          if (b) try {
             var w = await createContractSetToken({
-              contract: f,
-              tokenId: C.toString()
+              contract: u,
+              tokenId: b.toString()
             });
             n = w?.metadata?.rawImageUrl || w?.metadata?.imageUrl || n;
           } catch (t) {
@@ -396,16 +396,16 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           key: "Wtf:Frame:Minted",
           params: {
             connectedAddress: i,
-            contractId: f._id
+            contractId: u._id
           },
-          value: b,
+          value: C,
           expiresAt: null
         }) ]), c = "";
-        var v = "https://explorer.degen.tips/tx/" + b, A = "https://far.quest/contracts/degen/" + f.slug, x = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + f.metadata?.name + " for free ✨\n\n" + A)}&embeds[]=${A}&rand=` + Math.random().toString().slice(0, 7);
+        var A = "https://explorer.degen.tips/tx/" + C, v = "https://far.quest/contracts/degen/" + u.slug, x = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + u.metadata?.name + " for free ✨\n\n" + v)}&embeds[]=${v}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View Tx" />
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="${v}" />
+          <meta property="fc:frame:button:1:target" content="${A}" />
 
           <meta property="fc:frame:button:2" content="Share Mint" />
           <meta property="fc:frame:button:2:action" content="link" />
@@ -422,11 +422,11 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           <meta property="fc:frame:button:4:target" content="${CHANNEL_URL}" />
         `;
       } catch (t) {
-        t.message?.includes?.("execution reverted: Total cap reached") ? (await memcache.set("Wtf:Frame:MintedOut:" + f._id, "1", {
+        t.message?.includes?.("execution reverted: Total cap reached") ? (await memcache.set("Wtf:Frame:MintedOut:" + u._id, "1", {
           lifetime: 604800,
           noreply: !0
         }), n = "https://i.imgur.com/zSqLZoV.png") : (n = "https://i.imgur.com/dDh20zB.png", 
-        Sentry.captureException(t)), c = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + s, 
+        Sentry.captureException(t)), c = config().DEFAULT_URI + `/wtf/v1/contracts/${u._id}/frames/post_url?step=mint&count=${l + 1}&mustLikeAndRecast=` + s, 
         m = `
           <meta property="fc:frame:button:1" content="Install Action" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -444,13 +444,13 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
     }
 
    default:
-    n = f.metadata.frame.frameImageUrl, c = config().DEFAULT_URI + `/wtf/v1/contracts/${f._id}/frames/post_url?step=mint`, 
+    n = u.metadata.frame.frameImageUrl, c = config().DEFAULT_URI + `/wtf/v1/contracts/${u._id}/frames/post_url?step=mint`, 
     m = `
         <meta property="fc:frame:button:1:action" content="post" />
         <meta property="fc:frame:button:1" content="Mint" />
       `;
   }
-  u = `
+  f = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -461,7 +461,7 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
         ${m}
       </head>
     </html>`;
-  t.setHeader("Content-Type", "text/html"), t.send(u);
+  t.setHeader("Content-Type", "text/html"), t.send(f);
 }), app.get("/v1/frames/image", async (t, e) => {
   var {
     text: t,
@@ -585,18 +585,18 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
       break;
 
      case "mustLikeAndRecast":
-      var f = 1 === parseInt(e.body?.untrustedData?.buttonIndex) ? e.context.isExternal ? e.context.connectedAddress : e.context.frameData.fid : null;
+      var u = 1 === parseInt(e.body?.untrustedData?.buttonIndex) ? e.context.isExternal ? e.context.connectedAddress : e.context.frameData.fid : null;
       c = "https://i.imgur.com/PgFh6wI.png", n = `
                 <meta property="fc:frame:button:1" content="Yes" />
           <meta property="fc:frame:button:1:action" content="post" />
                 <meta property="fc:frame:button:2" content="No" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:post_url" content="${i}?step=fillName${f ? "&mustFollow=" + f : ""}&image=${encodeURIComponent(r)}" />
+          <meta property="fc:frame:post_url" content="${i}?step=fillName${u ? "&mustFollow=" + u : ""}&image=${encodeURIComponent(r)}" />
         `;
       break;
 
      case "fillName":
-      var u = e.query.mustFollow, d = 1 === parseInt(e.body?.untrustedData?.buttonIndex) || e.query.mustLikeAndRecast ? "true" : null;
+      var f = e.query.mustFollow, d = 1 === parseInt(e.body?.untrustedData?.buttonIndex) || e.query.mustLikeAndRecast ? "true" : null;
       try {
         c = await processCastOrImageUrl(r);
       } catch (t) {
@@ -613,11 +613,11 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
 
           <meta property="fc:frame:button:2" content="Use post's image" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:button:2:post_url" content="${i}?step=fillName${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(l)}"/>
+          <meta property="fc:frame:button:2:post_url" content="${i}?step=fillName${f ? "&mustFollow=" + f : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(l)}"/>
 
         <meta property="fc:frame:button:3" content="Create Free Mint ✨" />
           <meta property="fc:frame:button:3:action" content="post" />
-          <meta property="fc:frame:post_url" content="${i}?step=confirm${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(c)}" />
+          <meta property="fc:frame:post_url" content="${i}?step=confirm${f ? "&mustFollow=" + f : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(c)}" />
         `;
           break;
         }
@@ -632,7 +632,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
 
         <meta property="fc:frame:button:2" content="Create Free Mint ✨" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:post_url" content="${i}?step=confirm${u ? "&mustFollow=" + u : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(c)}" />
+          <meta property="fc:frame:post_url" content="${i}?step=confirm${f ? "&mustFollow=" + f : ""}${d ? "&mustLikeAndRecast=" + d : ""}&image=${encodeURIComponent(c)}" />
         `;
       break;
 
@@ -653,7 +653,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
       break;
 
      case "createSet":
-      var y = e.context.frameData?.fid || null;
+      var g = e.context.frameData?.fid || null;
       c = await processCastOrImageUrl(c = e.context.untrustedData.inputText || s[0]), 
       n = `
         <meta property="fc:frame:state" content=${JSON.stringify({
@@ -666,43 +666,43 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
 
         <meta property="fc:frame:button:2" content="Create Free Mint ✨" />
           <meta property="fc:frame:button:2:action" content="post" />
-          <meta property="fc:frame:post_url" content="${i}?step=confirm${y ? "&mustFollow=" + y : ""}&mustLikeAndRecast=true&isSet=true&image=${encodeURIComponent(c)}" />
+          <meta property="fc:frame:post_url" content="${i}?step=confirm${g ? "&mustFollow=" + g : ""}&mustLikeAndRecast=true&isSet=true&image=${encodeURIComponent(c)}" />
         `;
       break;
 
      case "confirm":
       {
         c = "https://far.quest/assets/frameSuccess.webp";
-        var g = r;
+        var y = r;
         const o = e.context.untrustedData.inputText || "Untitled-" + Math.round(1e4 * Math.random());
         var h = {
           name: o,
-          image: g,
-          rawImage: g,
+          image: y,
+          rawImage: y,
           symbol: "FARQUEST",
           ownerAddress: e.context.connectedAddress,
           mustFollow: e.query.mustFollow,
           mustLikeAndRecast: e.query.mustLikeAndRecast
         };
         if (e.query.isSet) try {
-          var b = s;
-          const A = 100 / b.length;
+          var C = s;
+          const v = 100 / C.length;
           h.isSet = !0, h.setData = {
             type: "RANDOM",
-            metadata: b.map((t, e) => ({
+            metadata: C.map((t, e) => ({
               imageUrl: t,
               rawImageUrl: t,
               name: o,
               description: "Image #" + e + " of Collection " + o,
-              percentage: A
+              percentage: v
             }))
           };
         } catch (t) {
           console.error(t);
         }
-        var C = "https://far.quest/contracts/degen/" + (await handleCreateContractRequest({
+        var b = "https://far.quest/contracts/degen/" + (await handleCreateContractRequest({
           body: h
-        })).contract.slug, w = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + o + " for free ✨\n\n" + C)}&embeds[]=${C}&rand=` + Math.random().toString().slice(0, 7);
+        })).contract.slug, w = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + o + " for free ✨\n\n" + b)}&embeds[]=${b}&rand=` + Math.random().toString().slice(0, 7);
         n = `
       <meta property="fc:frame:button:1" content="Install Action" />
           <meta property="fc:frame:button:1:action" content="link" />
@@ -720,7 +720,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         <meta property="fc:frame:input:text" content="Error: Invalid step provided." />
       `;
     }
-    var v = `
+    var A = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -730,7 +730,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         ${n}
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(v);
+    a.setHeader("Content-Type", "text/html"), a.send(A);
   } catch (t) {
     console.error(t), Sentry.captureException(t, {
       extra: {
@@ -740,7 +740,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         context: e.context
       }
     });
-    v = `
+    A = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -752,7 +752,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
           <meta property="fc:frame:button:1:post_url" content="${i}?step=fillImage" />
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(v);
+    a.setHeader("Content-Type", "text/html"), a.send(A);
   }
 }), app.get("/v1/frames/add-action", (t, e) => {
   var a = {
@@ -817,14 +817,14 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   farllama: 2e5,
   farlucky: 5e5
 }, questsPrice = {
-  followWieldLabs: 1e10,
-  likeWieldLabsLatest: 1e10,
-  followTwitch: 1e10,
-  followJcdenton: 1e10,
-  followNico: 1e10,
-  followTg: 1e10,
-  followTgAnnouncement: 1e10,
-  followDiscord: 1e10
+  followWieldLabs: 25e9,
+  likeWieldLabsLatest: 25e9,
+  followTwitch: 25e9,
+  followJcdenton: 25e9,
+  followNico: 25e9,
+  followTg: 25e9,
+  followTgAnnouncement: 25e9,
+  followDiscord: 25e9
 }, referralQuesPrice = {
   referralQuest1: 5e9,
   referralQuest2: 75e8,
@@ -844,22 +844,27 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   referralQuest200: 205e8,
   referralQuest300: 3e10,
   referralQuest400: 25e10,
-  referralQuest500: 15e12,
-  referralQuest1000: 25e12
+  referralQuest500: 2e13,
+  referralQuest1000: 3e13,
+  referralQuest5000: 1e14
 }, paidQuests = {
   dotCast: 2e11,
   dotCast3: 3e11,
   dotCast5: 5e11,
   dotCast10: 15e11,
-  dotCast25: 15e12,
-  dotCast50: 25e12
+  dotCast25: 2e13,
+  dotCast50: 3e13,
+  dotCast75: 4e13,
+  dotCast100: 5e13,
+  dotCast250: 75e12,
+  dotCast1000: 1e14
 }, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e6, getTotalReferral = async t => {
   var e = await memcache.get(`ReferralV2:TELEGRAM:${t}:total:count`);
-  return e ? e.value : (e = await Referral.find({
+  return e ? e.value : (e = await Referral.countDocuments({
     referralType: "TELEGRAM",
     account: t,
     isValid: !0
-  }).count(), await memcache.set(`ReferralV2:TELEGRAM:${t}:total:count`, e), e);
+  }), await memcache.set(`ReferralV2:TELEGRAM:${t}:total:count`, e), e);
 };
 
 app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
@@ -884,45 +889,48 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
     gameLastUpdated: c
   };
   const i = (c - new Date(m.gameLastUpdated)) / 1e3;
-  var p = i * MAX_TAPS_PER_SECOND, r = Math.min(Math.max(r, m.score), p + m.score), p = Object.entries(m.boosts).reduce((t, [ e, a ]) => t + (boostsMultiplier[e] || 0) * a * i, 0), f = m.passiveTaps + p;
-  let u = r + p;
+  var p = i * MAX_TAPS_PER_SECOND, r = Math.min(Math.max(r, m.score), p + m.score), p = Object.entries(m.boosts).reduce((t, [ e, a ]) => t + (boostsMultiplier[e] || 0) * a * i, 0), u = m.passiveTaps + p;
+  let f = r + p;
   Object.entries(o).forEach(([ a, r ]) => {
     if (boostsPrice[a]) {
       var o = boostsPrice[a];
       if ((m.boosts[a] || 0) < r) {
         let e = 0;
         for (let t = m.boosts[a] || 0; t < r; t++) e += Math.floor(o * Math.pow(MULTIPLIER, t));
-        u >= e && (m.boosts = {
+        f >= e && (m.boosts = {
           ...m.boosts,
           [a]: r
-        }, u -= e);
+        }, f -= e);
       }
     }
-  }), m.score = u, m.passiveTaps = f, m.gameLastUpdated = c;
-  r = await getTotalReferral(s);
-  if (m.totalReferralCount = r, (!m.appliedRefCount || m.appliedRefCount < r) && (p = m.score + (r - m.appliedRefCount) * REFERRAL_BONUS, 
-  m.score = p, m.appliedRefCount = r), e && 0 < Object.keys(e).length && Object.entries(e).forEach(([ t ]) => {
+  }), m.score = f, m.passiveTaps = u, m.gameLastUpdated = c;
+  const d = await getTotalReferral(s);
+  if (m.totalReferralCount = d, (!m.appliedRefCount || m.appliedRefCount < d) && (r = m.score + (d - m.appliedRefCount) * REFERRAL_BONUS, 
+  m.score = r, m.appliedRefCount = d), e && 0 < Object.keys(e).length && Object.entries(e).forEach(([ t ]) => {
+    var e;
     questsPrice[t] && !m.quests?.[t] ? (m.score += questsPrice[t], m.quests = {
       ...m.quests || {},
       [t]: !0
-    }) : referralQuesPrice[t] && !m.quests?.[t] && (m.score += referralQuesPrice[t], 
-    m.quests = {
+    }) : referralQuesPrice[t] && !m.quests?.[t] && ((e = (t => {
+      t = t.match(/referralQuest(\d+)/);
+      return t ? parseInt(t[1], 10) : null;
+    })(t)) ? d >= e ? (m.score += referralQuesPrice[t], m.quests = {
       ...m.quests || {},
       [t]: !0
-    });
+    }) : console.error(`Not enough referrals for quest ${t}. Has: ${d}, Needs: ` + e) : console.error("Invalid referral quest format: " + t));
   }), !0 === e?.dotCast && !m.quests?.dotCast) {
     await t.context.account.populate("addresses");
-    o = t.context.account.addresses[0].address?.toLowerCase();
-    if (!o) return a.status(400).json({
+    p = t.context.account.addresses[0].address?.toLowerCase();
+    if (!p) return a.status(400).json({
       success: !1,
       message: "No address found for the account."
     });
     let e = !1;
     try {
-      var d = await getAddressPasses(o, !0);
-      e = d.isHolder;
+      var l = await getAddressPasses(p, !0);
+      e = l.isHolder;
     } catch (t) {
-      console.error("Cannot getAddressPasses!", o), e = !1;
+      console.error("Cannot getAddressPasses!", p), e = !1;
     }
     e ? (m.score += paidQuests.dotCast, m.quests = {
       ...m.quests || {},
@@ -935,17 +943,17 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
   }
   if (!0 === e?.dotCast3 && !m.quests?.dotCast3) {
     await t.context.account.populate("addresses");
-    f = t.context.account.addresses[0].address?.toLowerCase();
-    if (!f) return a.status(400).json({
+    o = t.context.account.addresses[0].address?.toLowerCase();
+    if (!o) return a.status(400).json({
       success: !1,
       message: "No address found for the account."
     });
     let e = !1;
     try {
-      var l = await getAddressPasses(f, !1);
-      e = 3 <= l.passes?.length;
+      var g = await getAddressPasses(o, !1);
+      e = 3 <= g.passes?.length;
     } catch (t) {
-      console.error("Cannot getAddressPasses!", f), e = !1;
+      console.error("Cannot getAddressPasses!", o), e = !1;
     }
     e ? (m.score += paidQuests.dotCast3, m.quests = {
       ...m.quests || {},
@@ -958,17 +966,17 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
   }
   if (!0 === e?.dotCast5 && !m.quests?.dotCast5) {
     await t.context.account.populate("addresses");
-    c = t.context.account.addresses[0].address?.toLowerCase();
-    if (!c) return a.status(400).json({
+    u = t.context.account.addresses[0].address?.toLowerCase();
+    if (!u) return a.status(400).json({
       success: !1,
       message: "No address found for the account."
     });
     let e = !1;
     try {
-      var y = await getAddressPasses(c, !1);
+      var y = await getAddressPasses(u, !1);
       e = 5 <= y.passes?.length;
     } catch (t) {
-      console.error("Cannot getAddressPasses!", c), e = !1;
+      console.error("Cannot getAddressPasses!", u), e = !1;
     }
     e ? (m.score += paidQuests.dotCast5, m.quests = {
       ...m.quests || {},
@@ -981,17 +989,17 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
   }
   if (!0 === e?.dotCast10 && !m.quests?.dotCast10) {
     await t.context.account.populate("addresses");
-    p = t.context.account.addresses[0].address?.toLowerCase();
-    if (!p) return a.status(400).json({
+    c = t.context.account.addresses[0].address?.toLowerCase();
+    if (!c) return a.status(400).json({
       success: !1,
       message: "No address found for the account."
     });
     let e = !1;
     try {
-      var g = await getAddressPasses(p, !1);
-      e = 10 <= g.passes?.length;
+      var h = await getAddressPasses(c, !1);
+      e = 10 <= h.passes?.length;
     } catch (t) {
-      console.error("Cannot getAddressPasses!", p), e = !1;
+      console.error("Cannot getAddressPasses!", c), e = !1;
     }
     e ? (m.score += paidQuests.dotCast10, m.quests = {
       ...m.quests || {},
@@ -1011,8 +1019,8 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
     });
     let e = !1;
     try {
-      var h = await getAddressPasses(r, !1);
-      e = 25 <= h.passes?.length;
+      var C = await getAddressPasses(r, !1);
+      e = 25 <= C.passes?.length;
     } catch (t) {
       console.error("Cannot getAddressPasses!", r), e = !1;
     }
@@ -1027,17 +1035,17 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
   }
   if (!0 === e?.dotCast50 && !m.quests?.dotCast50) {
     await t.context.account.populate("addresses");
-    d = t.context.account.addresses[0].address?.toLowerCase();
-    if (!d) return a.status(400).json({
+    l = t.context.account.addresses[0].address?.toLowerCase();
+    if (!l) return a.status(400).json({
       success: !1,
       message: "No address found for the account."
     });
     let e = !1;
     try {
-      var b = await getAddressPasses(d, !1);
+      var b = await getAddressPasses(l, !1);
       e = 50 <= b.passes?.length;
     } catch (t) {
-      console.error("Cannot getAddressPasses!", d), e = !1;
+      console.error("Cannot getAddressPasses!", l), e = !1;
     }
     e ? (m.score += paidQuests.dotCast50, m.quests = {
       ...m.quests || {},
@@ -1048,6 +1056,98 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
       checkedDotCast50: !1
     };
   }
+  if (!0 === e?.dotCast75 && !m.quests?.dotCast75) {
+    await t.context.account.populate("addresses");
+    p = t.context.account.addresses[0].address?.toLowerCase();
+    if (!p) return a.status(400).json({
+      success: !1,
+      message: "No address found for the account."
+    });
+    let e = !1;
+    try {
+      var w = await getAddressPasses(p, !1);
+      e = 75 <= w.passes?.length;
+    } catch (t) {
+      console.error("Cannot getAddressPasses!", p), e = !1;
+    }
+    e ? (m.score += paidQuests.dotCast75, m.quests = {
+      ...m.quests || {},
+      dotCast75: !0,
+      checkedDotCast75: !0
+    }) : m.quests = {
+      ...m.quests || {},
+      checkedDotCast75: !1
+    };
+  }
+  if (!0 === e?.dotCast100 && !m.quests?.dotCast100) {
+    await t.context.account.populate("addresses");
+    g = t.context.account.addresses[0].address?.toLowerCase();
+    if (!g) return a.status(400).json({
+      success: !1,
+      message: "No address found for the account."
+    });
+    let e = !1;
+    try {
+      var A = await getAddressPasses(g, !1);
+      e = 100 <= A.passes?.length;
+    } catch (t) {
+      console.error("Cannot getAddressPasses!", g), e = !1;
+    }
+    e ? (m.score += paidQuests.dotCast100, m.quests = {
+      ...m.quests || {},
+      dotCast100: !0,
+      checkedDotCast100: !0
+    }) : m.quests = {
+      ...m.quests || {},
+      checkedDotCast100: !1
+    };
+  }
+  if (!0 === e?.dotCast250 && !m.quests?.dotCast250) {
+    await t.context.account.populate("addresses");
+    o = t.context.account.addresses[0].address?.toLowerCase();
+    if (!o) return a.status(400).json({
+      success: !1,
+      message: "No address found for the account."
+    });
+    let e = !1;
+    try {
+      var v = await getAddressPasses(o, !1);
+      e = 250 <= v.passes?.length;
+    } catch (t) {
+      console.error("Cannot getAddressPasses!", o), e = !1;
+    }
+    e ? (m.score += paidQuests.dotCast250, m.quests = {
+      ...m.quests || {},
+      dotCast250: !0,
+      checkedDotCast250: !0
+    }) : m.quests = {
+      ...m.quests || {},
+      checkedDotCast250: !1
+    };
+  }
+  if (!0 === e?.dotCast1000 && !m.quests?.dotCast1000) {
+    await t.context.account.populate("addresses");
+    y = t.context.account.addresses[0].address?.toLowerCase();
+    if (!y) return a.status(400).json({
+      success: !1,
+      message: "No address found for the account."
+    });
+    let e = !1;
+    try {
+      var x = await getAddressPasses(y, !1);
+      e = 1e3 <= x.passes?.length;
+    } catch (t) {
+      console.error("Cannot getAddressPasses!", y), e = !1;
+    }
+    e ? (m.score += paidQuests.dotCast1000, m.quests = {
+      ...m.quests || {},
+      dotCast1000: !0,
+      checkedDotCast1000: !0
+    }) : m.quests = {
+      ...m.quests || {},
+      checkedDotCast1000: !1
+    };
+  }
   await cacheService.set({
     key: n,
     params: {
@@ -1056,11 +1156,11 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
     value: JSON.stringify(m),
     expiresAt: null
   });
-  o = new _ScoreService(), await t.context.account.populate("addresses"), l = await getFartapScoreType();
-  return await o.setScore({
+  u = new _ScoreService(), await t.context.account.populate("addresses"), h = await getFartapScoreType();
+  return await u.setScore({
     address: t.context.account.addresses[0].address,
-    score: Math.floor(u),
-    scoreType: l,
+    score: Math.floor(f),
+    scoreType: h,
     shouldRecord: !1
   }), a.json({
     success: !0,

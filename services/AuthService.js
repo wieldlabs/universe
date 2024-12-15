@@ -310,35 +310,36 @@ class AuthService {
     chainId: r,
     signature: t,
     signerData: a,
-    revokeId: n
+    revokeId: n,
+    forceExternal: i = !1
   }) {
-    let i = !0;
-    let s = null, o = null;
+    let s = !0;
+    let o = null, d = null;
     r = await this.authBySignature({
       address: e,
       chainId: r,
       signature: t
-    }), a && (d = await (t = new _AccountRecovererService()).getFid(r, {
+    }), a && (i = 0 != (c = await (t = new _AccountRecovererService()).getFid(r, {
       custodyAddress: e
-    }), o = (s = 0 != d?.toNumber() ? (await t.addOrGetSigner(r, {
+    }))?.toNumber() && !i, d = (o = i ? (await t.addOrGetSigner(r, {
       signerAddress: a.recovererAddress,
       signature: a.signature,
       deadline: a.deadline,
       metadata: a.metadata,
-      fid: d,
+      fid: c,
       custodyAddress: e
-    }), i = !1, d.toNumber()) : (i = !0, e), a.recovererAddress), e = {
-      id: d,
-      type: 0 == d?.toNumber() ? "FARCASTER_SIGNER_EXTERNAL" : "FARCASTER_SIGNER",
+    }), s = !1, c.toNumber()) : (s = !0, e), a.recovererAddress), e = {
+      id: c,
+      type: i ? "FARCASTER_SIGNER_EXTERNAL" : "FARCASTER_SIGNER",
       address: a.recovererAddress
     }, await t.addRecoverer(r, e));
-    var d = {
-      isExternal: i
+    var c = {
+      isExternal: s
     };
-    return s && (d.signerId = s), o && (d.signerPubKey = o), n && (d.revokeId = n), 
+    return o && (c.signerId = o), d && (c.signerPubKey = d), n && (c.revokeId = n), 
     this._generateNonceAndAccessToken({
       account: r,
-      extra: d
+      extra: c
     });
   }
   async authByEncryptedWalletJson({

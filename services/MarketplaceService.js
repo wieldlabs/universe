@@ -8,7 +8,11 @@ const ethers = require("ethers"), axios = require("axios"), Sentry = require("@s
   getFarcasterUserByFid,
   searchFarcasterUserByMatch,
   searchCastHandleByMatch
-} = require("../helpers/farcaster"), _CacheService = require("../services/cache/CacheService")["Service"];
+} = require("../helpers/farcaster"), _CacheService = require("../services/cache/CacheService")["Service"], {
+  WETH_CONTRACT,
+  NETWORK,
+  getTokenPrice
+} = require("../helpers/moralis");
 
 class MarketplaceService {
   constructor() {
@@ -41,12 +45,10 @@ class MarketplaceService {
   async ethToUsd(e) {
     if (!e) return "0";
     try {
-      var t, r, a = await memcache.get("MarketplaceService_ethToUsd");
-      return a ? ethers.BigNumber.from(a.value).mul(e).toString() : (t = `
-    https://api.etherscan.io/api?module=stats&action=ethprice&apikey=` + process.env.ETHERSCAN_API_KEY, 
-      (r = (await axios.get(t)).data.result?.ethusd) ? (await memcache.set("MarketplaceService_ethToUsd", parseInt(r).toString(), {
-        lifetime: 1800
-      }), ethers.BigNumber.from(parseInt(r)).mul(e).toString()) : "0");
+      var t, r = await memcache.get("MarketplaceService_ethToUsd");
+      return r ? ethers.BigNumber.from(r.value).mul(e).toString() : (t = (await getTokenPrice(NETWORK.ETH.chainId, WETH_CONTRACT))?.usdPrice) ? (await memcache.set("MarketplaceService_ethToUsd", parseInt(t).toString(), {
+        lifetime: 300
+      }), ethers.BigNumber.from(parseInt(t)).mul(e).toString()) : "0";
     } catch (e) {
       return console.error(e), Sentry.captureException(e), "0";
     }

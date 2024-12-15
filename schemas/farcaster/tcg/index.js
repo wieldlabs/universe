@@ -100,7 +100,27 @@ const mongoose = require("mongoose"), TRIGGER = {
   }
 }, {
   timestamps: !0
-}), playableCardSchema = new mongoose.Schema({
+}), playableCardSchema = (cardSchema.index({
+  name: 1,
+  set: 1
+}), cardSchema.index({
+  rarity: 1
+}), cardSchema.index({
+  rentedTo: 1,
+  expiresAt: 1
+}), cardSchema.index({
+  type: 1
+}), cardSchema.index({
+  set: 1,
+  rarity: 1
+}), cardSchema.index({
+  rarity: 1,
+  type: 1
+}), cardSchema.index({
+  class: 1
+}), cardSchema.index({
+  family: 1
+}), new mongoose.Schema({
   card: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "farcaster.tcg.Card"
@@ -135,26 +155,43 @@ const mongoose = require("mongoose"), TRIGGER = {
   }
 }, {
   timestamps: !0
-}), packSchema = (cardSchema.index({
-  name: 1,
-  set: 1
-}), cardSchema.index({
-  rarity: 1
-}), cardSchema.index({
+})), packSchema = (playableCardSchema.index({
+  handle: 1
+}, {
+  unique: !0,
+  partialFilterExpression: {
+    handle: {
+      $type: "objectId"
+    }
+  }
+}), playableCardSchema.index({
+  createdAt: -1
+}), playableCardSchema.index({
+  "card.rarity": 1,
+  createdAt: -1
+}), playableCardSchema.index({
+  "card.type": 1,
+  createdAt: -1
+}), playableCardSchema.index({
+  handle: 1,
+  createdAt: -1
+}), playableCardSchema.index({
   rentedTo: 1,
-  expiresAt: 1
-}), cardSchema.index({
-  type: 1
-}), cardSchema.index({
-  set: 1,
-  rarity: 1
-}), cardSchema.index({
-  rarity: 1,
-  type: 1
-}), cardSchema.index({
-  class: 1
-}), cardSchema.index({
-  family: 1
+  expiresAt: 1,
+  createdAt: -1
+}), playableCardSchema.index({
+  handle: 1,
+  card: 1
+}), playableCardSchema.index({
+  rentedTo: 1,
+  expiresAt: 1,
+  card: 1
+}), playableCardSchema.index({
+  "card.rarity": 1,
+  handle: 1
+}), playableCardSchema.index({
+  "card.type": 1,
+  handle: 1
 }), new mongoose.Schema({
   set: {
     type: String,
@@ -168,8 +205,7 @@ const mongoose = require("mongoose"), TRIGGER = {
   },
   handle: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "CastHandle",
-    index: !0
+    ref: "CastHandle"
   },
   rentedTo: {
     type: mongoose.Schema.Types.ObjectId,
@@ -193,6 +229,13 @@ const mongoose = require("mongoose"), TRIGGER = {
   timestamps: !0
 })), playerSchema = (packSchema.index({
   handle: 1
+}, {
+  unique: !0,
+  partialFilterExpression: {
+    handle: {
+      $type: "objectId"
+    }
+  }
 }), packSchema.index({
   rentedTo: 1
 }), packSchema.index({
@@ -534,34 +577,6 @@ tournamentSchema.index({
   startDate: 1
 }), tournamentSchema.index({
   name: 1
-}), playableCardSchema.index({
-  createdAt: -1
-}), playableCardSchema.index({
-  "card.rarity": 1,
-  createdAt: -1
-}), playableCardSchema.index({
-  "card.type": 1,
-  createdAt: -1
-}), playableCardSchema.index({
-  handle: 1,
-  createdAt: -1
-}), playableCardSchema.index({
-  rentedTo: 1,
-  expiresAt: 1,
-  createdAt: -1
-}), playableCardSchema.index({
-  handle: 1,
-  card: 1
-}), playableCardSchema.index({
-  rentedTo: 1,
-  expiresAt: 1,
-  card: 1
-}), playableCardSchema.index({
-  "card.rarity": 1,
-  handle: 1
-}), playableCardSchema.index({
-  "card.type": 1,
-  handle: 1
 }), module.exports = {
   cardSchema: cardSchema,
   playerSchema: playerSchema,

@@ -32,7 +32,7 @@ const Sentry = require("@sentry/node"), rateLimit = require("express-rate-limit"
   }
 }), authContext = async (t, e, i) => {
   try {
-    if (t.context && t.context.accountId) return i();
+    if (t.context && t.context.accountId && t.context.account) return i();
     var a = await requireAuth(t.headers.authorization || "");
     if (!a.payload.id) throw new Error("jwt must be provided");
     var r = await Account.findById(a.payload.id);

@@ -2,7 +2,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), _Auth
   heavyLimiter,
   authContext,
   limiter
-} = require("../helpers/express-middleware"), AccountInvite = require("../models/AccountInvite")["AccountInvite"], SignedKeyRequest = require("../models/SignedKeyRequest")["SignedKeyRequest"], {
+} = require("../helpers/express-middleware"), farcasterAuthContext = require("./farcaster")["farcasterAuthContext"], AccountInvite = require("../models/AccountInvite")["AccountInvite"], SignedKeyRequest = require("../models/SignedKeyRequest")["SignedKeyRequest"], {
   getFarcasterUserByFid,
   getFarcasterUserByCustodyAddress
 } = require("../helpers/farcaster"), crypto = require("crypto"), memcache = require("../connectmemcache")["memcache"];
@@ -43,7 +43,8 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       accessToken: a
     });
   } catch (e) {
-    Sentry.captureException(e), console.error(e), s.status(500).json({
+    (!e?.message?.includes("Invalid token") || .99 < Math.random()) && Sentry.captureException(e), 
+    console.error(e), s.status(500).json({
       code: "500",
       success: !1,
       message: e.message
@@ -79,23 +80,23 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
       message: e.message
     });
   }
-}), app.get("/v1/get-current-account", [ limiter, authContext ], async (e, s) => {
+}), app.get("/v1/get-current-account", [ limiter, farcasterAuthContext ], async (e, s) => {
   try {
     var t = e.context.account;
     if (!t) throw new Error("Account not found");
-    var a = "true" === e.headers.external, r = (await t.populate("addresses profileImage"), 
-    t.addresses[0].address?.toLowerCase()), [ c, n, i ] = await Promise.all([ AccountInvite.findOrCreate({
+    await t.populate("addresses profileImage");
+    var [ a, r ] = await Promise.all([ AccountInvite.findOrCreate({
       accountId: t._id
-    }), a ? null : getFarcasterUserByCustodyAddress(r), getFarcasterUserByFid(r) ]), o = n || i;
+    }), getFarcasterUserByFid(e.context.fid) ]);
     s.status(201).json({
       code: "201",
       success: !0,
       message: "Success",
       account: {
         ...t.toObject(),
-        invite: c,
+        invite: a,
         identities: {
-          farcaster: o
+          farcaster: r
         }
       }
     });
@@ -225,10 +226,10 @@ app.post("/v1/auth-by-signature", heavyLimiter, async (e, s) => {
     if (!(t = await SignedKeyRequest.findOne({
       token: e
     }))) throw new Error("Signed key request not found");
-    r = await SignedKeyRequest.find({
+    r = await SignedKeyRequest.countDocuments({
       appFid: t.appFid,
       status: "signed"
-    }).count(), a = await getFarcasterUserByFid(t.appFid), await memcache.set("SignedKeyRequest:" + e, JSON.stringify({
+    }), a = await getFarcasterUserByFid(t.appFid), await memcache.set("SignedKeyRequest:" + e, JSON.stringify({
       signedKeyRequest: t,
       appData: a,
       noOfUsers: r

@@ -20,6 +20,7 @@ const mongoose = require("mongoose"), {
   syncedChannelsSchema,
   syncedActionsSchema,
   syncedVerificationSchema,
+  agentSchema,
   farpaySchema
 } = require("../../schemas/farcaster");
 
@@ -254,7 +255,17 @@ class SyncedVerificationClass {
 
 syncedVerificationSchema.loadClass(SyncedVerificationClass);
 
-const SyncedVerification = mongoose.models.SyncedVerification || mongoose.model("farcaster.SyncedVerification", syncedVerificationSchema), UserDataType = {
+const SyncedVerification = mongoose.models.SyncedVerification || mongoose.model("farcaster.SyncedVerification", syncedVerificationSchema);
+
+class AgentClass {
+  static ping() {
+    console.log("model: AgentClass");
+  }
+}
+
+agentSchema.loadClass(AgentClass);
+
+const Agent = mongoose.models.Agent || mongoose.model("farcaster.Agent", agentSchema), UserDataType = {
   USER_DATA_TYPE_NONE: 0,
   USER_DATA_TYPE_PFP: 1,
   USER_DATA_TYPE_DISPLAY: 2,
@@ -306,5 +317,6 @@ module.exports = {
   SyncedChannels: SyncedChannels,
   SyncedActions: SyncedActions,
   SyncedVerification: SyncedVerification,
-  FarPay: FarPay
+  FarPay: FarPay,
+  Agent: Agent
 };

@@ -35,7 +35,9 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getFarPay,
   updateFarPay,
   getFarcasterFidByCustodyAddress,
-  getFarpayDeeplink
+  getFarpayDeeplink,
+  getFarcasterUserByAnyAddress,
+  getFarcasterL1UserByAnyAddress
 } = require("../helpers/farcaster"), {
   fetchAssetMetadata,
   fetchPriceHistory
@@ -52,22 +54,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), ether
   getAddressPasses,
   getAddressInventory,
   getListingDetails
-} = require("../helpers/farcaster-utils"), apiKeyCache = new Map(), getLimit = n => async (e, r) => {
-  var t, a = e.header("API-KEY");
-  if (!a) return Sentry.captureMessage("Missing API-KEY header! Returning 0", {
-    tags: {
-      url: e.url
-    }
-  }), 0;
-  let s;
-  return apiKeyCache.has(a) ? s = apiKeyCache.get(a) : (t = await memcache.get(getHash("FarcasterApiKey_checkLimit:" + a))) && (s = new ApiKey(JSON.parse(t.value)), 
-  apiKeyCache.set(a, s)), s || (s = await ApiKey.findOne({
-    key: a
-  })) && (apiKeyCache.set(a, s), await memcache.set(getHash("FarcasterApiKey_checkLimit:" + a), JSON.stringify(s), {
-    lifetime: 3600
-  })), s ? Math.ceil(n * s.multiplier) : (t = `API-KEY ${a} not found! Returning 0 for ` + e.url, 
-  console.error(t), Sentry.captureMessage(t), 0);
-}, lightLimiter = rateLimit({
+} = require("../helpers/farcaster-utils"), _FarcasterV2InviteService = require("../services/farcaster/FarcasterV2InviteService")["Service"], getLimit = require("./apikey")["getLimit"], lightLimiter = rateLimit({
   windowMs: 1e3,
   max: getLimit(5),
   message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
@@ -318,13 +305,13 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
   }
 }), app.get("/v2/user-by-address", [ limiter ], async (e, r) => {
   try {
-    var t, a, s, n = (e.query.address || "").toLowerCase();
-    return !n || n.length < 10 ? r.status(400).json({
+    var t, a = (e.query.address || "").toLowerCase(), s = "false" === e.query.external;
+    return !a || a.length < 10 ? r.status(400).json({
       error: "address is invalid"
-    }) : ([ t, a ] = await Promise.all([ getFarcasterUserByCustodyAddress(n), getFarcasterUserByFid(n) ]), 
-    s = t || a, r.json({
+    }) : (t = s ? await getFarcasterL1UserByAnyAddress(a) : await getFarcasterUserByAnyAddress(a), 
+    r.json({
       result: {
-        user: s
+        user: t
       },
       source: "v2"
     }));
@@ -1098,12 +1085,12 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     if (!p || !p[0]) return s.status(404).json({
       error: "No history found for this token"
     });
-    var g = p[0]["casts"];
-    if (!g || 0 === g.length) return s.status(404).json({
+    var m = p[0]["casts"];
+    if (!m || 0 === m.length) return s.status(404).json({
       error: "No casts found in the history for this token"
     });
-    var h = [ ...new Set(g?.slice(0, 25).map(e => e.hash)) ], m = (await Promise.all(h.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
-    if (0 === m.length) return s.status(404).json({
+    var g = [ ...new Set(m?.slice(0, 25).map(e => e.hash)) ], h = (await Promise.all(g.map(e => getFarcasterCastByHash(e, a.context)))).filter(e => null !== e);
+    if (0 === h.length) return s.status(404).json({
       error: "Casts not found"
     });
     let r = null, t = [];
@@ -1112,7 +1099,7 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
     r = "fulfilled" === f[0].status ? f[0].value : null, t = "fulfilled" === f[1].status ? f[1].value : []), 
     s.json({
       result: {
-        casts: m,
+        casts: h,
         trendHistory: v,
         tokenMetadata: r,
         tokenPriceHistory: t
@@ -1427,6 +1414,159 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       success: !1
     });
   }
+}), app.get("/v3/trends", [ limiter, authContext ], async (e, r) => {
+  const i = new _CacheService();
+  try {
+    var [ t ] = await Promise.all([ i.get({
+      key: "CastTrendingTokensV2"
+    }) ]), a = t || {}, s = (await Promise.all(Object.entries(a).map(async ([ e, r ]) => {
+      var [ t, a, s ] = await Promise.all([ i.find({
+        key: "TrendingHistory",
+        params: {
+          token: e
+        },
+        sort: {
+          createdAt: -1
+        },
+        limit: 1,
+        createdAt: {
+          $lte: new Date(Date.now() - 54e5)
+        }
+      }), i.find({
+        key: "TrendingHistory",
+        params: {
+          token: e
+        },
+        sort: {
+          createdAt: -1
+        },
+        limit: 1,
+        createdAt: {
+          $lte: new Date(Date.now() - 864e5)
+        }
+      }), i.find({
+        key: "TrendingHistory",
+        params: {
+          token: e
+        },
+        sort: {
+          createdAt: -1
+        },
+        limit: 1,
+        createdAt: {
+          $lte: new Date(Date.now() - 6048e5)
+        }
+      }) ]), t = t[0]?.count || 0, n = a[0]?.count || 0, s = s[0]?.count || 0, o = {
+        "1h": r.count - t,
+        "1d": r.count - n,
+        "1w": r.count - s
+      };
+      return {
+        token: e,
+        difference: o,
+        percentageDifference: {
+          "1h": 0 === t ? 100 : o["1h"] / t * 100,
+          "1d": 0 === n ? 100 : o["1d"] / n * 100,
+          "1w": 0 === s ? 100 : o["1w"] / s * 100
+        },
+        count: r.count,
+        metrics: r,
+        lastTimestamp: a[0]?.computedAt || null
+      };
+    }))).reduce((e, {
+      token: r,
+      difference: t,
+      percentageDifference: a,
+      count: s,
+      lastTimestamp: n,
+      metrics: o
+    }) => (e[r] = {
+      percentageDifference: a,
+      count: s,
+      difference: t,
+      lastTimestamp: n,
+      metrics: o
+    }, e), {});
+    return r.json({
+      result: {
+        trends: s
+      },
+      source: "v3"
+    });
+  } catch (e) {
+    return console.error("Failed to retrieve trending data:", e), Sentry.captureException(e), 
+    r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/invites/status", [ authContext, limiter ], async (e, r) => {
+  try {
+    var t;
+    return e.context.accountId ? (t = await new _FarcasterV2InviteService().getQuestProgress(e.context), 
+    r.json({
+      result: t,
+      source: "v2"
+    })) : r.status(401).json({
+      error: "Unauthorized"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.post("/v2/invites/complete-quest", [ authContext, limiter ], async (e, r) => {
+  try {
+    var t, a;
+    return e.context.accountId ? (t = e.body["questId"], t ? (a = await new _FarcasterV2InviteService().completeQuest(t, e.context), 
+    r.json({
+      result: a,
+      source: "v2"
+    })) : r.status(400).json({
+      error: "Quest ID is required"
+    })) : r.status(401).json({
+      error: "Unauthorized"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: e.message || "Internal Server Error"
+    });
+  }
+}), app.post("/v2/invites/apply", [ authContext, limiter ], async (e, r) => {
+  try {
+    var t, a, s;
+    return e.context.accountId ? ({
+      inviteCode: t,
+      referralType: a = "WEB"
+    } = e.body, t ? (s = await new _FarcasterV2InviteService().applyInvite({
+      inviteCode: t,
+      referralType: a
+    }, e.context), r.json({
+      result: s,
+      source: "v2"
+    })) : r.status(400).json({
+      error: "Invite code is required"
+    })) : r.status(401).json({
+      error: "Unauthorized"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: e.message || "Internal Server Error"
+    });
+  }
+}), app.post("/v2/invites/validate", [ limiter ], async (e, r) => {
+  try {
+    var t = e.body["inviteCode"], a = await new _FarcasterV2InviteService().validateInviteV2Code(t);
+    r.json({
+      success: !0,
+      isValid: a
+    });
+  } catch (e) {
+    console.error("Error validating invite code:", e), r.status(400).json({
+      success: !1,
+      error: e.message
+    });
+  }
 }), module.exports = {
-  router: app
+  router: app,
+  farcasterAuthContext: authContext
 };

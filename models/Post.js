@@ -76,9 +76,9 @@ class PostClass {
     a.channel = c.channel || null), a.save();
   }
   static async countComments(t) {
-    return this.find({
+    return this.countDocuments({
       parent: t
-    }).count();
+    });
   }
   static async findAndSortByLatest({
     limit: t = 20,

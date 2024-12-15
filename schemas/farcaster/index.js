@@ -434,6 +434,10 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   },
   timestamp: {
     type: Date
+  },
+  nerfed: {
+    type: Boolean,
+    default: !1
   }
 }, {
   timestamps: !0
@@ -591,12 +595,6 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   toFid: 1,
   fromFid: 1,
   notificationType: 1,
-  deletedAt: 1
-}), notificationsSchema.index({
-  "payload.linkHash": 1,
-  deletedAt: 1
-}), notificationsSchema.index({
-  "payload.castHash": 1,
   deletedAt: 1
 }), notificationsSchema.index({
   deletedAt: 1
@@ -1076,7 +1074,69 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   }
 }, {
   timestamps: !0
-}));
+})), agentSchema = new mongoose.Schema({
+  agentId: {
+    type: String,
+    index: !0,
+    unique: !0
+  },
+  expiresAt: {
+    type: Date,
+    index: !0
+  },
+  fid: {
+    type: String,
+    index: !0
+  },
+  external: {
+    type: Boolean,
+    default: !1
+  },
+  key: {
+    type: String
+  },
+  creatorFid: {
+    type: String,
+    index: !0
+  },
+  currentOwnerAddress: {
+    type: String,
+    index: !0
+  },
+  agentAddress: {
+    type: String,
+    index: !0
+  },
+  encryptionMetadata: {
+    address: {
+      type: String
+    },
+    timestamp: {
+      type: String
+    },
+    key: {
+      type: String
+    }
+  },
+  signerKeys: [ {
+    publicKey: {
+      type: String
+    },
+    privateKey: {
+      type: String
+    },
+    encryptionMetadata: {
+      timestamp: {
+        type: String
+      },
+      key: {
+        type: String
+      }
+    }
+  } ]
+}, {
+  timestamps: !0
+});
 
 module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
@@ -1100,5 +1160,6 @@ module.exports = {
   syncedChannelsSchema: syncedChannelsSchema,
   syncedActionsSchema: syncedActionsSchema,
   syncedVerificationSchema: syncedVerificationSchema,
-  farpaySchema: farpaySchema
+  farpaySchema: farpaySchema,
+  agentSchema: agentSchema
 };

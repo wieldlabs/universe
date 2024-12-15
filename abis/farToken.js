@@ -1,0 +1,1050 @@
+const farTokenABI = [ {
+  inputs: [ {
+    internalType: "address",
+    name: "_protocolFeeRecipient",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "_protocolRewards",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "_weth",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "_nonfungiblePositionManager",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "_swapRouter",
+    type: "address"
+  } ],
+  stateMutability: "nonpayable",
+  type: "constructor"
+}, {
+  inputs: [],
+  name: "AddressZero",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "spender",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "allowance",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "needed",
+    type: "uint256"
+  } ],
+  name: "ERC20InsufficientAllowance",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "sender",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "balance",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "needed",
+    type: "uint256"
+  } ],
+  name: "ERC20InsufficientBalance",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "approver",
+    type: "address"
+  } ],
+  name: "ERC20InvalidApprover",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "receiver",
+    type: "address"
+  } ],
+  name: "ERC20InvalidReceiver",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "sender",
+    type: "address"
+  } ],
+  name: "ERC20InvalidSender",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "spender",
+    type: "address"
+  } ],
+  name: "ERC20InvalidSpender",
+  type: "error"
+}, {
+  inputs: [],
+  name: "EthAmountTooSmall",
+  type: "error"
+}, {
+  inputs: [],
+  name: "EthTransferFailed",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InitialOrderSizeTooLarge",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InsufficientFunds",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InsufficientLiquidity",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InvalidInitialization",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InvalidMarketType",
+  type: "error"
+}, {
+  inputs: [],
+  name: "MarketAlreadyGraduated",
+  type: "error"
+}, {
+  inputs: [],
+  name: "MarketNotGraduated",
+  type: "error"
+}, {
+  inputs: [],
+  name: "NotInitializing",
+  type: "error"
+}, {
+  inputs: [],
+  name: "OnlyPool",
+  type: "error"
+}, {
+  inputs: [],
+  name: "OnlyWeth",
+  type: "error"
+}, {
+  inputs: [],
+  name: "OrderReferrerFeeTooHigh",
+  type: "error"
+}, {
+  inputs: [],
+  name: "PlatformReferrerFeeTooHigh",
+  type: "error"
+}, {
+  inputs: [],
+  name: "ReentrancyGuardReentrantCall",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "token",
+    type: "address"
+  } ],
+  name: "SafeERC20FailedOperation",
+  type: "error"
+}, {
+  inputs: [],
+  name: "SlippageBoundsExceeded",
+  type: "error"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "owner",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "spender",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "value",
+    type: "uint256"
+  } ],
+  name: "Approval",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "buyer",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "recipient",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "orderReferrer",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "totalEth",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "ethFee",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "ethSold",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "tokensBought",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "buyerTokenBalance",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "string",
+    name: "comment",
+    type: "string"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "totalSupply",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "enum IFarToken.MarketType",
+    name: "marketType",
+    type: "uint8"
+  } ],
+  name: "FarTokenBuy",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "tokenCreator",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "platformReferrer",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "orderReferrer",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "address",
+    name: "protocolFeeRecipient",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "tokenCreatorFee",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "platformReferrerFee",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "orderReferrerFee",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "protocolFee",
+    type: "uint256"
+  } ],
+  name: "FarTokenFees",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "tokenAddress",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "poolAddress",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "totalEthLiquidity",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "totalTokenLiquidity",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "lpPositionId",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "enum IFarToken.MarketType",
+    name: "marketType",
+    type: "uint8"
+  } ],
+  name: "FarTokenMarketGraduated",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "seller",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "recipient",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "orderReferrer",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "totalEth",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "ethFee",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "ethBought",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "tokensSold",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "sellerTokenBalance",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "string",
+    name: "comment",
+    type: "string"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "totalSupply",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "enum IFarToken.MarketType",
+    name: "marketType",
+    type: "uint8"
+  } ],
+  name: "FarTokenSell",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "from",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "to",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "amount",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "fromTokenBalance",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "toTokenBalance",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "totalSupply",
+    type: "uint256"
+  } ],
+  name: "FarTokenTransfer",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !1,
+    internalType: "uint64",
+    name: "version",
+    type: "uint64"
+  } ],
+  name: "Initialized",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "from",
+    type: "address"
+  }, {
+    indexed: !0,
+    internalType: "address",
+    name: "to",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "value",
+    type: "uint256"
+  } ],
+  name: "Transfer",
+  type: "event"
+}, {
+  inputs: [],
+  name: "MAX_ORDER_REFERRER_FEE_BPS",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "MAX_PLATFORM_REFERRER_FEE_BPS",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "MAX_TOTAL_SUPPLY",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "MIN_ORDER_SIZE",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "ORDER_REFERRER_FEE_BPS",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "PROTOCOL_FEE_BPS",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "TOKEN_CREATOR_FEE_BPS",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "TOTAL_FEE_BPS",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "WETH",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "owner",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "spender",
+    type: "address"
+  } ],
+  name: "allowance",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "spender",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "value",
+    type: "uint256"
+  } ],
+  name: "approve",
+  outputs: [ {
+    internalType: "bool",
+    name: "",
+    type: "bool"
+  } ],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "account",
+    type: "address"
+  } ],
+  name: "balanceOf",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "bondingCurve",
+  outputs: [ {
+    internalType: "contract BondingCurve",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "tokensToBurn",
+    type: "uint256"
+  } ],
+  name: "burn",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "recipient",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "refundRecipient",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "orderReferrer",
+    type: "address"
+  }, {
+    internalType: "string",
+    name: "comment",
+    type: "string"
+  }, {
+    internalType: "enum IFarToken.MarketType",
+    name: "expectedMarketType",
+    type: "uint8"
+  }, {
+    internalType: "uint256",
+    name: "minOrderSize",
+    type: "uint256"
+  }, {
+    internalType: "uint160",
+    name: "sqrtPriceLimitX96",
+    type: "uint160"
+  } ],
+  name: "buy",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "payable",
+  type: "function"
+}, {
+  inputs: [],
+  name: "currentExchangeRate",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "decimals",
+  outputs: [ {
+    internalType: "uint8",
+    name: "",
+    type: "uint8"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "ethOrderSize",
+    type: "uint256"
+  } ],
+  name: "getEthBuyQuote",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "ethOrderSize",
+    type: "uint256"
+  } ],
+  name: "getEthSellQuote",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "tokenOrderSize",
+    type: "uint256"
+  } ],
+  name: "getTokenBuyQuote",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "tokenOrderSize",
+    type: "uint256"
+  } ],
+  name: "getTokenSellQuote",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "_tokenCreator",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "_platformReferrer",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "_bondingCurve",
+    type: "address"
+  }, {
+    internalType: "string",
+    name: "_tokenURI",
+    type: "string"
+  }, {
+    internalType: "string",
+    name: "_name",
+    type: "string"
+  }, {
+    internalType: "string",
+    name: "_symbol",
+    type: "string"
+  }, {
+    internalType: "uint256",
+    name: "_platformReferrerFeeBps",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "_orderReferrerFeeBps",
+    type: "uint256"
+  } ],
+  name: "initialize",
+  outputs: [],
+  stateMutability: "payable",
+  type: "function"
+}, {
+  inputs: [],
+  name: "marketType",
+  outputs: [ {
+    internalType: "enum IFarToken.MarketType",
+    name: "",
+    type: "uint8"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "name",
+  outputs: [ {
+    internalType: "string",
+    name: "",
+    type: "string"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "nonfungiblePositionManager",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  }, {
+    internalType: "bytes",
+    name: "",
+    type: "bytes"
+  } ],
+  name: "onERC721Received",
+  outputs: [ {
+    internalType: "bytes4",
+    name: "",
+    type: "bytes4"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "orderReferrerFeeBps",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "platformReferrer",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "platformReferrerFeeBps",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "poolAddress",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "protocolFeeRecipient",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "protocolRewards",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "tokensToSell",
+    type: "uint256"
+  }, {
+    internalType: "address",
+    name: "recipient",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "orderReferrer",
+    type: "address"
+  }, {
+    internalType: "string",
+    name: "comment",
+    type: "string"
+  }, {
+    internalType: "enum IFarToken.MarketType",
+    name: "expectedMarketType",
+    type: "uint8"
+  }, {
+    internalType: "uint256",
+    name: "minPayoutSize",
+    type: "uint256"
+  }, {
+    internalType: "uint160",
+    name: "sqrtPriceLimitX96",
+    type: "uint160"
+  } ],
+  name: "sell",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [],
+  name: "state",
+  outputs: [ {
+    components: [ {
+      internalType: "enum IFarToken.MarketType",
+      name: "marketType",
+      type: "uint8"
+    }, {
+      internalType: "address",
+      name: "marketAddress",
+      type: "address"
+    } ],
+    internalType: "struct IFarToken.MarketState",
+    name: "",
+    type: "tuple"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "swapRouter",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "symbol",
+  outputs: [ {
+    internalType: "string",
+    name: "",
+    type: "string"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "tokenCreator",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "tokenURI",
+  outputs: [ {
+    internalType: "string",
+    name: "",
+    type: "string"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "totalSupply",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "to",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "value",
+    type: "uint256"
+  } ],
+  name: "transfer",
+  outputs: [ {
+    internalType: "bool",
+    name: "",
+    type: "bool"
+  } ],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "from",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "to",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "value",
+    type: "uint256"
+  } ],
+  name: "transferFrom",
+  outputs: [ {
+    internalType: "bool",
+    name: "",
+    type: "bool"
+  } ],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "int256",
+    name: "amount0Delta",
+    type: "int256"
+  }, {
+    internalType: "int256",
+    name: "amount1Delta",
+    type: "int256"
+  }, {
+    internalType: "bytes",
+    name: "",
+    type: "bytes"
+  } ],
+  name: "uniswapV3SwapCallback",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  stateMutability: "payable",
+  type: "receive"
+} ];
+
+module.exports = {
+  farTokenABI: farTokenABI
+};

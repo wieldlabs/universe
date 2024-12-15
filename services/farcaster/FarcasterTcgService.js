@@ -10,7 +10,18 @@ const Account = require("../../models/Account")["Account"], {
 } = require("../../models/farcaster/tcg"), Referral = require("../../models/Referral")["Referral"], ScoreService = require("../ScoreService")["Service"], _RegistrarService = require("../RegistrarService")["Service"], memcache = require("../../connectmemcache")["memcache"], mongoose = require("mongoose"), crypto = require("crypto"), getAddressPasses = require("../../helpers/farcaster-utils")["getAddressPasses"], CastHandle = require("../../models/CastHandle")["CastHandle"], config = require("../../helpers/registrar")["config"], Sentry = require("@sentry/node"), AccountInvite = require("../../models/AccountInvite")["AccountInvite"], _ScoreService = require("../ScoreService")["Service"], getLeaderboard = require("../../helpers/farcaster")["getLeaderboard"], getFarheroXpScoreType = require("../../helpers/farhero")["getFarheroXpScoreType"], _OpenseaService = require("../OpenseaService")["Service"], createGameCard = (e, a) => ({
   ...e.toObject(),
   ...a.toObject()
-}), jsonClone = e => JSON.parse(JSON.stringify(e)), MAX_RETRIES = 3;
+}), jsonClone = e => JSON.parse(JSON.stringify(e)), MAX_RETRIES = 3, hasXPasses = async (a, e) => {
+  if ("number" != typeof e) throw new Error("count must be a number");
+  if (e < 1) throw new Error("count must be greater than 0");
+  let t = !1;
+  try {
+    var r = await getAddressPasses(a, !1);
+    t = r.passes?.length >= e;
+  } catch (e) {
+    console.error("Cannot getAddressPasses!", a), t = !1;
+  }
+  return t;
+};
 
 class FarcasterTcgService {
   constructor() {
@@ -166,10 +177,10 @@ class FarcasterTcgService {
       }
     }, this.unboxQuests = {}, this.MAX_SHOP_CARDS = 3, this.MAX_CARDS_IN_HAND = 4, 
     this.FAVORITE_ODDS = .1, this._BOT_PLAYER = null, this.MAX_FIELD_CARDS = 4, 
-    this.DEBUG = "development" === process.env.NODE_ENV, this.SHOP_OPEN_SECONDS = 17, 
+    this.DEBUG = "development" === process.env.NODE_ENV, this.SHOP_OPEN_SECONDS = 19, 
     this.OPPONENT_OPTIONS = [ "opp1", "opp2", "opp3", "opp4", "opp5" ], this.ARENA_OPTIONS = [ "arena1", "arena2", "arena3", "arena4", "arena5" ], 
     this.PACK_GRACE_PERIOD_SECONDS = Math.floor(Date.now() / 1e3) + 15552e3, this.INVENTORY_CACHE_KEY = "tcg:inventory:first-page", 
-    this.PACKS_CACHE_KEY = "tcg:packs:first-page", this.CACHE_TTL = 1, this.PLAYER_STARTING_HEALTH = 10, 
+    this.PACKS_CACHE_KEY = "tcg:packs:first-page", this.CACHE_TTL = 10, this.PLAYER_STARTING_HEALTH = 10, 
     this.OVERLOAD_PER_PERIOD = 1e4, this.PERIOD_IN_DAYS = 7, this.OVERLOAD_MULTIPLIER = .1, 
     this.INTERNAL_INVITE_CODES = [ "projecteverest", "farquestloyalty", "jcdenton" ], 
     this.INTERNAL_ACCOUNT_USERNAME = "jc", this.FARHERO_CHECK_PASSES_INVITE_CODE = "CheckPasses", 
@@ -224,156 +235,87 @@ class FarcasterTcgService {
       dotCast3: {
         id: "dotCast3",
         score: 300,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 3 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 3)
       },
       dotCast5: {
         id: "dotCast5",
         score: 500,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 5 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 5)
       },
       dotCast10: {
         id: "dotCast10",
         score: 1500,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 10 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 10)
       },
       dotCast15: {
         id: "dotCast15",
         score: 2e3,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 15 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 15)
       },
       dotCast20: {
         id: "dotCast20",
         score: 2500,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 20 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 20)
       },
       dotCast25: {
         id: "dotCast25",
         score: 7e3,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 25 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 25)
       },
       dotCast30: {
         id: "dotCast30",
         score: 8e3,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 30 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 30)
       },
       dotCast35: {
         id: "dotCast35",
         score: 9e3,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 35 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 35)
       },
       dotCast40: {
         id: "dotCast40",
         score: 1e4,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 40 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 40)
       },
       dotCast45: {
         id: "dotCast45",
         score: 11e3,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 45 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 45)
       },
       dotCast50: {
         id: "dotCast50",
         score: 12e3,
-        check: async a => {
-          let t = !1;
-          try {
-            var e = await getAddressPasses(a, !1);
-            t = 50 <= e.passes?.length;
-          } catch (e) {
-            console.error("Cannot getAddressPasses!", a), t = !1;
-          }
-          return t;
-        }
+        check: e => hasXPasses(e, 50)
+      },
+      dotCast75: {
+        id: "dotCast75",
+        score: 15e3,
+        check: e => hasXPasses(e, 75)
+      },
+      dotCast100: {
+        id: "dotCast100",
+        score: 2e4,
+        check: e => hasXPasses(e, 100)
+      },
+      dotCast250: {
+        id: "dotCast250",
+        score: 3e4,
+        check: e => hasXPasses(e, 250)
+      },
+      dotCast500: {
+        id: "dotCast500",
+        score: 4e4,
+        check: e => hasXPasses(e, 500)
+      },
+      dotCast750: {
+        id: "dotCast750",
+        score: 5e4,
+        check: e => hasXPasses(e, 750)
+      },
+      dotCast1000: {
+        id: "dotCast1000",
+        score: 1e5,
+        check: e => hasXPasses(e, 1e3)
       }
     };
   }
@@ -449,11 +391,11 @@ class FarcasterTcgService {
   }
   async _getTotalReferral(e) {
     var a = await memcache.get(`Referral:FARHERO:${e}:total:count`);
-    return a ? a.value : (a = await Referral.find({
+    return a ? a.value : (a = await Referral.countDocuments({
       account: e,
       isValid: !0,
       referralOrigin: "FARHERO"
-    }).count(), await memcache.set(`Referral:FARHERO:${e}:total:count`, a), a);
+    }), await memcache.set(`Referral:FARHERO:${e}:total:count`, a), a);
   }
   async _verifyHandleUnbox({
     handleId: e,
@@ -481,20 +423,19 @@ class FarcasterTcgService {
     e = await Card.randomUnbox({
       type: e,
       set: a
-    }), a = await PlayableCard.findOne({
-      handle: t
     });
-    if (a && !config().ALLOW_REASSIGN_PACKS) throw new Error("A card is already assigned to this handle");
-    let r;
-    return r = a && config().ALLOW_REASSIGN_PACKS ? (a.card = e._id, a.wear = e.wear, 
-    a.foil = e.foil, await a.save()) : await PlayableCard.create({
+    if (await PlayableCard.findOne({
+      handle: t
+    })) throw new Error("A card is already assigned to this handle");
+    a = await PlayableCard.create({
       card: e._id,
       wear: e.wear,
       handle: t,
       foil: e.foil
-    }), {
+    });
+    return {
       ...e,
-      playableCard: r
+      playableCard: a
     };
   }
   async _randomTrialUnbox({
@@ -527,25 +468,25 @@ class FarcasterTcgService {
     var s = await mongoose.startSession();
     s.startTransaction();
     try {
-      var n = await Pack.findOne({
+      var o = await Pack.findOne({
         handle: t,
         openedAt: null
       }).session(s);
-      if (!n) throw new Error("Valid unopened FarPack not found");
-      var o = n.type.toLowerCase(), i = await this._verifyHandleUnbox({
+      if (!o) throw new Error("Valid unopened FarPack not found");
+      var n = o.type.toLowerCase(), i = await this._verifyHandleUnbox({
         handleId: t,
-        type: o
+        type: n
       }, r);
       const {
         playableCard: l,
         ...c
       } = await this._randomUnbox({
         player: e,
-        type: o,
+        type: n,
         set: a,
         handleId: t
       });
-      n.openedAt = new Date(), n.openedCard = l._id, await n.save({
+      o.openedAt = new Date(), o.openedCard = l._id, await o.save({
         session: s
       }), await r.account.populate("addresses");
       var d = r.account.addresses[0].address?.toLowerCase();
@@ -573,7 +514,7 @@ class FarcasterTcgService {
       }
       return {
         card: c,
-        pack: n
+        pack: o
       };
     } catch (e) {
       throw await s.abortTransaction(), new Error("Invalid handle unbox: " + e.message);
@@ -589,23 +530,23 @@ class FarcasterTcgService {
         expiresAt: {
           $gt: r
         }
-      }), n = await Player.findOne({
+      }), o = await Player.findOne({
         account: a.accountId || a.account?._id
       });
-      if (!n) throw new Error("Player not found");
-      var o = [];
+      if (!o) throw new Error("Player not found");
+      var n = [];
       for (const l of s) if (!l.displayItemId) {
         let e;
         e = "OP" === l.chain ? "Premium" : l.handle?.length <= 9 ? "Collector" : "Normal", 
-        o.push(l.setCastHandleMetadataForFarheroPacks(e));
+        n.push(l.setCastHandleMetadataForFarheroPacks(e));
       }
-      var i = !n.dropClaimed, d = (n.dropClaimed = !0, [ ...o, n.save() ]);
+      var i = !o.dropClaimed, d = (o.dropClaimed = !0, [ ...n, o.save() ]);
       return i && (d.push(this._giveRentedPacksToPlayer({
-        player: n,
+        player: o,
         packType: "normal",
         quantity: 2
       })), d.push([ this._giveRentedPacksToPlayer({
-        player: n,
+        player: o,
         packType: "premium",
         quantity: 1
       }) ])), await Promise.all(d), await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + t, {
@@ -627,18 +568,18 @@ class FarcasterTcgService {
     var s = await mongoose.startSession();
     s.startTransaction();
     try {
-      var n = await Pack.findById(t).session(s);
-      if (!n || !n.rentedTo.equals(e._id)) throw new Error("Invalid Trial FarPack");
-      var o = n.type.toLowerCase();
-      if (n.openedAt) throw new Error("Trial FarPack already opened");
-      if (n.expiresAt && n.expiresAt < Date.now()) throw new Error("Trial FarPack expired");
+      var o = await Pack.findById(t).session(s);
+      if (!o || !o.rentedTo.equals(e._id)) throw new Error("Invalid Trial FarPack");
+      var n = o.type.toLowerCase();
+      if (o.openedAt) throw new Error("Trial FarPack already opened");
+      if (o.expiresAt && o.expiresAt < Date.now()) throw new Error("Trial FarPack expired");
       var i = await this._randomTrialUnbox({
         player: e,
-        type: o,
+        type: n,
         set: a,
         expiresAt: new Date(Date.now() + this.RENTED_PACK_TIME),
         playerId: e._id
-      }), d = (n.openedAt = new Date(), n.openedCard = i.playableCard._id, await n.save({
+      }), d = (o.openedAt = new Date(), o.openedCard = i.playableCard._id, await o.save({
         session: s
       }), await s.commitTransaction(), await r.account.populate("addresses"), r.account.addresses[0].address?.toLowerCase());
       return await Promise.all([ memcache.delete(this.INVENTORY_CACHE_KEY + ":" + d, {
@@ -647,7 +588,7 @@ class FarcasterTcgService {
         noreply: !0
       }) ]), {
         card: i,
-        pack: n
+        pack: o
       };
     } catch (e) {
       throw await s.abortTransaction(), new Error("Invalid trial pack unbox: " + e.message);
@@ -661,29 +602,29 @@ class FarcasterTcgService {
     set: t,
     handleId: r,
     packId: s
-  }, n) {
-    var o = n.account;
-    if (!o) throw new Error("Account not found");
-    o = await Player.findOne({
-      account: o._id
+  }, o) {
+    var n = o.account;
+    if (!n) throw new Error("Account not found");
+    n = await Player.findOne({
+      account: n._id
     });
-    if (!o) throw new Error("Player not found");
+    if (!n) throw new Error("Player not found");
     if ("handle" === a) {
       if (r) return this._unboxCardWithHandle({
-        player: o,
+        player: n,
         type: e,
         set: t,
         handleId: r
-      }, n);
+      }, o);
       throw new Error("No pack handle provided");
     }
     if ("trial" !== a) throw new Error("Invalid unbox method!");
     if (s) return this._unboxCardWithTrialPack({
-      player: o,
+      player: n,
       type: e,
       set: t,
       packId: s
-    }, n);
+    }, o);
     throw new Error("No trial pack ID provided");
   }
   async getGameState(e) {
@@ -755,21 +696,21 @@ class FarcasterTcgService {
     if (e.some(e => !e)) throw new Error("Player not found");
     await Promise.all(e.map(e => this._removeExpiredFavorites(e)));
     var r = await Promise.all(e.map(e => this._getFavorites(e)));
-    for (const n of await Match.find({
+    for (const o of await Match.find({
       players: {
         $in: e.map(e => e._id)
       },
       endTime: {
         $exists: !1
       }
-    })) for (const o of e) n.players.some(e => e.equals(o._id)) && await this.quitMatch({
-      match: n,
-      player: o
+    })) for (const n of e) o.players.some(e => e.equals(n._id)) && await this.quitMatch({
+      match: o,
+      player: n
     });
     if (!a) throw new Error("Non-bot matches are not supported!");
     var s = await this.getBotPlayer();
     e.push(s), r.push([]);
-    const n = new Match({
+    const o = new Match({
       players: e.map(e => e._id),
       playerFavorites: r,
       isBotMatch: a,
@@ -782,45 +723,45 @@ class FarcasterTcgService {
       botOpponent: this.OPPONENT_OPTIONS.includes(t) ? t : this.OPPONENT_OPTIONS[crypto.randomInt(this.OPPONENT_OPTIONS.length)],
       arena: this.ARENA_OPTIONS[crypto.randomInt(this.ARENA_OPTIONS.length)]
     });
-    switch (n.botOpponent) {
+    switch (o.botOpponent) {
      case "opp1":
-      n.botDifficulty = 20;
+      o.botDifficulty = 20;
       break;
 
      case "opp2":
-      n.botDifficulty = 40;
+      o.botDifficulty = 40;
       break;
 
      case "opp3":
-      n.botDifficulty = 60;
+      o.botDifficulty = 60;
       break;
 
      case "opp4":
-      n.botDifficulty = 80;
+      o.botDifficulty = 80;
       break;
 
      case "opp5":
-      n.botDifficulty = 100;
+      o.botDifficulty = 100;
       break;
 
      default:
-      throw new Error("Invalid bot opponent: " + n.botOpponent);
+      throw new Error("Invalid bot opponent: " + o.botOpponent);
     }
-    n.rounds.push({
+    o.rounds.push({
       actions: [],
       start: new Date(),
       shopDeadline: new Date(Date.now() + 1e3 * this.SHOP_OPEN_SECONDS),
       end: null,
-      number: n.rounds.length,
+      number: o.rounds.length,
       battleAcknowledgement: e.map(e => e.isBot),
       state: "Shop"
-    }), n.rounds[n.rounds.length - 1].actions.push({
+    }), o.rounds[o.rounds.length - 1].actions.push({
       player: e[0],
       type: "InitializeRound",
       time: new Date(),
       cost: 0,
-      playersHealth: n.playersHealthStart,
-      playersEnergy: e.map(() => n.rounds.length + this.extraEnergyPerRound),
+      playersHealth: o.playersHealthStart,
+      playersEnergy: e.map(() => o.rounds.length + this.extraEnergyPerRound),
       playersHand: e.map(() => Array.from({
         length: this.MAX_CARDS_IN_HAND
       }, () => -1)),
@@ -829,8 +770,8 @@ class FarcasterTcgService {
       }, () => -1)),
       playersShop: e.map(() => []),
       gameCardStats: []
-    }), n.tick++, await n.save();
-    s = n, s = await this.addAction({
+    }), o.tick++, await o.save();
+    s = o, s = await this.addAction({
       match: s,
       player: e[0],
       actionType: "DrawCards"
@@ -858,8 +799,8 @@ class FarcasterTcgService {
     if (!e) throw new Error("Match not found");
     if (!a) throw new Error("Player not found");
     if (!e.players.some(e => e.equals(a._id))) throw new Error("Player is not in the match");
-    var s = [], n = await Promise.all(e.playerFavorites[e.players.findIndex(e => e.equals(a._id))].map(e => PlayableCard.findById(e))), o = (r && crypto.randomInt(MAX_FAVORITES) < n.length && (r = n[crypto.randomInt(n.length)], 
-    n = await Card.findById(r.card)) && s.push(createGameCard(n, r)), await Card.find());
+    var s = [], o = await Promise.all(e.playerFavorites[e.players.findIndex(e => e.equals(a._id))].map(e => PlayableCard.findById(e))), n = (r && crypto.randomInt(MAX_FAVORITES) < o.length && (r = o[crypto.randomInt(o.length)], 
+    o = await Card.findById(r.card)) && s.push(createGameCard(o, r)), await Card.find());
     let i = {
       Common: 50,
       Rare: 30,
@@ -868,13 +809,13 @@ class FarcasterTcgService {
       Legendary: 1,
       Mythic: .1
     };
-    a.isBot && e.botDifficulty && (n = e.botDifficulty / 100, i = {
-      Common: 50 - 50 * n,
-      Rare: 30 - 30 * n,
-      "Super-Rare": 15 + 15 * n,
-      "Ultra-Rare": 4 + 4 * n,
-      Legendary: 1 + n,
-      Mythic: .1 + .1 * n
+    a.isBot && e.botDifficulty && (o = e.botDifficulty / 100, i = {
+      Common: 50 - 50 * o,
+      Rare: 30 - 30 * o,
+      "Super-Rare": 15 + 15 * o,
+      "Ultra-Rare": 4 + 4 * o,
+      Legendary: 1 + o,
+      Mythic: .1 + .1 * o
     });
     for (var d = Object.values(i).reduce((e, a) => e + a, 0); s.length < t; ) {
       var l, c, h = Math.random() * d;
@@ -883,7 +824,7 @@ class FarcasterTcgService {
         a = l;
         break;
       }
-      var p = o.filter(e => e.rarity === a);
+      var p = n.filter(e => e.rarity === a);
       0 < p.length && (p = p[crypto.randomInt(p.length)], s.push(createGameCard(p, new PlayableCard({
         card: p._id,
         wear: (crypto.randomInt(1e9) / 1e9).toFixed(50),
@@ -911,13 +852,13 @@ class FarcasterTcgService {
         }).session(a), s = (h.rounds[h.rounds.length - 1].battleAcknowledgement[e] = !0, 
         h.rounds[h.rounds.length - 1].battleAcknowledgement.every(e => e));
         if (s) if (-1 !== l.playersHealth.findIndex(e => e <= 0) || h.rounds.length > this.MAX_ROUNDS_BEFORE_DRAW) {
-          var n, o, i, d = h.players.filter((e, a) => 0 < l.playersHealth[a] && h.rounds.length <= this.MAX_ROUNDS_BEFORE_DRAW);
+          var o, n, i, d = h.players.filter((e, a) => 0 < l.playersHealth[a] && h.rounds.length <= this.MAX_ROUNDS_BEFORE_DRAW);
           h.winners = d, h.endTime = new Date();
           for (const c of d) {
             const p = await Player.findById(c);
-            p.isBot || (await (n = await Account.findById(p.account)).populate("addresses"), 
-            o = n?.addresses[0]?.address, i = await this.awardXp({
-              address: o,
+            p.isBot || (await (o = await Account.findById(p.account)).populate("addresses"), 
+            n = o?.addresses[0]?.address, i = await this.awardXp({
+              address: n,
               xp: this.getXpForOpponent(h.botOpponent)
             }), h.playersRewards[e].push({
               type: "xp",
@@ -981,17 +922,17 @@ class FarcasterTcgService {
           let e = 0;
           for (;;) {
             if (10 < e++) throw new Error("Bot took too long to make a move");
-            var n = a.rounds[a.rounds.length - 1];
-            const y = n.actions[n.actions.length - 1];
-            var o = a.players.findIndex(e => e.equals(u._id));
-            const w = y.playersEnergy[o];
-            if (n.battleAcknowledgement[o] || (n.battleAcknowledgement[o] = !0, 
+            var o = a.rounds[a.rounds.length - 1];
+            const y = o.actions[o.actions.length - 1];
+            var n = a.players.findIndex(e => e.equals(u._id));
+            const w = y.playersEnergy[n];
+            if (o.battleAcknowledgement[n] || (o.battleAcknowledgement[n] = !0, 
             a.tick++, await a.save({
               session: t
             })), w <= 0) break;
-            var i = y.playersHand[o].findIndex(e => -1 !== e && y.gameCardStats[e].cost <= w);
+            var i = y.playersHand[n].findIndex(e => -1 !== e && y.gameCardStats[e].cost <= w);
             if (-1 === i) {
-              var d = y.playersShop[o].findIndex(e => -1 !== e && y.gameCardStats[e].cost <= w), l = y.playersShop[o][d], c = y.playersShop[o].filter(e => -1 !== e).length, h = y.playersHand[o].filter(e => -1 !== e).length;
+              var d = y.playersShop[n].findIndex(e => -1 !== e && y.gameCardStats[e].cost <= w), l = y.playersShop[n][d], c = y.playersShop[n].filter(e => -1 !== e).length, h = y.playersHand[n].filter(e => -1 !== e).length;
               -1 !== d && h < this.MAX_CARDS_IN_HAND ? a = await this.addAction({
                 match: a,
                 player: u,
@@ -1006,7 +947,7 @@ class FarcasterTcgService {
               }));
               break;
             }
-            var p = y.playersField[o].findIndex(e => -1 === e);
+            var p = y.playersField[n].findIndex(e => -1 === e);
             if (-1 === p) break;
             a = await this.addAction({
               match: a,
@@ -1043,8 +984,8 @@ class FarcasterTcgService {
     match: b,
     player: O,
     targetPlayer: D = null,
-    sourceCardIdx: F = -1,
-    targetCardIdx: k = -1,
+    sourceCardIdx: k = -1,
+    targetCardIdx: F = -1,
     actionType: x,
     session: N = null,
     autoBattle: q = !1
@@ -1061,23 +1002,23 @@ class FarcasterTcgService {
           if (s.playersEnergy[S] <= 0) throw new Error("Player has used all their energy for the round");
           if ("Shop" !== r.state) throw new Error("Cannot purchase card when not in the shop state!");
           if (s.playersHand[S].filter(e => -1 !== e).length >= this.MAX_CARDS_IN_HAND) throw new Error("Cannot purchase card when hand is full");
-          if (-1 === k || void 0 === k || !s.playersShop[S].includes(k)) throw new Error("Card not found in player's shop");
-          const A = s.playersShop[S].findIndex(e => e === k);
-          if (-1 === A || void 0 === A) throw new Error("Card not found at a valid position in player's shop");
-          var e = s.gameCardStats[k];
+          if (-1 === F || void 0 === F || !s.playersShop[S].includes(F)) throw new Error("Card not found in player's shop");
+          const v = s.playersShop[S].findIndex(e => e === F);
+          if (-1 === v || void 0 === v) throw new Error("Card not found at a valid position in player's shop");
+          var e = s.gameCardStats[F];
           if (!e) throw new Error("Card not found in match");
           if (e.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to buy the card");
-          var n = {
+          var o = {
             ...jsonClone(s),
             player: O?._id || null,
             source: -1,
-            target: k,
+            target: F,
             type: x,
             time: new Date(),
             cost: e.cost
-          }, o = s.playersHand[S].findIndex(e => -1 === e);
-          n.playersHand[S][o] = k, n.playersShop[S] = n.playersShop[S].filter((e, a) => a !== A), 
-          n.playersEnergy[S] -= e.cost, r.actions.push(n);
+          }, n = s.playersHand[S].findIndex(e => -1 === e);
+          o.playersHand[S][n] = F, o.playersShop[S] = o.playersShop[S].filter((e, a) => a !== v), 
+          o.playersEnergy[S] -= e.cost, r.actions.push(o);
         } else if ("DrawCards" == x) {
           if (1 !== b.rounds.length) throw new Error("Cannot do DrawCards after the first round");
           var i = await this.drawRandomMatchCards({
@@ -1086,7 +1027,7 @@ class FarcasterTcgService {
             limit: this.MAX_CARDS_IN_HAND,
             session: N
           });
-          const v = {
+          const I = {
             ...jsonClone(s),
             player: O._id,
             source: -1,
@@ -1097,8 +1038,8 @@ class FarcasterTcgService {
             gameCardStats: [ ...s.gameCardStats, ...i.map(e => e.stats) ]
           };
           b.gameCards.push(...i), i.forEach((e, a) => {
-            v.playersHand[S][a] = b.gameCards.indexOf(e);
-          }), r.actions.push(v);
+            I.playersHand[S][a] = b.gameCards.indexOf(e);
+          }), r.actions.push(I);
         } else if ("RefreshShop" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot refresh shop when not in the shop state!");
           if (r.actions.some(e => "RefreshShop" === e.type && e.player.equals(O._id))) throw new Error("Cannot refresh shop twice in a row");
@@ -1122,56 +1063,56 @@ class FarcasterTcgService {
           r.actions.push(l);
         } else if ("PlayCard" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot play card when not in the shop state!");
-          const I = s.playersHand[S][F];
-          if (-1 === I || void 0 === I) throw new Error("Card not found in hand");
-          var c = s.gameCardStats[I];
+          const A = s.playersHand[S][k];
+          if (-1 === A || void 0 === A) throw new Error("Card not found in hand");
+          var c = s.gameCardStats[A];
           if (c.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to play the card");
           const P = {
             ...jsonClone(s),
             player: O._id,
-            source: F,
-            target: k,
+            source: k,
+            target: F,
             type: x,
             time: new Date(),
             cost: c.cost
-          }, R = (P.playersHand[S][F] = -1, P.playersField[S][k] = I, P.playersEnergy[S] -= c.cost, 
+          }, R = (P.playersHand[S][k] = -1, P.playersField[S][F] = A, P.playersEnergy[S] -= c.cost, 
           this._applyCardAbilities({
             match: b,
             action: P,
             attackerIndex: S,
             defenderIndex: -1,
-            attackerCard: I,
+            attackerCard: A,
             defenderCard: -1,
             trigger: TRIGGER.Summon
-          }), b.gameCards[I]);
+          }), b.gameCards[A]);
           let t = 0;
           P.playersField[S].forEach(e => {
             var a;
-            -1 === e || e === I || (a = b.gameCards[e]).class !== R.class && a.family !== R.family || (P.gameCardStats[e].health += 1, 
+            -1 === e || e === A || (a = b.gameCards[e]).class !== R.class && a.family !== R.family || (P.gameCardStats[e].health += 1, 
             t++);
-          }), 0 < t && (P.gameCardStats[I].health += t), r.actions.push(P);
+          }), 0 < t && (P.gameCardStats[A].health += t), r.actions.push(P);
         } else if ("CardAttack" === x) {
           if ("Battle" !== r.state) throw new Error("Cannot attack when not in the battle state!");
           if (!q) throw new Error("Cannot attack manually when auto-battling");
-          var h = s.playersField[S][F];
-          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${F})`);
+          var h = s.playersField[S][k];
+          if (-1 === h || void 0 === h) throw new Error(`[PlayCard]: Source card not found in field (playerIndex=${S}, sourceCardIdx=${k})`);
           let e = -1;
-          if (-1 === k) {
+          if (-1 === F) {
             if (0 !== s.playersField[t].filter(e => -1 !== e).length) throw new Error("Opponent must have no cards on the field for a direct attack!");
-          } else if (-1 === (e = s.playersField[t][k]) || void 0 === e) throw new Error(`[PlayCard]: Target card not found in field (playerIndex=${t}, targetCardIdx=${k})`);
+          } else if (-1 === (e = s.playersField[t][F]) || void 0 === e) throw new Error(`[PlayCard]: Target card not found in field (playerIndex=${t}, targetCardIdx=${F})`);
           var p = {
             ...jsonClone(s),
             player: O._id,
-            source: F,
-            target: k,
+            source: k,
+            target: F,
             type: x,
             time: new Date(),
             cost: 0
           }, u = p.gameCardStats[h], y = p.gameCardStats[e];
-          -1 === e ? (p.playersHealth[t] -= u.attack, p.playersHealth[t] = Math.max(p.playersHealth[t], 0)) : (u.attack >= y.health ? (p.playersField[t][k] = -1, 
+          -1 === e ? (p.playersHealth[t] -= u.attack, p.playersHealth[t] = Math.max(p.playersHealth[t], 0)) : (u.attack >= y.health ? (p.playersField[t][F] = -1, 
           p.gameCardStats[e].health = 0) : p.gameCardStats[e].health -= u.attack, 
           p.gameCardStats[h].health = Math.max(p.gameCardStats[h].health - y.attack, 0), 
-          0 === p.gameCardStats[h].health && (p.playersField[S][F] = -1)), this._applyCardAbilities({
+          0 === p.gameCardStats[h].health && (p.playersField[S][k] = -1)), this._applyCardAbilities({
             match: b,
             action: p,
             attackerIndex: S,
@@ -1209,7 +1150,7 @@ class FarcasterTcgService {
               if (0 === C.length) {
                 if (a = 1 - a, t = 1 - a, 0 === s.playersField[a].filter(e => -1 !== e && !T[e]).length) break;
               } else {
-                const F = s.playersField[a].indexOf(C[0]);
+                const k = s.playersField[a].indexOf(C[0]);
                 var E, g = s.playersField[t], _ = g.filter(e => -1 !== e);
                 let e = -1;
                 e = 0 < _.length ? (E = crypto.randomInt(_.length), g.indexOf(_[E])) : -1;
@@ -1218,7 +1159,7 @@ class FarcasterTcgService {
                     match: b,
                     player: b.players[a],
                     targetPlayer: b.players[t],
-                    sourceCardIdx: F,
+                    sourceCardIdx: k,
                     targetCardIdx: e,
                     actionType: "CardAttack",
                     session: N,
@@ -1291,12 +1232,12 @@ class FarcasterTcgService {
     quantity: a = 1
   }, t) {
     var r = this.farpointsScoreType, s = (await t.account.populate("addresses"), 
-    t.account.addresses[0].address.toLowerCase()), n = await this.scoreService.getCommunityScore({
+    t.account.addresses[0].address.toLowerCase()), o = await this.scoreService.getCommunityScore({
       address: s,
       bebdomain: r
-    }), o = "premium" === e ? this.premiumUnboxCost : this.freeUnboxCost;
+    }), n = "premium" === e ? this.premiumUnboxCost : this.freeUnboxCost;
     if (!a || a < 1 || isNaN(parseInt(a))) throw new Error("Invalid quantity to rent FarPacks!");
-    if (!n || n < o * parseInt(a)) throw new Error("Not enough score to rent FarPacks!");
+    if (!o || o < n * parseInt(a)) throw new Error("Not enough score to rent FarPacks!");
     try {
       var i, d, l = t.account._id || t.account, c = await Player.findOne({
         account: l
@@ -1304,7 +1245,7 @@ class FarcasterTcgService {
       if (c) return [ i, d ] = await Promise.all([ this.scoreService.setScore({
         address: s,
         scoreType: r,
-        modifier: -(o * parseInt(a))
+        modifier: -(n * parseInt(a))
       }), this._giveRentedPacksToPlayer({
         player: c,
         packType: e,
@@ -1346,9 +1287,9 @@ class FarcasterTcgService {
     });
     if (!s) throw new Error("Player not found");
     if (s.quests && s.quests[e]) throw new Error("Quest already completed");
-    let n = !0;
+    let o = !0;
     if (await a.account.populate("addresses"), t.check && (r = a.account.addresses[0].address?.toLowerCase(), 
-    n = await t.check(r)), n) return await this.scoreService.setScore({
+    o = await t.check(r)), o) return await this.scoreService.setScore({
       address: a.account.addresses[0].address,
       scoreType: getFarheroXpScoreType(),
       modifier: t.score
@@ -1411,59 +1352,59 @@ class FarcasterTcgService {
     attackerIndex: t,
     defenderIndex: r,
     attackerCard: s,
-    defenderCard: n,
-    trigger: o = null
+    defenderCard: o,
+    trigger: n = null
   }) {
-    var i = this._getCardAbilities(e.gameCards, s), d = this._getCardAbilities(e.gameCards, n);
-    o ? (-1 !== s && this._applyAbilities(e, a, t, r, i, o), -1 !== n && this._applyAbilities(e, a, r, t, d, o)) : (this._applyAbilities(e, a, t, r, i, TRIGGER.VengefulStrike), 
-    this._applyAbilities(e, a, r, t, d, TRIGGER.Retaliate), 0 < d.length && 0 < a.gameCardStats[n]?.health && this._applyAbilities(e, a, r, t, d, TRIGGER.ShieldBash), 
-    0 < d.length && a.gameCardStats[n]?.health <= 0 && this._applyAbilities(e, a, r, t, d, TRIGGER.Deathplea), 
+    var i = this._getCardAbilities(e.gameCards, s), d = this._getCardAbilities(e.gameCards, o);
+    n ? (-1 !== s && this._applyAbilities(e, a, t, r, i, n), -1 !== o && this._applyAbilities(e, a, r, t, d, n)) : (this._applyAbilities(e, a, t, r, i, TRIGGER.VengefulStrike), 
+    this._applyAbilities(e, a, r, t, d, TRIGGER.Retaliate), 0 < d.length && 0 < a.gameCardStats[o]?.health && this._applyAbilities(e, a, r, t, d, TRIGGER.ShieldBash), 
+    0 < d.length && a.gameCardStats[o]?.health <= 0 && this._applyAbilities(e, a, r, t, d, TRIGGER.Deathplea), 
     a.gameCardStats[s]?.health <= 0 && 0 < i.length && this._applyAbilities(e, a, t, r, i, TRIGGER.MartyrsGift));
   }
   _getCardAbilities(e, a) {
     return -1 !== a && e[a].abilities || [];
   }
-  _applyAbilities(t, r, s, n, e, o) {
+  _applyAbilities(t, r, s, o, e, n) {
     e.forEach(e => {
       var a;
-      e.trigger === o && (a = r.gameCardStats[s]?.attack || 0, this._applyEffect(t, r, s, n, e.effect, a, o));
+      e.trigger === n && (a = r.gameCardStats[s]?.attack || 0, this._applyEffect(t, r, s, o, e.effect, a, n));
     });
   }
-  _applyEffect(a, r, e, t, s, n, o) {
+  _applyEffect(a, r, e, t, s, o, n) {
     let i;
-    i = o === TRIGGER.Summon ? r.playersField[e]?.[r.target] : r.playersField[e]?.[r.source];
+    i = n === TRIGGER.Summon ? r.playersField[e]?.[r.target] : r.playersField[e]?.[r.source];
     var d = r.playersField[t]?.[r.target];
     switch (s) {
      case EFFECT.DealDamageToAttacker:
-      void 0 !== d && -1 !== d && (r.gameCardStats[d].health -= n, r.gameCardStats[d].health = Math.max(r.gameCardStats[d].health, 0));
+      void 0 !== d && -1 !== d && (r.gameCardStats[d].health -= o, r.gameCardStats[d].health = Math.max(r.gameCardStats[d].health, 0));
       break;
 
      case EFFECT.DealDamageToAllEnemies:
       r.playersField[t].forEach(e => {
-        -1 !== e && (r.gameCardStats[e].health -= n, r.gameCardStats[e].health = Math.max(r.gameCardStats[e].health, 0));
+        -1 !== e && (r.gameCardStats[e].health -= o, r.gameCardStats[e].health = Math.max(r.gameCardStats[e].health, 0));
       });
       break;
 
      case EFFECT.DealDamageToAllAllies:
       r.playersField[e].forEach(e => {
-        -1 !== e && (r.gameCardStats[e].health -= n, r.gameCardStats[e].health = Math.max(r.gameCardStats[e].health, 0));
+        -1 !== e && (r.gameCardStats[e].health -= o, r.gameCardStats[e].health = Math.max(r.gameCardStats[e].health, 0));
       });
       break;
 
      case EFFECT.DealDamageToSelf:
-      void 0 !== i && -1 !== i && (r.gameCardStats[i].health -= n, r.gameCardStats[i].health = Math.max(r.gameCardStats[i].health, 0));
+      void 0 !== i && -1 !== i && (r.gameCardStats[i].health -= o, r.gameCardStats[i].health = Math.max(r.gameCardStats[i].health, 0));
       break;
 
      case EFFECT.DealDamageToField:
       r.playersField.forEach(e => {
         e.forEach(e => {
-          -1 !== e && (r.gameCardStats[e].health -= n, r.gameCardStats[e].health = Math.max(r.gameCardStats[e].health, 0));
+          -1 !== e && (r.gameCardStats[e].health -= o, r.gameCardStats[e].health = Math.max(r.gameCardStats[e].health, 0));
         });
       });
       break;
 
      case EFFECT.DealDamageToOpponent:
-      r.playersHealth[t] -= n, r.playersHealth[t] = Math.max(r.playersHealth[t], 0);
+      r.playersHealth[t] -= o, r.playersHealth[t] = Math.max(r.playersHealth[t], 0);
       break;
 
      case EFFECT.HealSelf:
@@ -1508,7 +1449,7 @@ class FarcasterTcgService {
       break;
 
      case EFFECT.DestroyYourField:
-      r.playersField[e] = r.playersField[e].map((e, a) => a === r.target && o === TRIGGER.Summon ? e : -1);
+      r.playersField[e] = r.playersField[e].map((e, a) => a === r.target && n === TRIGGER.Summon ? e : -1);
       break;
 
      case EFFECT.DestroyField:
@@ -1532,12 +1473,12 @@ class FarcasterTcgService {
     address: t,
     playerId: r,
     limit: s = 15,
-    cursor: n = null,
-    filters: o = {},
+    cursor: o = null,
+    filters: n = {},
     sort: i = "createdAt"
   }) {
     try {
-      if (!n) {
+      if (!o) {
         var d = await memcache.get(this.INVENTORY_CACHE_KEY + ":" + t);
         if (d) return JSON.parse(d.value);
       }
@@ -1558,21 +1499,21 @@ class FarcasterTcgService {
         nextCursor: null,
         totalCount: 0
       };
-      o.rarity && (c["card.rarity"] = o.rarity), o.type && (c["card.type"] = o.type);
-      var h = await PlayableCard.find(c).count();
+      n.rarity && (c["card.rarity"] = n.rarity), n.type && (c["card.type"] = n.type);
+      var h = await PlayableCard.countDocuments(c);
       let e = PlayableCard.find(c).populate("card handle").sort({
         [i]: -1
-      }).limit(s), a = await (e = n ? e.skip(parseInt(n)) : e).exec();
+      }).limit(s), a = await (e = o ? e.skip(parseInt(o)) : e).exec();
       a = await Promise.all(a.map(async e => e.handle ? {
         ...e.toObject(),
         handle: e.handle
       } : e.toObject()));
-      var p = n ? parseInt(n) + a.length : a.length, u = p < h, y = {
+      var p = o ? parseInt(o) + a.length : a.length, u = p < h, y = {
         inventory: a,
         nextCursor: u ? p.toString() : null,
         totalCount: h
       };
-      return n || await memcache.set(this.INVENTORY_CACHE_KEY + ":" + t, JSON.stringify(y), {
+      return o || await memcache.set(this.INVENTORY_CACHE_KEY + ":" + t, JSON.stringify(y), {
         lifetime: this.CACHE_TTL
       }), y;
     } catch (e) {
@@ -1584,8 +1525,8 @@ class FarcasterTcgService {
     playerId: t,
     limit: r = 15,
     cursor: s = null,
-    filters: n = {},
-    sort: o = "createdAt"
+    filters: o = {},
+    sort: n = "createdAt"
   }) {
     try {
       if (!s) {
@@ -1614,10 +1555,10 @@ class FarcasterTcgService {
         nextCursor: null,
         totalCount: 0
       };
-      n.type && (c.type = n.type);
-      var h = await Pack.find(c).count();
+      o.type && (c.type = o.type);
+      var h = await Pack.countDocuments(c);
       let e = Pack.find(c).sort({
-        [o]: -1
+        [n]: -1
       }).limit(r);
       var p = await (e = s ? e.skip(parseInt(s)) : e).exec(), u = s ? parseInt(s) + p.length : p.length, y = {
         packs: p,
@@ -1643,15 +1584,15 @@ class FarcasterTcgService {
       e.invitedBy = a._id, await e.save();
     };
     try {
-      var n, o, e = r.account._id || r.account, i = await Player.findOne({
+      var o, n, e = r.account._id || r.account, i = await Player.findOne({
         account: e
       });
       if (!i) throw new Error("Player not found");
       if (i.invitedBy) throw new Error("Player has already been invited");
       if (this.INTERNAL_INVITE_CODES.includes(a?.toLowerCase?.())) await s(i); else {
         if (a === this.FARHERO_CHECK_PASSES_INVITE_CODE) return await r.account.populate("addresses"), 
-        n = r.account.addresses[0].address?.toLowerCase(), o = (await getAddressPasses(n, !1))["passes"], 
-        o.length >= this.FARHERO_HANDLES_REQUIRED_FOR_INVITE ? (await s(i), {
+        o = r.account.addresses[0].address?.toLowerCase(), n = (await getAddressPasses(o, !1))["passes"], 
+        n.length >= this.FARHERO_HANDLES_REQUIRED_FOR_INVITE ? (await s(i), {
           success: !0,
           message: "You have enough .cast handles!"
         }) : {
@@ -1663,7 +1604,7 @@ class FarcasterTcgService {
         if (d ? e = JSON.parse(d.value) : (e = await AccountInvite.findOne({
           code: a
         })) && await memcache.set("FarcasterTcgService:invite:" + a, JSON.stringify(e)), 
-        !e) throw new Error("Invalid invite code");
+        !e) throw new Error("Invalid invite code or already used. Try another invite code!");
         if (-1 !== e.maxUseCount && e.useCount >= e.maxUseCount) throw new Error("Invite code has reached the maximum use count");
         if (!await Account.findById(e.account)) throw new Error("Inviter not found");
         i.invitedBy = e.account, e.useCount = e.useCount + 1, await Promise.all([ i.save(), e.save() ]), 

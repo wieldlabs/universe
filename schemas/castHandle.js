@@ -15,7 +15,8 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   },
   tokenId: {
     type: String,
-    required: !0
+    required: !0,
+    unique: !0
   },
   expiresAt: {
     type: Number
@@ -37,8 +38,6 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
 
 schema.index({
   owner: 1
-}), schema.index({
-  tokenId: 1
 }), schema.index({
   owner: 1,
   tokenId: 1

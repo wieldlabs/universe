@@ -9,6 +9,10 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   scoreType: {
     type: String,
     index: !0
+  },
+  quests: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: !0

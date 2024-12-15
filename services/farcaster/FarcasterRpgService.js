@@ -186,11 +186,11 @@ class FarcasterRpgService {
   }
   async _getTotalReferral(e) {
     var r = await memcache.get(`Referral:TELEGRAM:${e}:total:count`);
-    return r ? r.value : (r = await Referral.find({
+    return r ? r.value : (r = await Referral.countDocuments({
       referralType: "TELEGRAM",
       account: e,
       isValid: !0
-    }).count(), await memcache.set(`Referral:TELEGRAM:${e}:total:count`, r), r);
+    }), await memcache.set(`Referral:TELEGRAM:${e}:total:count`, r), r);
   }
   async _randomSummon({
     player: e,

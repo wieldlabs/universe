@@ -104,7 +104,7 @@ async function getCastHandlesWithMetadata({
   }).sort({
     _id: -1
   }).limit(a), r && (t = `getCastHandlesWithMetadata:${e}:${a}:` + r, await memcache.set(t, JSON.stringify(i), {
-    lifetime: 60
+    lifetime: 10
   })));
   s = i.filter(e => e?.handle);
   let d = null;
