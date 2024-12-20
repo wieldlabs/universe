@@ -422,7 +422,7 @@ const mongoose = require("mongoose"), TIME_PERIODS = {
   }
 }, {
   timestamps: !0
-})), transactionsSchema = (influencersSchema.index({
+})), TRANSACTION_CATEGORIES = (influencersSchema.index({
   followerCount: -1
 }), influencersSchema.index({
   "totalRealizedProfitUsd.7d": -1,
@@ -445,7 +445,7 @@ const mongoose = require("mongoose"), TIME_PERIODS = {
 }), influencersSchema.index({
   fid: 1,
   followerCount: -1
-}), new mongoose.Schema({
+}), [ "token", "external", "erc20", "airdrop", "erc20created" ]), transactionsSchema = new mongoose.Schema({
   fid: {
     type: String,
     required: !0
@@ -486,7 +486,8 @@ const mongoose = require("mongoose"), TIME_PERIODS = {
   },
   category: {
     type: String,
-    required: !0
+    required: !0,
+    enum: TRANSACTION_CATEGORIES
   },
   rawContract: {
     value: String,
@@ -511,7 +512,7 @@ const mongoose = require("mongoose"), TIME_PERIODS = {
   }
 }, {
   timestamps: !0
-})), BASE_DEX_CONTRACTS = (transactionsSchema.index({
+}), BASE_DEX_CONTRACTS = (transactionsSchema.index({
   hash: 1
 }), transactionsSchema.index({
   category: 1
@@ -573,6 +574,12 @@ const mongoose = require("mongoose"), TIME_PERIODS = {
   _id: 1,
   category: 1
 }), transactionsSchema.index({
+  chain: 1,
+  isSwap: 1,
+  category: 1,
+  timestamp: 1,
+  _id: 1
+}), transactionsSchema.index({
   timestamp: 1
 }, {
   name: "expireTransactions",
@@ -583,6 +590,12 @@ const mongoose = require("mongoose"), TIME_PERIODS = {
   isSwap: 1,
   timestamp: -1,
   _id: -1
+}), transactionsSchema.index({
+  chain: 1,
+  isSwap: 1,
+  category: 1,
+  timestamp: 1,
+  _id: 1
 }), transactionsSchema.index({
   to: 1,
   chain: 1,
@@ -669,5 +682,6 @@ module.exports = {
   TIME_PERIODS: TIME_PERIODS,
   CHAINS: CHAINS,
   BASE_DEX_CONTRACTS: BASE_DEX_CONTRACTS,
-  BASE_DEX_CONTRACTS_LOWERCASE: BASE_DEX_CONTRACTS_LOWERCASE
+  BASE_DEX_CONTRACTS_LOWERCASE: BASE_DEX_CONTRACTS_LOWERCASE,
+  TRANSACTION_CATEGORIES: TRANSACTION_CATEGORIES
 };

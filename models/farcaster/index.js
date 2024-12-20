@@ -21,7 +21,8 @@ const mongoose = require("mongoose"), {
   syncedActionsSchema,
   syncedVerificationSchema,
   agentSchema,
-  farpaySchema
+  farpaySchema,
+  agentRequestSchema
 } = require("../../schemas/farcaster");
 
 class HubSubscriptionsClass {
@@ -265,7 +266,17 @@ class AgentClass {
 
 agentSchema.loadClass(AgentClass);
 
-const Agent = mongoose.models.Agent || mongoose.model("farcaster.Agent", agentSchema), UserDataType = {
+const Agent = mongoose.models.Agent || mongoose.model("farcaster.Agent", agentSchema);
+
+class AgentRequestClass {
+  static ping() {
+    console.log("model: AgentRequestClass");
+  }
+}
+
+agentRequestSchema.loadClass(AgentRequestClass);
+
+const AgentRequest = mongoose.models.AgentRequest || mongoose.model("farcaster.AgentRequest", agentRequestSchema), UserDataType = {
   USER_DATA_TYPE_NONE: 0,
   USER_DATA_TYPE_PFP: 1,
   USER_DATA_TYPE_DISPLAY: 2,
@@ -318,5 +329,6 @@ module.exports = {
   SyncedActions: SyncedActions,
   SyncedVerification: SyncedVerification,
   FarPay: FarPay,
-  Agent: Agent
+  Agent: Agent,
+  AgentRequest: AgentRequest
 };

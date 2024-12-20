@@ -115,6 +115,10 @@ schema.index({
 }), schema.index({
   tokenCreator: 1,
   timestamp: -1
+}), schema.index({
+  tokenAddress: 1,
+  timestamp: -1,
+  _id: -1
 }), module.exports = {
   schema: schema
 };

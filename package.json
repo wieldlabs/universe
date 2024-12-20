@@ -1,6 +1,6 @@
 {
   "name": "universe",
-  "version": "3.0.14",
+  "version": "3.0.15",
   "main": "README.md",
   "license": "AGPL-3.0",
   "repository": "git@github.com:wieldlabs/universe.git",
@@ -34,7 +34,7 @@
     "agenda": "4.4.0",
     "alchemy-sdk": "^3.5.0",
     "async": "^2.6.4",
-    "axios": "^1.6.8",
+    "axios": "^1.7.9",
     "axios-retry": "^4.1.0",
     "bad-words": "^3.0.4",
     "base64url": "^3.0.1",

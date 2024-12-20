@@ -7,7 +7,8 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
 } = require("../../models/farcaster/analytics"), {
   TIME_PERIODS,
   CHAINS,
-  BASE_DEX_CONTRACTS_LOWERCASE
+  BASE_DEX_CONTRACTS_LOWERCASE,
+  TRANSACTION_CATEGORIES
 } = require("../../schemas/farcaster/analytics"), {
   memcache,
   getHash
@@ -417,25 +418,21 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       chain: o,
       isSwap: !0,
       category: {
-        $ne: "airdrop"
+        $in: TRANSACTION_CATEGORIES.filter(e => "airdrop" !== e)
       }
     }, m = new Date(e), f = new Date(Date.now() - REAL_TIME_DELAY);
-    if (r ? u.$or = [ {
+    if (u.timestamp = {
+      $lt: f
+    }, r ? u.$or = [ {
       timestamp: {
-        $gt: m,
-        $lt: f
+        $gt: m
       }
     }, {
-      timestamp: {
-        $lt: f
-      },
+      timestamp: m,
       _id: {
         $gt: r
       }
-    } ] : u.timestamp = {
-      $gt: m,
-      $lt: f
-    }, l) {
+    } ] : u.timestamp.$gt = m, l) {
       var p = {
         from: {
           $in: Object.keys(BASE_DEX_CONTRACTS_LOWERCASE)
@@ -473,26 +470,26 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
     var y = await Transactions.find(u).sort({
       timestamp: 1,
       _id: 1
-    }).limit(n + 1).lean(), h = y.length > n, S = y.slice(0, n), w = new Set(S.map(e => e.fid)), _ = new Set(S.filter(e => !e.isFartoken).map(e => e.rawContract?.address).filter(Boolean)), I = new Set(S.filter(e => e.isFartoken).map(e => e.rawContract?.address?.toLowerCase()).filter(Boolean));
+    }).limit(n + 1).lean(), h = y.length > n, S = y.slice(0, n), w = new Set(S.map(e => e.fid)), _ = new Set(S.filter(e => !e.isFartoken).map(e => e.rawContract?.address).filter(Boolean)), A = new Set(S.filter(e => e.isFartoken).map(e => e.rawContract?.address?.toLowerCase()).filter(Boolean));
     const B = new Map();
-    var A = Array.from(w).map(async e => {
+    var I = Array.from(w).map(async e => {
       let r = null;
       (r = "0x" === e.slice(0, 2) ? await getFarcasterUserByAnyAddress(e) : await getFarcasterUserByFid(e)) && B.set(e, r);
-    }), T = Array.from(I), E = T.length ? BondingErc20.find({
+    }), T = Array.from(A), E = T.length ? BondingErc20.find({
       tokenAddress: {
         $in: T
       },
       type: {
         $in: BondingErc20.availableTokens()
       }
-    }) : [], k = getTokenMetadata(BASE_CHAIN_ID, [ ..._ ]), [ v, C ] = await Promise.all([ k, E, ...A ]);
-    const j = v.reduce((e, r) => (e[r.address.toLowerCase()] = r, e), {}), q = C.reduce((e, r) => (e[r.tokenAddress.toLowerCase()] = {
+    }) : [], k = getTokenMetadata(BASE_CHAIN_ID, [ ..._ ]), [ v, C ] = await Promise.all([ k, E, ...I ]);
+    const j = v.reduce((e, r) => (e[r.address.toLowerCase()] = r, e), {}), N = C.reduce((e, r) => (e[r.tokenAddress.toLowerCase()] = {
       ...r.metadata,
       address: r.tokenAddress,
       logo: cleanIpfsImage(r.metadata?.image)
     }, e), {});
-    var P, O = S.map(e => {
-      var r = e.from.toLowerCase(), t = e.to.toLowerCase(), a = BASE_DEX_CONTRACTS_LOWERCASE[r], s = BASE_DEX_CONTRACTS_LOWERCASE[t], i = e.from === ethers.constants.AddressZero, n = j[e.rawContract?.address?.toLowerCase()] || q[e.rawContract?.address?.toLowerCase()];
+    var O, P = S.map(e => {
+      var r = e.from.toLowerCase(), t = e.to.toLowerCase(), a = BASE_DEX_CONTRACTS_LOWERCASE[r], s = BASE_DEX_CONTRACTS_LOWERCASE[t], i = e.from === ethers.constants.AddressZero, n = j[e.rawContract?.address?.toLowerCase()] || N[e.rawContract?.address?.toLowerCase()];
       return e.isFartoken && !n ? null : {
         ...e,
         isSwap: !(!a && !s),
@@ -507,10 +504,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       };
     }).filter(Boolean);
     let t = null;
-    h && 0 < S.length && (P = S[S.length - 1], t = new Date(P.timestamp).getTime() + "-" + P._id);
+    h && 0 < S.length && (O = S[S.length - 1], t = new Date(O.timestamp).getTime() + "-" + O._id);
     var $ = {
       result: {
-        transactions: O
+        transactions: P
       },
       next: t,
       chain: o,

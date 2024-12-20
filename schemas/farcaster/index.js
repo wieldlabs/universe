@@ -351,6 +351,15 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
     external: !1
   },
   expireAfterSeconds: 0
+}), verificationsSchema.index({
+  "claimObj.protocol": 1,
+  deletedAt: 1,
+  fid: 1,
+  timestamp: 1
+}), verificationsSchema.index({
+  deletedAt: 1,
+  fid: 1,
+  timestamp: 1
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -671,6 +680,9 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
 }), offerSchema.index({
   canceledAt: 1
 }), offerSchema.index({
+  canceledAt: 1,
+  amount: -1
+}), offerSchema.index({
   chainId: 1,
   canceledAt: 1,
   amount: -1
@@ -788,6 +800,40 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   deadline: 1,
   fid: 1,
   minFee: 1
+}), listingSchema.index({
+  canceledAt: 1,
+  updatedAt: -1,
+  _id: 1,
+  deadline: 1,
+  fid: 1
+}), listingSchema.index({
+  canceledAt: 1,
+  minFee: 1,
+  _id: 1,
+  deadline: 1,
+  fid: 1
+}), listingSchema.index({
+  canceledAt: 1,
+  minFee: -1,
+  _id: 1,
+  deadline: 1,
+  fid: 1
+}), listingSchema.index({
+  canceledAt: 1,
+  fid: 1,
+  _id: 1,
+  deadline: 1
+}), listingSchema.index({
+  canceledAt: 1,
+  fid: -1,
+  _id: 1,
+  deadline: 1
+}), listingSchema.index({
+  canceledAt: 1,
+  updatedAt: 1,
+  _id: 1,
+  deadline: 1,
+  fid: 1
 }), listingSchema.post("find", function(e) {
   for (var t of e) t.minFee = t.minFee.replace(/^0+/, "");
 }), listingSchema.post("findOne", function(e) {
@@ -824,6 +870,8 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
 }, {
   timestamps: !0
 })), appraisalSchema = (listingLogSchema.index({
+  price: -1
+}), listingLogSchema.index({
   txHash: 1
 }), listingLogSchema.index({
   fid: 1
@@ -1095,13 +1143,19 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   key: {
     type: String
   },
-  creatorFid: {
+  currentOwnerFid: {
     type: String,
     index: !0
   },
   currentOwnerAddress: {
     type: String,
     index: !0
+  },
+  instructions: {
+    type: String
+  },
+  examples: {
+    type: String
   },
   agentAddress: {
     type: String,
@@ -1126,6 +1180,9 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
       type: String
     },
     encryptionMetadata: {
+      address: {
+        type: String
+      },
       timestamp: {
         type: String
       },
@@ -1133,12 +1190,72 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
         type: String
       }
     }
-  } ]
+  } ],
+  isReserved: {
+    type: Boolean,
+    default: !1
+  }
 }, {
   timestamps: !0
-});
+}), agentRequestSchema = (agentSchema.index({
+  fid: 1,
+  expiresAt: 1
+}), agentSchema.index({
+  agentId: 1,
+  expiresAt: 1
+}), agentSchema.index({
+  expiresAt: 1,
+  isReserved: 1
+}), new mongoose.Schema({
+  currentOwnerFid: {
+    type: String,
+    required: !0,
+    index: !0
+  },
+  currentOwnerAddress: {
+    type: String,
+    required: !0,
+    index: !0
+  },
+  instructions: {
+    type: String,
+    required: !0
+  },
+  examples: {
+    type: String
+  },
+  status: {
+    type: String,
+    enum: [ "pending", "approved", "rejected", "completed" ],
+    default: "pending",
+    index: !0
+  },
+  tokenAddress: {
+    type: String,
+    index: !0
+  },
+  notes: {
+    type: String
+  },
+  assignedAgentId: {
+    type: String,
+    index: !0
+  },
+  nsfw: {
+    type: Boolean,
+    default: !1
+  }
+}, {
+  timestamps: !0
+}));
 
-module.exports = {
+agentRequestSchema.index({
+  currentOwnerFid: 1,
+  status: 1
+}), agentRequestSchema.index({
+  createdAt: 1,
+  status: 1
+}), module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
   messagesSchema: messagesSchema,
   castsSchema: castsSchema,
@@ -1161,5 +1278,6 @@ module.exports = {
   syncedActionsSchema: syncedActionsSchema,
   syncedVerificationSchema: syncedVerificationSchema,
   farpaySchema: farpaySchema,
-  agentSchema: agentSchema
+  agentSchema: agentSchema,
+  agentRequestSchema: agentRequestSchema
 };

@@ -228,7 +228,7 @@ const getSyncedChannelById = async e => {
      case UserDataType.USER_DATA_TYPE_BIO:
       if (!g.bio) {
         d.bio.text = m;
-        for (var h, y = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g; h = y.exec(m); ) d.bio.mentions.push(h[1]);
+        for (var h, y = /(?<!\]\()@([a-zA-Z0-9_]+(\.[a-z]{2,})*)/g; h = y.exec(m); ) d.bio.mentions.push(h[1]);
         g.bio = !0;
       }
       break;

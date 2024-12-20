@@ -152,6 +152,9 @@ schema.index({
   lastStatsUpdate: -1,
   _id: -1
 }), schema.index({
+  lastStatsUpdate: 1,
+  _id: 1
+}), schema.index({
   name: "text"
 }), module.exports = {
   schema: schema

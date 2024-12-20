@@ -19,29 +19,45 @@ const {
   postMessage,
   getConnectedAddressForFid,
   getCustodyAddressByFid
-} = require("./farcaster"), axios = require("axios"), Sentry = require("@sentry/node"), ethers = require("ethers")["ethers"], validateAndConvertAddress = require("./validate-and-convert-address")["validateAndConvertAddress"], DEFAULT_NETWORK = 1;
+} = require("./farcaster"), axios = require("axios"), Sentry = require("@sentry/node"), ethers = require("ethers")["ethers"], validateAndConvertAddress = require("./validate-and-convert-address")["validateAndConvertAddress"], DEFAULT_NETWORK = 1, USERNAME_PROOF_DOMAIN = {
+  name: "Farcaster name verification",
+  version: "1",
+  chainId: 1,
+  verifyingContract: "0xe3be01d99baa8db9905b33a3ca391238234b79d1"
+}, USERNAME_PROOF_TYPE = {
+  UserNameProof: [ {
+    name: "name",
+    type: "string"
+  }, {
+    name: "timestamp",
+    type: "uint256"
+  }, {
+    name: "owner",
+    type: "address"
+  } ]
+};
 
 async function getAddressPasses(e, a) {
   if (!e || e.length < 10) throw new Error("address is invalid");
-  let t = null, s = [];
+  let t = null, r = [];
   try {
-    var r = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, i = await memcache.get(r), d = await memcache.get(n);
-    if (i ? (s = JSON.parse(i.value), t = !0) : d ? t = JSON.parse(d.value) : (t = await CastHandle.exists({
+    var s = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, i = await memcache.get(s), o = await memcache.get(n);
+    if (i ? (r = JSON.parse(i.value), t = !0) : o ? t = JSON.parse(o.value) : (t = await CastHandle.exists({
       owner: e.toLowerCase()
     }), await memcache.set(n, JSON.stringify(t), {
       lifetime: t ? 3600 : 1
     })), a) return {
       isHolder: t,
-      passes: s
+      passes: r
     };
-    t && !i && 0 < (s = await getCastHandles(e))?.length && await memcache.set(r, JSON.stringify(s), {
+    t && !i && 0 < (r = await getCastHandles(e))?.length && await memcache.set(s, JSON.stringify(r), {
       lifetime: 10
     });
   } catch (e) {
     throw console.error(e), new Error("Failed to retrieve address passes");
   }
   return {
-    passes: s,
+    passes: r,
     isHolder: t
   };
 }
@@ -60,11 +76,11 @@ function setupAlchemyServices() {
 }
 
 async function checkIsHolderWithFallback(e, a, t) {
-  let s = await a.isHolderOfCollection({
+  let r = await a.isHolderOfCollection({
     wallet: t,
     contractAddress: prod().OPTIMISM_REGISTRAR_ADDRESS
   });
-  return s = s || await e.isHolderOfCollection({
+  return r = r || await e.isHolderOfCollection({
     wallet: t,
     contractAddress: prod().REGISTRAR_ADDRESS
   });
@@ -80,35 +96,35 @@ async function getCastHandlesWithMetadata({
   address: e,
   limit: a = 100,
   filters: t,
-  sort: s = "-fid",
-  cursor: r
+  sort: r = "-fid",
+  cursor: s
 }) {
   const n = new _MarketplaceService();
   if (t && 0 < Object.keys(t).length) return n.getListings({
-    sort: s,
+    sort: r,
     limit: a,
-    cursor: r,
+    cursor: s,
     filters: {
       ...t,
       collection: "castHandle",
       address: validateAndConvertAddress(e)
     }
   });
-  var [ , s ] = r ? r.split("-") : [ null, null ];
+  var [ , r ] = s ? s.split("-") : [ null, null ];
   let i;
-  (i = r && (t = `getCastHandlesWithMetadata:${e}:${a}:` + r, t = await memcache.get(t)) ? JSON.parse(t.value).map(e => new CastHandle(e)) : i) || (i = await CastHandle.find({
+  (i = s && (t = `getCastHandlesWithMetadata:${e}:${a}:` + s, t = await memcache.get(t)) ? JSON.parse(t.value).map(e => new CastHandle(e)) : i) || (i = await CastHandle.find({
     owner: e.toLowerCase(),
     id: {
-      $lt: s || Number.MAX_SAFE_INTEGER
+      $lt: r || Number.MAX_SAFE_INTEGER
     }
   }).sort({
     _id: -1
-  }).limit(a), r && (t = `getCastHandlesWithMetadata:${e}:${a}:` + r, await memcache.set(t, JSON.stringify(i), {
+  }).limit(a), s && (t = `getCastHandlesWithMetadata:${e}:${a}:` + s, await memcache.set(t, JSON.stringify(i), {
     lifetime: 10
   })));
-  s = i.filter(e => e?.handle);
-  let d = null;
-  return [ await Promise.all(s.map(async e => {
+  r = i.filter(e => e?.handle);
+  let o = null;
+  return [ await Promise.all(r.map(async e => {
     var a = "ETH" === e.chain ? 1 : 10, [ a ] = await Promise.all([ n.getListing({
       fid: -1,
       tokenId: ethers.BigNumber.from(e.tokenId).toString(),
@@ -118,7 +134,7 @@ async function getCastHandlesWithMetadata({
       ...e.toObject(),
       listing: a
     };
-  })), d = i.length === a ? i[i.length - 1]._id + "-" + i[i.length - 1]._id : d ];
+  })), o = i.length === a ? i[i.length - 1]._id + "-" + i[i.length - 1]._id : o ];
 }
 
 async function getListingDetails({
@@ -126,18 +142,18 @@ async function getListingDetails({
   tokenId: a,
   chainId: t
 }) {
-  var s = new _MarketplaceService(), [ s, e, a, t ] = (a = a ? a.toString() : void 0, 
-  t = t ? parseInt(t) : void 0, await Promise.all([ s.fetchUserData(e, a, t), s.fetchListing(e, a, t), s.getOffers({
+  var r = new _MarketplaceService(), [ r, e, a, t ] = (a = a ? a.toString() : void 0, 
+  t = t ? parseInt(t) : void 0, await Promise.all([ r.fetchUserData(e, a, t), r.fetchListing(e, a, t), r.getOffers({
     fid: e,
     tokenId: a,
     chainId: t
-  }), s.getHistoricalSales({
+  }), r.getHistoricalSales({
     fid: e,
     tokenId: a,
     chainId: t
   }) ]));
   return {
-    userData: s,
+    userData: r,
     listing: e,
     offers: a,
     history: t
@@ -170,19 +186,19 @@ const frameContext = async (a, e, t) => {
     connectedAddress: a.body?.untrustedData?.fid
   }, t();
   try {
-    var s = Message.decode(Buffer.from(a.body.trustedData.messageBytes, "hex")), r = {
+    var r = Message.decode(Buffer.from(a.body.trustedData.messageBytes, "hex")), s = {
       ...a.context || {},
-      frameData: s.data,
+      frameData: r.data,
       untrustedData: a.body.untrustedData,
       verifiedFrameData: !0
     };
-    if (ethers.utils.isAddress(a.body.untrustedData?.fid)) r.isExternal = !0, r.connectedAddress = a.body?.untrustedData?.fid; else {
-      if (!s.data?.fid) throw new Error("FID is missing, no fallback external FID: " + JSON.stringify(s.data));
-      var n, i = await getConnectedAddressForFid(s.data.fid);
-      r.isExternal = !1, r.connectedAddress = i, !a.body.untrustedData?.isCustodyWallet && i && ethers.utils.isAddress(i) || (n = await getCustodyAddressByFid(s.data.fid), 
-      r.connectedAddress = n);
+    if (ethers.utils.isAddress(a.body.untrustedData?.fid)) s.isExternal = !0, s.connectedAddress = a.body?.untrustedData?.fid; else {
+      if (!r.data?.fid) throw new Error("FID is missing, no fallback external FID: " + JSON.stringify(r.data));
+      var n, i = await getConnectedAddressForFid(r.data.fid);
+      s.isExternal = !1, s.connectedAddress = i, !a.body.untrustedData?.isCustodyWallet && i && ethers.utils.isAddress(i) || (n = await getCustodyAddressByFid(r.data.fid), 
+      s.connectedAddress = n);
     }
-    a.context = r;
+    a.context = s;
   } catch (e) {
     console.error(e), e?.message?.includes("FID is missing, no fallback external FID") || Sentry.captureException(e, {
       extra: {
@@ -208,17 +224,17 @@ function hexToBytes(a) {
   return t;
 }
 
-function extractAndReplaceMentions(e, r = {}) {
+function extractAndReplaceMentions(e, s = {}) {
   let n = "";
-  const i = [], d = [];
+  const i = [], o = [];
   return e.split(/(\s|\n)/).forEach((e, a) => {
-    var t, s;
-    e.startsWith("@") && (t = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)?.[1]) && t in r ? (s = Buffer.from(n).length, 
-    i.push(r[t]), d.push(s), n += e.replace("@" + t, "")) : n += e;
+    var t, r;
+    e.startsWith("@") && (t = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)?.[1]) && t in s ? (r = Buffer.from(n).length, 
+    i.push(s[t]), o.push(r), n += e.replace("@" + t, "")) : n += e;
   }), {
     text: n,
     mentions: i,
-    mentionsPositions: d
+    mentionsPositions: o
   };
 }
 
@@ -226,8 +242,8 @@ const makeMessage = async ({
   privateKey: e,
   messageType: a,
   body: t = {},
-  fid: s,
-  overrides: r = {}
+  fid: r,
+  overrides: s = {}
 }) => {
   if (!e) throw new Error("No private key provided");
   var n = new NobleEd25519Signer(Buffer.from(e, "hex"));
@@ -236,58 +252,58 @@ const makeMessage = async ({
     switch (a) {
      case MessageType.CAST_ADD:
       i = await makeCastAddRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.CAST_REMOVE:
-      var d = Date.now() - 314496e5, o = toFarcasterTime(d).value;
+      var o = Date.now() - 314496e5, d = toFarcasterTime(o).value;
       i = await makeCastRemoveRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK,
-        timestamp: o
+        timestamp: d
       }, n);
       break;
 
      case MessageType.REACTION_ADD:
       i = await makeReactionAddRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.REACTION_REMOVE:
       i = await makeReactionRemoveRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.LINK_ADD:
       i = await makeLinkAddRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.LINK_REMOVE:
       i = await makeLinkRemoveRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.USER_DATA_ADD:
       i = await makeUserDataAddRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
 
      case MessageType.FRAME_ACTION:
       i = await makeFrameActionRpc(t, {
-        fid: parseInt(s),
+        fid: parseInt(r),
         network: DEFAULT_NETWORK
       }, n);
       break;
@@ -303,23 +319,23 @@ const makeMessage = async ({
     ...e,
     data: {
       ...e.data,
-      ...r
+      ...s
     }
   });
   throw i.error || new Error("Invalid Farcaster data");
-}, makeRequest = async (e, a, t, s, r = {}, n = {}, i = {}) => {
-  var d = "production" === process.env.NODE_ENV ? "https://build.far.quest" : "http://localhost:8080", e = await makeMessage({
+}, makeRequest = async (e, a, t, r, s = {}, n = {}, i = {}) => {
+  var o = "production" === process.env.NODE_ENV ? "https://build.far.quest" : "http://localhost:8080", e = await makeMessage({
     privateKey: e,
     messageType: a,
     body: t,
-    fid: s,
-    overrides: r
+    fid: r,
+    overrides: s
   });
-  let o = "0x" === s?.slice(0, 2);
-  o = o || Object.keys(n).some(a => "object" == typeof n[a] ? Object.keys(n[a]).some(e => "0x" === n[a][e]?.slice(0, 2)) : "0x" === n[a]?.slice?.(0, 2));
+  let d = "0x" === r?.slice(0, 2);
+  d = d || Object.keys(n).some(a => "object" == typeof n[a] ? Object.keys(n[a]).some(e => "0x" === n[a][e]?.slice(0, 2)) : "0x" === n[a]?.slice?.(0, 2));
   a = i.accessToken;
-  return a ? (await axios.post(d + "/farcaster/v2/message", {
-    isExternal: o,
+  return a ? (await axios.post(o + "/farcaster/v2/message", {
+    isExternal: d,
     message: e,
     bodyOverrides: n
   }, {
@@ -330,8 +346,8 @@ const makeMessage = async ({
     }
   })).data : (t = ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), 
   await postMessage({
-    isExternal: o || s.startsWith("0x") || !1,
-    externalFid: s,
+    isExternal: d || r.startsWith("0x") || !1,
+    externalFid: r,
     messageJSON: e,
     hubClient: t,
     errorHandler: i?.errorHandler || (e => {
@@ -342,28 +358,28 @@ const makeMessage = async ({
 }, makeCastAdd = async ({
   privateKey: e,
   text: a,
-  mentionsFids: s = [],
+  mentionsFids: r = [],
   mentionsUsernames: t = [],
-  embeds: r,
+  embeds: s,
   parentHash: n,
   parentFid: i,
-  parentUrl: d,
-  fid: o,
+  parentUrl: o,
+  fid: d,
   accessToken: c
 }) => {
   t = {
-    ...extractAndReplaceMentions(a, t.reduce((e, a, t) => (e[a] = s[t], e), {})),
-    embeds: r || []
-  }, r = {}, n && (t.parentCastId = {
+    ...extractAndReplaceMentions(a, t.reduce((e, a, t) => (e[a] = r[t], e), {})),
+    embeds: s || []
+  }, s = {}, n && (t.parentCastId = {
     hash: hexToBytes(n.slice(2)),
     fid: parseInt(i)
-  }, r.parentCastId = {
+  }, s.parentCastId = {
     fid: i
-  }), d && (t.parentUrl = d), r.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e)), 
+  }), o && (t.parentUrl = o), s.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e)), 
   t.type = 320 < Buffer.from(a, "utf-8").length ? 1 : 0, n = {};
   c && (n.accessToken = c);
   try {
-    return await makeRequest(e, MessageType.CAST_ADD, t, o, {}, r, n);
+    return await makeRequest(e, MessageType.CAST_ADD, t, d, {}, s, n);
   } catch (e) {
     throw console.error(e), new Error(e);
   }
@@ -371,36 +387,36 @@ const makeMessage = async ({
   privateKey: e,
   targetHash: a,
   fid: t
-}, s = {}) => {
+}, r = {}) => {
   a = {
     targetHash: hexToBytes(a.slice(2))
   };
-  return makeRequest(e, MessageType.CAST_REMOVE, a, t, {}, {}, s);
+  return makeRequest(e, MessageType.CAST_REMOVE, a, t, {}, {}, r);
 }, makeLinkAdd = async ({
   privateKey: e,
   type: a,
   displayTimestamp: t,
-  targetFid: s,
-  fid: r
+  targetFid: r,
+  fid: s
 }) => {
   a = {
     type: a,
     displayTimestamp: t,
-    targetFid: parseInt(s)
+    targetFid: parseInt(r)
   }, t = {
-    targetFid: s
+    targetFid: r
   };
-  return makeRequest(e, MessageType.LINK_ADD, a, r, {}, t);
+  return makeRequest(e, MessageType.LINK_ADD, a, s, {}, t);
 }, makeUsernameDataAdd = async ({
   privateKey: e,
   value: a,
   fid: t
 }) => {
-  var s = {
+  var r = {
     type: UserDataType.USERNAME,
-    value: t?.slice(0, 15)
+    value: a
   };
-  return makeRequest(e, MessageType.USER_DATA_ADD, s, t, {
+  return makeRequest(e, MessageType.USER_DATA_ADD, r, t, {
     userDataBody: {
       value: a,
       type: UserDataType.USERNAME
@@ -410,18 +426,19 @@ const makeMessage = async ({
   privateKey: e,
   type: a,
   value: t,
-  fid: s
+  fid: r
 }) => {
   if (a === UserDataType.USERNAME) return makeUsernameDataAdd({
+    privateKey: e,
     value: t,
-    fid: s
+    fid: r
   });
   a = {
     type: a,
     value: t
   };
   try {
-    return await makeRequest(e, MessageType.USER_DATA_ADD, a, s);
+    return await makeRequest(e, MessageType.USER_DATA_ADD, a, r);
   } catch (e) {
     throw new Error(e);
   }
@@ -429,7 +446,7 @@ const makeMessage = async ({
   privateKey: e,
   type: a,
   targetFid: t,
-  fid: s
+  fid: r
 }) => {
   a = {
     type: a,
@@ -437,46 +454,46 @@ const makeMessage = async ({
   }, t = {
     targetFid: t
   };
-  return makeRequest(e, MessageType.LINK_REMOVE, a, s, {}, t);
+  return makeRequest(e, MessageType.LINK_REMOVE, a, r, {}, t);
 }, makeReactionAdd = async ({
   privateKey: e,
   type: a,
   castHash: t,
-  castAuthorFid: s,
-  fid: r,
+  castAuthorFid: r,
+  fid: s,
   accessToken: n
 }) => {
   a = {
     type: a,
     targetCastId: {
       hash: hexToBytes(t.slice(2)),
-      fid: parseInt(s)
+      fid: parseInt(r)
     }
   }, t = {
     targetCastId: {
-      fid: s
+      fid: r
     }
-  }, s = {};
-  return n && (s.accessToken = n), makeRequest(e, 3, a, r, {}, t, s);
+  }, r = {};
+  return n && (r.accessToken = n), makeRequest(e, 3, a, s, {}, t, r);
 }, makeReactionRemove = async ({
   privateKey: e,
   type: a,
   castHash: t,
-  castAuthorFid: s,
-  fid: r
+  castAuthorFid: r,
+  fid: s
 }) => {
   a = {
     type: a,
     targetCastId: {
       hash: hexToBytes(t.slice(2)),
-      fid: parseInt(s)
+      fid: parseInt(r)
     }
   }, t = {
     targetCastId: {
-      fid: s
+      fid: r
     }
   };
-  return makeRequest(e, MessageType.REACTION_REMOVE, a, r, {}, t);
+  return makeRequest(e, MessageType.REACTION_REMOVE, a, s, {}, t);
 }, follow = async e => makeLinkAdd({
   type: "follow",
   ...e
@@ -501,21 +518,50 @@ async function getAddressInventory({
   address: e,
   limit: a = 100,
   cursor: t = null,
-  filters: s,
-  sort: r
+  filters: r,
+  sort: s
 }) {
   try {
     var [ n, i ] = await getCastHandlesWithMetadata({
       address: e,
       limit: a,
       cursor: t,
-      filters: s,
-      sort: r
+      filters: r,
+      sort: s
     });
     return [ n, i ];
   } catch (e) {
     throw console.error("Error in getAddressInventory:", e), new Error("Failed to retrieve address inventory");
   }
+}
+
+async function registerUsername({
+  fname: e,
+  fid: a,
+  owner: t,
+  privateKey: r
+}, s) {
+  var n = Math.floor(Date.now() / 1e3), s = await (s || new ethers.Wallet(r))._signTypedData(USERNAME_PROOF_DOMAIN, USERNAME_PROOF_TYPE, {
+    name: e,
+    timestamp: ethers.BigNumber.from(n),
+    owner: t
+  }), r = await (await fetch("https://fnames.farcaster.xyz/transfers", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      name: e,
+      from: 0,
+      to: parseInt(a),
+      fid: parseInt(a),
+      owner: t,
+      timestamp: n,
+      signature: s
+    })
+  })).json();
+  if (r.error) throw new Error("USERNAME_TAKEN" === r.code ? "Username already taken" : r.error || "Failed to register username");
+  return !0;
 }
 
 module.exports = {
@@ -534,5 +580,8 @@ module.exports = {
   getAddressPasses: getAddressPasses,
   getAddressInventory: getAddressInventory,
   getListingDetails: getListingDetails,
-  makeMessage: makeMessage
+  makeMessage: makeMessage,
+  registerUsername: registerUsername,
+  USERNAME_PROOF_DOMAIN: USERNAME_PROOF_DOMAIN,
+  USERNAME_PROOF_TYPE: USERNAME_PROOF_TYPE
 };

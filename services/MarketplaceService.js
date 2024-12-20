@@ -46,7 +46,7 @@ class MarketplaceService {
     if (!e) return "0";
     try {
       var t, r = await memcache.get("MarketplaceService_ethToUsd");
-      return r ? ethers.BigNumber.from(r.value).mul(e).toString() : (t = (await getTokenPrice(NETWORK.ETH.chainId, WETH_CONTRACT))?.usdPrice) ? (await memcache.set("MarketplaceService_ethToUsd", parseInt(t).toString(), {
+      return r ? ethers.BigNumber.from(r.value).mul(e).toString() : (t = (await getTokenPrice(NETWORK.ETH.chainId, WETH_CONTRACT))?.usdPrice) && 0 !== parseInt(t) ? (await memcache.set("MarketplaceService_ethToUsd", parseInt(t).toString(), {
         lifetime: 300
       }), ethers.BigNumber.from(parseInt(t)).mul(e).toString()) : "0";
     } catch (e) {
