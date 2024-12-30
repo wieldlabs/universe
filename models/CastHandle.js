@@ -4,6 +4,9 @@ class CastHandleClass {
   static ping() {
     console.log("model: CastHandleClass");
   }
+  static normalizeTokenId(e) {
+    return e.toLowerCase().replace(/0x0+/, "0x");
+  }
   async setCastHandleMetadataForFarheroPacks(e) {
     return this.displayItemId = "Premium" === e ? "booster-pack-p" : "Collector" === e ? "booster-pack-c" : "booster-pack-n", 
     this.displayMetadata = {

@@ -184,8 +184,8 @@ class FarcasterTcgService {
     this.OVERLOAD_PER_PERIOD = 1e4, this.PERIOD_IN_DAYS = 7, this.OVERLOAD_MULTIPLIER = .1, 
     this.INTERNAL_INVITE_CODES = [ "projecteverest", "farquestloyalty", "jcdenton" ], 
     this.INTERNAL_ACCOUNT_USERNAME = "jc", this.FARHERO_CHECK_PASSES_INVITE_CODE = "CheckPasses", 
-    this.FARHERO_HANDLES_REQUIRED_FOR_INVITE = "development" === process.env.NODE_ENV ? 1 : 25, 
-    this.MAX_ROUNDS_BEFORE_DRAW = 15, this.quests = {
+    this.FARHERO_HANDLES_REQUIRED_FOR_INVITE = (process.env.NODE_ENV, 1), this.MAX_ROUNDS_BEFORE_DRAW = 15, 
+    this.quests = {
       followWieldLabs: {
         id: "followWieldLabs",
         score: 100
@@ -1279,30 +1279,33 @@ class FarcasterTcgService {
     });
     throw new Error("Player not found");
   }
-  async completeQuest(e, a) {
-    var t = this.quests[e];
-    if (!t) throw new Error("Quest not found");
-    var r, s = await Player.findOne({
-      account: a.account._id
-    });
-    if (!s) throw new Error("Player not found");
-    if (s.quests && s.quests[e]) throw new Error("Quest already completed");
-    let o = !0;
-    if (await a.account.populate("addresses"), t.check && (r = a.account.addresses[0].address?.toLowerCase(), 
-    o = await t.check(r)), o) return await this.scoreService.setScore({
-      address: a.account.addresses[0].address,
-      scoreType: getFarheroXpScoreType(),
-      modifier: t.score
-    }), s.quests || (s.quests = {}), s.quests = {
-      ...s.quests,
-      [e]: !0
-    }, await s.save(), {
-      success: !0,
-      message: "Quest completed successfully",
-      questId: e,
-      score: t.score
-    };
-    throw new Error("Cannot complete quest");
+  async completeQuest(s, o) {
+    const n = await mongoose.startSession();
+    try {
+      await n.withTransaction(async () => {
+        var e = await Player.findOne({
+          account: o.account._id
+        }).session(n);
+        if (e.quests && e.quests[s]) throw new Error("Quest already completed");
+        var a, t = this.quests[s];
+        if (!t) throw new Error("Quest not found");
+        let r = !0;
+        if (await o.account.populate("addresses"), t.check && (a = o.account.addresses[0].address?.toLowerCase(), 
+        r = await t.check(a)), !r) throw new Error("Cannot complete quest");
+        e.quests || (e.quests = {}), e.quests = {
+          ...e.quests,
+          [s]: !0
+        }, await e.save({
+          session: n
+        }), await this.scoreService.setScore({
+          address: o.account.addresses[0].address,
+          scoreType: getFarheroXpScoreType(),
+          modifier: t.score
+        });
+      });
+    } finally {
+      await n.endSession();
+    }
   }
   async _canCompleteQuest({
     player: e,

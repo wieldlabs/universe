@@ -111,7 +111,7 @@ class MarketplaceService {
       console.error("Error converting tokenId to 0x format:", e);
     }
     return CastHandle.findOne({
-      tokenId: e,
+      tokenId: CastHandle.normalizeTokenId(e),
       chainId: t
     });
   }

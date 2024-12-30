@@ -9,7 +9,7 @@ async function validateAndCreateMetadata(a) {
     0 < e[1].length) throw Error("inputDomain extension incorrect!");
   } else if (a.includes(".")) throw Error("inputDomain does not have correct extension!");
   validateName(a);
-  var a = a.replace(".beb", "").replace(".cast", ""), e = keccak256(utf8ToHex(a)), t = await Metadata.findOne({
+  var a = a.replace(".beb", "").replace(".cast", ""), e = CastHandle.normalizeTokenId(keccak256(utf8ToHex(a))), t = await Metadata.findOne({
     uri: e
   });
   if (t) return {

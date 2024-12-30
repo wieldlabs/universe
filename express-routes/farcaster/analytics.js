@@ -32,6 +32,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
   getFarcasterUserByAnyAddress
 } = require("../../helpers/farcaster"), {
   calculateMarketCap,
+  calculateAllocatedMarketCap,
   getBondingCurveProgress,
   getPricePerToken,
   calculateMarketCapWithUniswap,
@@ -104,20 +105,25 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       const p = await oneEthToUsd();
       var l = {
         address: t,
-        token_holdings: await Promise.all(o.tokens.map(async e => {
+        token_holdings: (await Promise.all(o.tokens.map(async e => {
+          if (!e) return null;
           var r = e.totalSupply?.replace(/^0+/, "") || "0";
-          let t, a;
-          a = 1 === e.marketType ? (s = await calculateMarketCapWithUniswap(e.marketType, MAX_TOTAL_SUPPLY, e.poolAddress, e.tokenAddress), 
-          t = ethers.utils.formatEther(s), weiToUsd(s, p)) : (t = calculateMarketCap(r), 
-          weiToUsd(t, p));
-          var s = getPricePerToken(r), e = {
+          let t, a, s, i, n = parseInt(BASE_CHAIN_ID);
+          a = 1 === e.marketType ? (o = await calculateMarketCapWithUniswap(e.marketType, MAX_TOTAL_SUPPLY, e.poolAddress, e.tokenAddress), 
+          t = ethers.utils.formatEther(o), weiToUsd(o, p)) : (t = calculateMarketCap(r), 
+          weiToUsd(t, p)), "FIDTOKEN" === e.type && (s = calculateAllocatedMarketCap(r, e.allocatedSupply?.replace?.(/^0+/, "") || "0"), 
+          i = weiToUsd(s, p), n = 10);
+          var o = getPricePerToken(r), e = {
             ...e,
             isFartoken: !0,
             marketCapInETH: t,
             marketCapUSD: a,
-            pricePerToken: s,
-            pricePerTokenUSD: weiToUsd(s, p),
+            pricePerToken: o,
+            pricePerTokenUSD: weiToUsd(o, p),
             bondingCurveProgress: getBondingCurveProgress(r),
+            adjustedMarketCapInETH: s?.toString(),
+            adjustedMarketCapUSD: i?.toString(),
+            chainId: n,
             metadata: {
               ...e.metadata,
               image: cleanIpfsImage(e.metadata?.image)
@@ -125,13 +131,16 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
           };
           return {
             ...cleanTokenToMoralis(e),
-            price_per_token: s,
-            price_per_token_usd: weiToUsd(s, p),
+            price_per_token: o,
+            price_per_token_usd: weiToUsd(o, p),
             market_cap_in_eth: t,
             market_cap_usd: a,
-            bonding_curve_progress: getBondingCurveProgress(r)
+            bonding_curve_progress: getBondingCurveProgress(r),
+            adjusted_market_cap_in_eth: s?.toString(),
+            adjusted_market_cap_usd: i?.toString(),
+            chain_id: n
           };
-        })),
+        }))).filter(Boolean),
         pagination: o.pagination
       };
       return await memcache.set(i, JSON.stringify(l), {
@@ -343,10 +352,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       [s]: -1,
       _id: -1
     }).limit(a));
-    const [ h, S ] = await Promise.all([ getTokenMetadata(BASE_CHAIN_ID, u.map(e => e.tokenAddress)), Promise.all(u.map(e => getTopBuyersForToken(e.tokenAddress, g, y))) ]), w = h.reduce((e, r) => (e[r.address.toLowerCase()] = r, 
+    const [ h, S ] = await Promise.all([ getTokenMetadata(BASE_CHAIN_ID, u.map(e => e.tokenAddress)), Promise.all(u.map(e => getTopBuyersForToken(e.tokenAddress, g, y))) ]), _ = h.reduce((e, r) => (e[r.address.toLowerCase()] = r, 
     e), {});
     var m, f = u.map((e, r) => {
-      var t = e.tokenAddress.toLowerCase(), t = w[t] || {}, r = S[r] || [];
+      var t = e.tokenAddress.toLowerCase(), t = _[t] || {}, r = S[r] || [];
       return {
         ...e.toObject(),
         metadata: t,
@@ -470,19 +479,19 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
     var y = await Transactions.find(u).sort({
       timestamp: 1,
       _id: 1
-    }).limit(n + 1).lean(), h = y.length > n, S = y.slice(0, n), w = new Set(S.map(e => e.fid)), _ = new Set(S.filter(e => !e.isFartoken).map(e => e.rawContract?.address).filter(Boolean)), A = new Set(S.filter(e => e.isFartoken).map(e => e.rawContract?.address?.toLowerCase()).filter(Boolean));
-    const B = new Map();
-    var I = Array.from(w).map(async e => {
+    }).limit(n + 1).lean(), h = y.length > n, S = y.slice(0, n), _ = new Set(S.map(e => e.fid)), I = new Set(S.filter(e => !e.isFartoken).map(e => e.rawContract?.address).filter(Boolean)), w = new Set(S.filter(e => e.isFartoken).map(e => e.rawContract?.address?.toLowerCase()).filter(Boolean));
+    const $ = new Map();
+    var A = Array.from(_).map(async e => {
       let r = null;
-      (r = "0x" === e.slice(0, 2) ? await getFarcasterUserByAnyAddress(e) : await getFarcasterUserByFid(e)) && B.set(e, r);
-    }), T = Array.from(A), E = T.length ? BondingErc20.find({
+      (r = "0x" === e.slice(0, 2) ? await getFarcasterUserByAnyAddress(e) : await getFarcasterUserByFid(e)) && $.set(e, r);
+    }), T = Array.from(w), E = T.length ? BondingErc20.find({
       tokenAddress: {
         $in: T
       },
       type: {
-        $in: BondingErc20.availableTokens()
+        $in: BondingErc20.queryTokens()
       }
-    }) : [], k = getTokenMetadata(BASE_CHAIN_ID, [ ..._ ]), [ v, C ] = await Promise.all([ k, E, ...I ]);
+    }) : [], k = getTokenMetadata(BASE_CHAIN_ID, [ ...I ]), [ v, C ] = await Promise.all([ k, E, ...A ]);
     const j = v.reduce((e, r) => (e[r.address.toLowerCase()] = r, e), {}), N = C.reduce((e, r) => (e[r.tokenAddress.toLowerCase()] = {
       ...r.metadata,
       address: r.tokenAddress,
@@ -495,8 +504,8 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
         isSwap: !(!a && !s),
         dexInfo: a || s || null,
         tokenMetadata: n,
-        fromProfile: e.fid && r === e.from.toLowerCase() ? B.get(e.fid) : null,
-        toProfile: e.fid && t === e.to.toLowerCase() ? B.get(e.fid) : null,
+        fromProfile: e.fid && r === e.from.toLowerCase() ? $.get(e.fid) : null,
+        toProfile: e.fid && t === e.to.toLowerCase() ? $.get(e.fid) : null,
         isBuy: !(!a || !e.fid),
         isSell: !(!s || !e.fid),
         isTokenCreated: i,
@@ -505,7 +514,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
     }).filter(Boolean);
     let t = null;
     h && 0 < S.length && (O = S[S.length - 1], t = new Date(O.timestamp).getTime() + "-" + O._id);
-    var $ = {
+    var B = {
       result: {
         transactions: P
       },
@@ -513,9 +522,9 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       chain: o,
       category: l
     };
-    return await memcache.set(d, JSON.stringify($), {
+    return await memcache.set(d, JSON.stringify(B), {
       lifetime: 10
-    }), s.json($);
+    }), s.json(B);
   } catch (e) {
     return Sentry.captureException(e), console.error("Error fetching global transactions:", e), 
     s.status(500).json({
@@ -547,17 +556,17 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       chain: i,
       timePeriod: n
     });
-    const _ = u.map(e => e.address.toLowerCase());
+    const I = u.map(e => e.address.toLowerCase());
     var m, f = {
       chain: i,
       isSwap: !0,
       $or: [ {
         from: {
-          $in: _
+          $in: I
         }
       }, {
         to: {
-          $in: _
+          $in: I
         }
       } ]
     }, p = (o && (f.timestamp = {
@@ -575,11 +584,11 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       timestamp: -1,
       _id: -1
     }).limit(s + 1).lean(), y = g.length > s, h = g.slice(0, s), S = h.map(e => enhanceTransaction(e, {
-      influencerAddresses: _
+      influencerAddresses: I
     }));
     let e = null;
     y && 0 < h.length && (m = h[h.length - 1], e = new Date(m.timestamp).getTime() + "-" + m._id);
-    var w = {
+    var _ = {
       fid: a,
       profile: p,
       transactions: S,
@@ -588,9 +597,9 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       timePeriod: n,
       addresses: u.map(e => e.address)
     };
-    return await memcache.set(d, JSON.stringify(w), {
+    return await memcache.set(d, JSON.stringify(_), {
       lifetime: 30
-    }), t.json(w);
+    }), t.json(_);
   } catch (e) {
     return Sentry.captureException(e), console.error("Error fetching influencer transactions:", e), 
     t.status(500).json({
@@ -632,7 +641,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       chain: h,
       timePeriod: S
     }).distinct("fid");
-    const w = await Promise.all(f.map(async e => {
+    const _ = await Promise.all(f.map(async e => {
       return {
         fid: e,
         profile: await getFarcasterUserByFid(e)
@@ -645,7 +654,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
         chain: h,
         timePeriod: S
       });
-      r = w.find(e => e.fid === t?.fid)?.profile;
+      r = _.find(e => e.fid === t?.fid)?.profile;
       return {
         ...e.toObject(),
         fid: t?.fid,

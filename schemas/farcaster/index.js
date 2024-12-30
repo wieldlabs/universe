@@ -1230,9 +1230,16 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
     default: "pending",
     index: !0
   },
-  tokenAddress: {
-    type: String,
-    index: !0
+  tokenOptions: {
+    imageUrl: {
+      type: String
+    },
+    name: {
+      type: String
+    },
+    symbol: {
+      type: String
+    }
   },
   notes: {
     type: String

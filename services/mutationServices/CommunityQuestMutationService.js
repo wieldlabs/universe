@@ -27,12 +27,12 @@ class CommunityQuestMutationService extends CommunityQuestService {
       await a.account?.populate?.("addresses");
       var o = a.account?.addresses?.[0]?.address;
       if (!o) throw new Error("You must be logged in to claim this reward.");
-      var n = this._getScoreType(i);
+      var n = this._getScoreType(i), u = "Claimed reward " + (e.rewardId ? e.rewardId.toString() : "(score-only)");
       await ScoreService.setScore({
         address: o,
         scoreType: n,
         modifier: e.quantity,
-        description: "Claimed reward ID " + e.rewardId
+        description: u
       });
     } else if ("IMAGE" === e.type) {
       if (!a.account) throw new Error("You must be logged in to claim this reward.");
@@ -45,15 +45,15 @@ class CommunityQuestMutationService extends CommunityQuestService {
     } else if ("RANDOM" === e.type) {
       if (!a.account) throw new Error("You must be logged in to claim this reward.");
       o = (await this.getQuestReward(e)).rewards.filter(e => e.percentage) || [];
-      const u = o.reduce((e, t) => e + t.percentage, 0);
+      const m = o.reduce((e, t) => e + t.percentage, 0);
       let t = 0;
-      n = o.map(e => (t += e.percentage / u * 1e4, {
+      n = o.map(e => (t += e.percentage / m * 1e4, {
         ...e.toJSON(),
         cumulativePercentage: t
       }));
-      const m = crypto.randomInt(1, 10001);
-      o = n.find(e => m <= e.cumulativePercentage);
-      return o ? this._claimRewardByType(o, {
+      const c = crypto.randomInt(1, 10001);
+      u = n.find(e => c <= e.cumulativePercentage);
+      return u ? this._claimRewardByType(u, {
         communityId: r,
         scoreType: i
       }, a) : null;

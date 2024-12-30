@@ -1566,21 +1566,23 @@ app.get("/v2/feed", [ authContext, limiter ], async (e, r) => {
       error: e.message
     });
   }
-}), app.post("/v2/agent-requests", [ heavyLimiter, authContext ], async (e, r) => {
+}), app.post("/v2/agent-requests", [ heavyLimiter ], async (e, r) => {
   try {
-    var t;
-    return e.context.accountId ? (await (t = new AgentRequest({
+    var t, a, s = e.body["currentOwnerFid"];
+    return s ? (t = await getFarcasterUserByFid(s)) ? (await (a = new AgentRequest({
       ...e.body,
-      currentOwnerFid: e.context.fid,
-      currentOwnerAddress: e.context.account.address,
+      currentOwnerFid: t.fid,
+      currentOwnerAddress: t.connectedAddress || t.custodyAddress,
       status: "pending"
     })).save(), r.json({
       result: {
-        agentRequest: t
+        agentRequest: a
       },
       source: "v2"
-    })) : r.status(401).json({
-      error: "Unauthorized"
+    })) : r.status(400).json({
+      error: "Farcaster user not found"
+    }) : r.status(400).json({
+      error: "currentOwnerFid is required"
     });
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({

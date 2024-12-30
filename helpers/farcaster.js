@@ -214,7 +214,7 @@ const getSyncedChannelById = async e => {
     var u = F.value.startsWith("0x") ? F.value.slice(2) : F.value, m = Buffer.from(u, "hex").toString("utf8");
     switch (F.type) {
      case UserDataType.USER_DATA_TYPE_USERNAME:
-      g.username || (d.username = m, g.username = !0);
+      d.username && !m.includes(".eth") || g.username || (d.username = m, g.username = !0);
       break;
 
      case UserDataType.USER_DATA_TYPE_DISPLAY:
@@ -699,11 +699,11 @@ const getSyncedChannelById = async e => {
     deletedAt: null
   }), await memcache.set(`getFarcasterReactionsCount:${e}:` + t, a), a);
 }, getFarcasterRepliesCount = async e => {
-  var t = await memcache.get("getFarcasterRepliesCount:" + e);
-  return t ? t.value : (t = await Casts.countDocuments({
+  var t;
+  return e ? (t = await memcache.get("getFarcasterRepliesCount:" + e)) ? t.value : (t = await Casts.countDocuments({
     parentHash: e,
     deletedAt: null
-  }), await memcache.set("getFarcasterRepliesCount:" + e, t), t);
+  }), await memcache.set("getFarcasterRepliesCount:" + e, t), t) : 0;
 }, getFarcasterFollowers = async (e, t, a) => {
   var [ r, s ] = a ? a.split("-") : [ null, null ];
   let i;

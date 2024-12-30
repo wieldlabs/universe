@@ -4,13 +4,25 @@ const ethers = require("ethers"), BondingErc20History = require("../models/token
 } = require("alchemy-sdk"), BondingErc20 = require("../models/token/BondingErc20")["BondingErc20"], {
   memcache,
   getHash
-} = require("../connectmemcache"), uniswapV3Abi = require("../helpers/abi/uniswap-v3")["uniswapV3Abi"], A = ethers.BigNumber.from("1060848709"), B = ethers.BigNumber.from("4379701787"), DECIMALS = ethers.BigNumber.from("1000000000000000000"), MAX_SUPPLY = ethers.utils.parseEther("799000000"), MAX_PRIMARY_SUPPLY = ethers.BigNumber.from("799000000000000000000000000"), MAX_TOTAL_SUPPLY = ethers.BigNumber.from("1000000000000000000000000000"), BLOCK_TIME_CACHE_KEY = "latest_block_stats", BLOCK_TIME_UPDATE_INTERVAL = 36e5, BLOCKS_TO_SAMPLE = 100;
+} = require("../connectmemcache"), uniswapV3Abi = require("../helpers/abi/uniswap-v3")["uniswapV3Abi"], A = ethers.BigNumber.from("1060848709"), B = ethers.BigNumber.from("4379701787"), DECIMALS = ethers.BigNumber.from("1000000000000000000"), MAX_SUPPLY = ethers.BigNumber.from("800000000000000000000000000"), MAX_PRIMARY_SUPPLY = ethers.BigNumber.from("799000000000000000000000000"), MAX_TOTAL_SUPPLY = ethers.BigNumber.from("1000000000000000000000000000"), DESIRED_RAISE = ethers.utils.parseEther("8"), BLOCK_TIME_CACHE_KEY = "latest_block_stats", BLOCK_TIME_UPDATE_INTERVAL = 36e5, BLOCKS_TO_SAMPLE = 100;
 
 function calculateMarketCap(e) {
   e = ethers.BigNumber.isBigNumber(e) ? e : ethers.BigNumber.from(e.toString()), 
   e = B.mul(e).div(DECIMALS).toString() / Number(DECIMALS.toString()), e = Math.exp(e), 
   e = Number(A.toString()) / 1e9 * e;
   return ethers.utils.parseEther(e.toString());
+}
+
+function calculateAllocatedMarketCap(e, t) {
+  var e = ethers.BigNumber.isBigNumber(e) ? e : ethers.BigNumber.from(e.toString()), t = ethers.BigNumber.isBigNumber(t) ? t : ethers.BigNumber.from(t.toString()), t = B.mul(t).div(DECIMALS), t = Math.exp(t.toString() / Number(DECIMALS.toString())), r = DESIRED_RAISE.mul(B), t = ethers.utils.parseEther((t - 1).toString()), r = r.div(t), t = B.mul(e).div(DECIMALS), e = Math.exp(t.toString() / Number(DECIMALS.toString())), t = Number(r.toString()) / 1e9 * (e - 1);
+  if (t < 1e-18) return ethers.constants.Zero;
+  try {
+    var a = t.toFixed(18);
+    return ethers.utils.parseEther(a);
+  } catch (e) {
+    return console.error("Error converting market cap:", e), console.error("Base result:", t), 
+    ethers.constants.Zero;
+  }
 }
 
 async function updateBlockTimeStats() {
@@ -49,7 +61,7 @@ const getProvider = async () => {
     apiKey: process.env.BASE_NODE_URL,
     network: Network.BASE_MAINNET
   }, e = await new Alchemy(e).config.getProvider(), _GLOBAL_PROVIDER = e);
-}, normalizeEventName = e => [ "WowTokenBuy", "FarTokenBuy" ].includes(e) ? "Buy" : [ "WowTokenSell", "FarTokenSell" ].includes(e) ? "Sell" : e;
+}, normalizeEventName = e => [ "WowTokenBuy", "FarTokenBuy", "FIDTokenBuy" ].includes(e) ? "Buy" : [ "WowTokenSell", "FarTokenSell", "FIDTokenSell" ].includes(e) ? "Sell" : e;
 
 async function processFarTokenTradeEvent({
   tokenAddress: e,
@@ -81,7 +93,7 @@ async function processFarTokenTradeEvent({
     marketCapInETH: s.toString(),
     tokenAddress: e
   }), o && console.log(`${r}: ${t.transactionHash} - ${l.toString()} ETH`);
-  var o = [ "WowTokenBuy", "FarTokenBuy" ].includes(r), e = e.toLowerCase(), l = padWithZeros(l.toString()), p = padWithZeros((o ? p : k)?.toString?.() || "0"), k = {
+  var o = [ "WowTokenBuy", "FarTokenBuy", "FIDTokenBuy" ].includes(r), e = e.toLowerCase(), l = padWithZeros(l.toString()), p = padWithZeros((o ? p : k)?.toString?.() || "0"), k = {
     tokenAddress: e,
     timestamp: n || await getBlockTimestamp(t.blockNumber),
     blockNumber: "string" == typeof t.blockNumber ? parseInt(t.blockNumber, 16) : Number(t.blockNumber),
@@ -293,7 +305,7 @@ async function processFarTokenGraduatedEvent({
 const getAddressTokens = async (e, {
   ignoreSmallValues: t = !0
 } = {}) => {
-  e = e.toLowerCase(), e = await BondingErc20Transaction.aggregate([ {
+  var e = e.toLowerCase(), e = await BondingErc20Transaction.aggregate([ {
     $match: {
       address: e,
       ...t ? {
@@ -322,22 +334,28 @@ const getAddressTokens = async (e, {
         $first: "$timestamp"
       }
     }
-  } ]);
-  const r = (await BondingErc20.find({
+  } ]), [ t ] = await Promise.all([ BondingErc20.find({
     tokenAddress: {
       $in: e.map(e => e.tokenAddress)
     }
-  })).reduce((e, t) => (e[t.tokenAddress] = t, e), {});
+  }) ]);
+  const a = t.reduce((e, t) => (e[t.tokenAddress] = t, e), {});
+  t = e.map(async e => {
+    var t, r = a[e.tokenAddress];
+    return r ? (t = await BondingErc20Transaction.findOne({
+      tokenAddress: e.tokenAddress
+    }).sort({
+      timestamp: -1,
+      _id: -1
+    }).select("totalSupply"), {
+      ...r.toObject(),
+      balance: e.balance,
+      totalSupply: t?.totalSupply?.replace(/^0+/, "") || "0",
+      lastActivityAt: e.lastActivityAt
+    }) : null;
+  }).filter(Boolean);
   return {
-    tokens: e.map(e => {
-      var t = r[e.tokenAddress];
-      return t ? {
-        ...t.toObject(),
-        balance: e.balance,
-        totalSupply: e.totalSupply?.replace(/^0+/, "") || "0",
-        lastActivityAt: e.lastActivityAt
-      } : null;
-    }).filter(Boolean),
+    tokens: await Promise.all(t),
     pagination: null
   };
 };
@@ -386,6 +404,7 @@ module.exports = {
   processFarTokenTradeEvent: processFarTokenTradeEvent,
   processFarTokenTransferEvent: processFarTokenTransferEvent,
   calculateMarketCap: calculateMarketCap,
+  calculateAllocatedMarketCap: calculateAllocatedMarketCap,
   getBondingCurveProgress: getBondingCurveProgress,
   getTokenHolders: getTokenHolders,
   processFarTokenGraduatedEvent: processFarTokenGraduatedEvent,

@@ -74,10 +74,17 @@ const mongoose = require("mongoose"), schema = new mongoose.Schema({
     default: 0,
     index: !0
   },
+  allocatedSupply: {
+    type: String
+  },
+  fid: {
+    type: Number,
+    index: !0
+  },
   type: {
     type: String,
     default: "WOW",
-    enum: [ "WOW", "FARTOKEN", "HIDDEN_WOW", "HIDDEN_FARTOKEN" ],
+    enum: [ "WOW", "FARTOKEN", "FIDTOKEN", "HIDDEN_WOW", "HIDDEN_FARTOKEN", "HIDDEN_FIDTOKEN" ],
     required: !0
   },
   lastStatsUpdate: {

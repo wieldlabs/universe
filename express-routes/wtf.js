@@ -401,11 +401,11 @@ app.post("/v1/frames/:factory/create/contract", heavyLimiter, async (t, e) => {
           value: C,
           expiresAt: null
         }) ]), c = "";
-        var A = "https://explorer.degen.tips/tx/" + C, v = "https://far.quest/contracts/degen/" + u.slug, x = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + u.metadata?.name + " for free ✨\n\n" + v)}&embeds[]=${v}&rand=` + Math.random().toString().slice(0, 7);
+        var v = "https://explorer.degen.tips/tx/" + C, A = "https://far.quest/contracts/degen/" + u.slug, x = `https://warpcast.com/~/compose?text=${encodeURIComponent("Mint " + u.metadata?.name + " for free ✨\n\n" + A)}&embeds[]=${A}&rand=` + Math.random().toString().slice(0, 7);
         m = `
           <meta property="fc:frame:button:1" content="View Tx" />
           <meta property="fc:frame:button:1:action" content="link" />
-          <meta property="fc:frame:button:1:target" content="${A}" />
+          <meta property="fc:frame:button:1:target" content="${v}" />
 
           <meta property="fc:frame:button:2" content="Share Mint" />
           <meta property="fc:frame:button:2:action" content="link" />
@@ -686,7 +686,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         };
         if (e.query.isSet) try {
           var C = s;
-          const v = 100 / C.length;
+          const A = 100 / C.length;
           h.isSet = !0, h.setData = {
             type: "RANDOM",
             metadata: C.map((t, e) => ({
@@ -694,7 +694,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
               rawImageUrl: t,
               name: o,
               description: "Image #" + e + " of Collection " + o,
-              percentage: v
+              percentage: A
             }))
           };
         } catch (t) {
@@ -720,7 +720,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         <meta property="fc:frame:input:text" content="Error: Invalid step provided." />
       `;
     }
-    var A = `
+    var v = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -730,7 +730,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         ${n}
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(A);
+    a.setHeader("Content-Type", "text/html"), a.send(v);
   } catch (t) {
     console.error(t), Sentry.captureException(t, {
       extra: {
@@ -740,7 +740,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
         context: e.context
       }
     });
-    A = `
+    v = `
     <!DOCTYPE html>
     <html>
       <head>
@@ -752,7 +752,7 @@ app.post("/v1/frames/create/post_url", frameContext, async (e, a) => {
           <meta property="fc:frame:button:1:post_url" content="${i}?step=fillImage" />
       </head>
     </html>`;
-    a.setHeader("Content-Type", "text/html"), a.send(A);
+    a.setHeader("Content-Type", "text/html"), a.send(v);
   }
 }), app.get("/v1/frames/add-action", (t, e) => {
   var a = {
@@ -845,19 +845,19 @@ const MAX_TAPS_PER_SECOND = 10, boostsMultiplier = {
   referralQuest300: 3e10,
   referralQuest400: 25e10,
   referralQuest500: 2e13,
-  referralQuest1000: 3e13,
-  referralQuest5000: 1e14
+  referralQuest1000: 5e13,
+  referralQuest5000: 125e12
 }, paidQuests = {
-  dotCast: 2e11,
-  dotCast3: 3e11,
-  dotCast5: 5e11,
-  dotCast10: 15e11,
-  dotCast25: 2e13,
-  dotCast50: 3e13,
-  dotCast75: 4e13,
-  dotCast100: 5e13,
-  dotCast250: 75e12,
-  dotCast1000: 1e14
+  dotCast: 5e11,
+  dotCast3: 1e12,
+  dotCast5: 5e12,
+  dotCast10: 1e13,
+  dotCast25: 25e12,
+  dotCast50: 4e13,
+  dotCast75: 5e13,
+  dotCast100: 75e12,
+  dotCast250: 1e14,
+  dotCast1000: 125e12
 }, MULTIPLIER = 1.1, REFERRAL_BONUS = 1e6, getTotalReferral = async t => {
   var e = await memcache.get(`ReferralV2:TELEGRAM:${t}:total:count`);
   return e ? e.value : (e = await Referral.countDocuments({
@@ -872,9 +872,9 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
     message: "Unauthorized"
   });
   var {
-    taps: r = 0,
-    boosts: o = {},
-    quests: e
+    taps: e = 0,
+    boosts: r = {},
+    quests: o
   } = t.body, s = t.context.account._id, n = await getFartapKey(), c = new Date();
   let m = await cacheService.get({
     key: n,
@@ -889,9 +889,9 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
     gameLastUpdated: c
   };
   const i = (c - new Date(m.gameLastUpdated)) / 1e3;
-  var p = i * MAX_TAPS_PER_SECOND, r = Math.min(Math.max(r, m.score), p + m.score), p = Object.entries(m.boosts).reduce((t, [ e, a ]) => t + (boostsMultiplier[e] || 0) * a * i, 0), u = m.passiveTaps + p;
-  let f = r + p;
-  Object.entries(o).forEach(([ a, r ]) => {
+  var p = i * MAX_TAPS_PER_SECOND, e = Math.min(Math.max(e, m.score), p + m.score), p = Object.entries(m.boosts).reduce((t, [ e, a ]) => t + (boostsMultiplier[e] || 0) * a * i, 0), u = m.passiveTaps + p;
+  let f = e + p;
+  Object.entries(r).forEach(([ a, r ]) => {
     if (boostsPrice[a]) {
       var o = boostsPrice[a];
       if ((m.boosts[a] || 0) < r) {
@@ -905,248 +905,260 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
     }
   }), m.score = f, m.passiveTaps = u, m.gameLastUpdated = c;
   const d = await getTotalReferral(s);
-  if (m.totalReferralCount = d, (!m.appliedRefCount || m.appliedRefCount < d) && (r = m.score + (d - m.appliedRefCount) * REFERRAL_BONUS, 
-  m.score = r, m.appliedRefCount = d), e && 0 < Object.keys(e).length && Object.entries(e).forEach(([ t ]) => {
-    var e;
-    questsPrice[t] && !m.quests?.[t] ? (m.score += questsPrice[t], m.quests = {
-      ...m.quests || {},
-      [t]: !0
-    }) : referralQuesPrice[t] && !m.quests?.[t] && ((e = (t => {
-      t = t.match(/referralQuest(\d+)/);
-      return t ? parseInt(t[1], 10) : null;
-    })(t)) ? d >= e ? (m.score += referralQuesPrice[t], m.quests = {
-      ...m.quests || {},
-      [t]: !0
-    }) : console.error(`Not enough referrals for quest ${t}. Has: ${d}, Needs: ` + e) : console.error("Invalid referral quest format: " + t));
-  }), !0 === e?.dotCast && !m.quests?.dotCast) {
-    await t.context.account.populate("addresses");
-    p = t.context.account.addresses[0].address?.toLowerCase();
-    if (!p) return a.status(400).json({
+  if (m.totalReferralCount = d, (!m.appliedRefCount || m.appliedRefCount < d) && (e = m.score + (d - m.appliedRefCount) * REFERRAL_BONUS, 
+  m.score = e, m.appliedRefCount = d), o && 0 < Object.keys(o).length) {
+    if (await memcache.get(getHash(`fartap:quest:lock:${s}:claiming:` + JSON.stringify(o)))) return a.status(429).json({
       success: !1,
-      message: "No address found for the account."
+      message: "Quest claim in progress, please try again"
     });
-    let e = !1;
     try {
-      var l = await getAddressPasses(p, !0);
-      e = l.isHolder;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", p), e = !1;
+      if (await memcache.set(getHash(`fartap:quest:lock:${s}:claiming:` + JSON.stringify(o)), "1", {
+        lifetime: 30
+      }), Object.entries(o).forEach(([ t ]) => {
+        var e;
+        questsPrice[t] && !m.quests?.[t] ? (m.score += questsPrice[t], m.quests = {
+          ...m.quests || {},
+          [t]: !0
+        }) : referralQuesPrice[t] && !m.quests?.[t] && ((e = (t => {
+          t = t.match(/referralQuest(\d+)/);
+          return t ? parseInt(t[1], 10) : null;
+        })(t)) ? d >= e ? (m.score += referralQuesPrice[t], m.quests = {
+          ...m.quests || {},
+          [t]: !0
+        }) : console.error(`Not enough referrals for quest ${t}. Has: ${d}, Needs: ` + e) : console.error("Invalid referral quest format: " + t));
+      }), !0 === o?.dotCast && !m.quests?.dotCast) {
+        await t.context.account.populate("addresses");
+        var l = t.context.account.addresses[0].address?.toLowerCase();
+        if (!l) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var g = await getAddressPasses(l, !0);
+          e = g.isHolder;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", l), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast, m.quests = {
+          ...m.quests || {},
+          dotCast: !0,
+          checkedDotCast: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast: !1
+        };
+      }
+      if (!0 === o?.dotCast3 && !m.quests?.dotCast3) {
+        await t.context.account.populate("addresses");
+        var y = t.context.account.addresses[0].address?.toLowerCase();
+        if (!y) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var h = await getAddressPasses(y, !1);
+          e = 3 <= h.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", y), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast3, m.quests = {
+          ...m.quests || {},
+          dotCast3: !0,
+          checkedDotCast3: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast3: !1
+        };
+      }
+      if (!0 === o?.dotCast5 && !m.quests?.dotCast5) {
+        await t.context.account.populate("addresses");
+        var C = t.context.account.addresses[0].address?.toLowerCase();
+        if (!C) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var b = await getAddressPasses(C, !1);
+          e = 5 <= b.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", C), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast5, m.quests = {
+          ...m.quests || {},
+          dotCast5: !0,
+          checkedDotCast5: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast5: !1
+        };
+      }
+      if (!0 === o?.dotCast10 && !m.quests?.dotCast10) {
+        await t.context.account.populate("addresses");
+        var w = t.context.account.addresses[0].address?.toLowerCase();
+        if (!w) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var v = await getAddressPasses(w, !1);
+          e = 10 <= v.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", w), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast10, m.quests = {
+          ...m.quests || {},
+          dotCast10: !0,
+          checkedDotCast10: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast10: !1
+        };
+      }
+      if (!0 === o?.dotCast25 && !m.quests?.dotCast25) {
+        await t.context.account.populate("addresses");
+        var A = t.context.account.addresses[0].address?.toLowerCase();
+        if (!A) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var x = await getAddressPasses(A, !1);
+          e = 25 <= x.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", A), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast25, m.quests = {
+          ...m.quests || {},
+          dotCast25: !0,
+          checkedDotCast25: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast25: !1
+        };
+      }
+      if (!0 === o?.dotCast50 && !m.quests?.dotCast50) {
+        await t.context.account.populate("addresses");
+        var q = t.context.account.addresses[0].address?.toLowerCase();
+        if (!q) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var I = await getAddressPasses(q, !1);
+          e = 50 <= I.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", q), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast50, m.quests = {
+          ...m.quests || {},
+          dotCast50: !0,
+          checkedDotCast50: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast50: !1
+        };
+      }
+      if (!0 === o?.dotCast75 && !m.quests?.dotCast75) {
+        await t.context.account.populate("addresses");
+        var S = t.context.account.addresses[0].address?.toLowerCase();
+        if (!S) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var R = await getAddressPasses(S, !1);
+          e = 75 <= R.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", S), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast75, m.quests = {
+          ...m.quests || {},
+          dotCast75: !0,
+          checkedDotCast75: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast75: !1
+        };
+      }
+      if (!0 === o?.dotCast100 && !m.quests?.dotCast100) {
+        await t.context.account.populate("addresses");
+        var k = t.context.account.addresses[0].address?.toLowerCase();
+        if (!k) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var U = await getAddressPasses(k, !1);
+          e = 100 <= U.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", k), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast100, m.quests = {
+          ...m.quests || {},
+          dotCast100: !0,
+          checkedDotCast100: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast100: !1
+        };
+      }
+      if (!0 === o?.dotCast250 && !m.quests?.dotCast250) {
+        await t.context.account.populate("addresses");
+        var _ = t.context.account.addresses[0].address?.toLowerCase();
+        if (!_) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var T = await getAddressPasses(_, !1);
+          e = 250 <= T.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", _), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast250, m.quests = {
+          ...m.quests || {},
+          dotCast250: !0,
+          checkedDotCast250: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast250: !1
+        };
+      }
+      if (!0 === o?.dotCast1000 && !m.quests?.dotCast1000) {
+        await t.context.account.populate("addresses");
+        var $ = t.context.account.addresses[0].address?.toLowerCase();
+        if (!$) return a.status(400).json({
+          success: !1,
+          message: "No address found for the account."
+        });
+        let e = !1;
+        try {
+          var F = await getAddressPasses($, !1);
+          e = 1e3 <= F.passes?.length;
+        } catch (t) {
+          console.error("Cannot getAddressPasses!", $), e = !1;
+        }
+        e ? (m.score += paidQuests.dotCast1000, m.quests = {
+          ...m.quests || {},
+          dotCast1000: !0,
+          checkedDotCast1000: !0
+        }) : m.quests = {
+          ...m.quests || {},
+          checkedDotCast1000: !1
+        };
+      }
+    } finally {
+      await memcache.delete(getHash(`fartap:quest:lock:${s}:claiming:` + JSON.stringify(o)));
     }
-    e ? (m.score += paidQuests.dotCast, m.quests = {
-      ...m.quests || {},
-      dotCast: !0,
-      checkedDotCast: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast: !1
-    };
-  }
-  if (!0 === e?.dotCast3 && !m.quests?.dotCast3) {
-    await t.context.account.populate("addresses");
-    o = t.context.account.addresses[0].address?.toLowerCase();
-    if (!o) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var g = await getAddressPasses(o, !1);
-      e = 3 <= g.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", o), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast3, m.quests = {
-      ...m.quests || {},
-      dotCast3: !0,
-      checkedDotCast3: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast3: !1
-    };
-  }
-  if (!0 === e?.dotCast5 && !m.quests?.dotCast5) {
-    await t.context.account.populate("addresses");
-    u = t.context.account.addresses[0].address?.toLowerCase();
-    if (!u) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var y = await getAddressPasses(u, !1);
-      e = 5 <= y.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", u), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast5, m.quests = {
-      ...m.quests || {},
-      dotCast5: !0,
-      checkedDotCast5: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast5: !1
-    };
-  }
-  if (!0 === e?.dotCast10 && !m.quests?.dotCast10) {
-    await t.context.account.populate("addresses");
-    c = t.context.account.addresses[0].address?.toLowerCase();
-    if (!c) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var h = await getAddressPasses(c, !1);
-      e = 10 <= h.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", c), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast10, m.quests = {
-      ...m.quests || {},
-      dotCast10: !0,
-      checkedDotCast10: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast10: !1
-    };
-  }
-  if (!0 === e?.dotCast25 && !m.quests?.dotCast25) {
-    await t.context.account.populate("addresses");
-    r = t.context.account.addresses[0].address?.toLowerCase();
-    if (!r) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var C = await getAddressPasses(r, !1);
-      e = 25 <= C.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", r), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast25, m.quests = {
-      ...m.quests || {},
-      dotCast25: !0,
-      checkedDotCast25: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast25: !1
-    };
-  }
-  if (!0 === e?.dotCast50 && !m.quests?.dotCast50) {
-    await t.context.account.populate("addresses");
-    l = t.context.account.addresses[0].address?.toLowerCase();
-    if (!l) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var b = await getAddressPasses(l, !1);
-      e = 50 <= b.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", l), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast50, m.quests = {
-      ...m.quests || {},
-      dotCast50: !0,
-      checkedDotCast50: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast50: !1
-    };
-  }
-  if (!0 === e?.dotCast75 && !m.quests?.dotCast75) {
-    await t.context.account.populate("addresses");
-    p = t.context.account.addresses[0].address?.toLowerCase();
-    if (!p) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var w = await getAddressPasses(p, !1);
-      e = 75 <= w.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", p), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast75, m.quests = {
-      ...m.quests || {},
-      dotCast75: !0,
-      checkedDotCast75: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast75: !1
-    };
-  }
-  if (!0 === e?.dotCast100 && !m.quests?.dotCast100) {
-    await t.context.account.populate("addresses");
-    g = t.context.account.addresses[0].address?.toLowerCase();
-    if (!g) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var A = await getAddressPasses(g, !1);
-      e = 100 <= A.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", g), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast100, m.quests = {
-      ...m.quests || {},
-      dotCast100: !0,
-      checkedDotCast100: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast100: !1
-    };
-  }
-  if (!0 === e?.dotCast250 && !m.quests?.dotCast250) {
-    await t.context.account.populate("addresses");
-    o = t.context.account.addresses[0].address?.toLowerCase();
-    if (!o) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var v = await getAddressPasses(o, !1);
-      e = 250 <= v.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", o), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast250, m.quests = {
-      ...m.quests || {},
-      dotCast250: !0,
-      checkedDotCast250: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast250: !1
-    };
-  }
-  if (!0 === e?.dotCast1000 && !m.quests?.dotCast1000) {
-    await t.context.account.populate("addresses");
-    y = t.context.account.addresses[0].address?.toLowerCase();
-    if (!y) return a.status(400).json({
-      success: !1,
-      message: "No address found for the account."
-    });
-    let e = !1;
-    try {
-      var x = await getAddressPasses(y, !1);
-      e = 1e3 <= x.passes?.length;
-    } catch (t) {
-      console.error("Cannot getAddressPasses!", y), e = !1;
-    }
-    e ? (m.score += paidQuests.dotCast1000, m.quests = {
-      ...m.quests || {},
-      dotCast1000: !0,
-      checkedDotCast1000: !0
-    }) : m.quests = {
-      ...m.quests || {},
-      checkedDotCast1000: !1
-    };
   }
   await cacheService.set({
     key: n,
@@ -1156,11 +1168,11 @@ app.post("/v1/fartap/game", [ heavyLimiter, authContext ], async (t, a) => {
     value: JSON.stringify(m),
     expiresAt: null
   });
-  u = new _ScoreService(), await t.context.account.populate("addresses"), h = await getFartapScoreType();
-  return await u.setScore({
+  p = new _ScoreService(), await t.context.account.populate("addresses"), r = await getFartapScoreType();
+  return await p.setScore({
     address: t.context.account.addresses[0].address,
     score: Math.floor(f),
-    scoreType: h,
+    scoreType: r,
     shouldRecord: !1
   }), a.json({
     success: !0,

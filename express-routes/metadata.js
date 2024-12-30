@@ -106,7 +106,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), d3 = 
     let e = await CastHandle.findOne({
       handle: d
     });
-    e || (p = "0x" + l.replace(/^0x0+/, ""), e = await CastHandle.findOne({
+    e || (p = CastHandle.normalizeTokenId("0x" + l.replace(/^0x0+/, "")), e = await CastHandle.findOne({
       tokenId: p
     }));
     var g = e?.expiresAt, u = d.startsWith("op_") ? d.replace("op_", "") + ".op.cast" : d + ".cast", _ = d.replace("op_", "").length;

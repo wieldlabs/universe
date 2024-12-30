@@ -16,7 +16,13 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   tokenId: {
     type: String,
     required: !0,
-    unique: !0
+    unique: !0,
+    validate: {
+      validator: function(e) {
+        return "string" == typeof e && 0 < e.length && e.startsWith("0x") && !e.toLowerCase().startsWith("0x0");
+      },
+      message: e => e.value + " is not a valid tokenId (string, starts with 0x, not 0x0)"
+    }
   },
   expiresAt: {
     type: Number

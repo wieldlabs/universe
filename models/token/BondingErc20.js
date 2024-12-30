@@ -5,10 +5,13 @@ class BondingErc20Class {
     console.log("model: BondingErc20Class");
   }
   static availableTokens() {
-    return [ "FARTOKEN", "WOW" ];
+    return [ "FARTOKEN", "FIDTOKEN" ];
   }
   static queryTokens() {
-    return [ "FARTOKEN" ];
+    return [ "FARTOKEN", "FIDTOKEN" ];
+  }
+  static queryToken() {
+    return "FARTOKEN";
   }
 }
 

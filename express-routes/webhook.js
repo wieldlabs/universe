@@ -12,7 +12,7 @@ const express = require("express"), app = express.Router(), Sentry = require("@s
 } = require("../helpers/registrar"), crypto = require("crypto"), {
   Pack,
   Player
-} = require("../models/farcaster/tcg"), _RegistrarService = require("../services/RegistrarService")["Service"], Webhook = require("../models/Webhook")["Webhook"], wowTokenFactoryABI = require("../abis/wowTokenFactory")["wowTokenFactoryABI"], farTokenFactoryABI = require("../abis/farTokenFactory")["farTokenFactoryABI"], wowTokenABI = require("../abis/wowToken")["wowTokenABI"], farTokenABI = require("../abis/farToken")["farTokenABI"], BondingErc20 = require("../models/token/BondingErc20")["BondingErc20"], ethers = require("ethers"), padWithZeros = require("../helpers/number")["padWithZeros"], BondingErc20History = require("../models/token/BondingErc20History")["BondingErc20History"], axios = require("axios"), {
+} = require("../models/farcaster/tcg"), _RegistrarService = require("../services/RegistrarService")["Service"], Webhook = require("../models/Webhook")["Webhook"], wowTokenFactoryABI = require("../abis/wowTokenFactory")["wowTokenFactoryABI"], farTokenFactoryABI = require("../abis/farTokenFactory")["farTokenFactoryABI"], fidTokenFactoryABI = require("../abis/fidTokenFactory")["fidTokenFactoryABI"], wowTokenABI = require("../abis/wowToken")["wowTokenABI"], farTokenABI = require("../abis/farToken")["farTokenABI"], fidTokenABI = require("../abis/fidToken")["fidTokenABI"], BondingErc20 = require("../models/token/BondingErc20")["BondingErc20"], ethers = require("ethers"), padWithZeros = require("../helpers/number")["padWithZeros"], BondingErc20History = require("../models/token/BondingErc20History")["BondingErc20History"], axios = require("axios"), {
   Influencers,
   InfluencerAddresses,
   InfluencerTokens,
@@ -29,7 +29,7 @@ const express = require("express"), app = express.Router(), Sentry = require("@s
   processFarTokenTransferEvent,
   processFarTokenGraduatedEvent,
   MAX_PRIMARY_SUPPLY
-} = require("../helpers/fartoken"), BondingErc20Transaction = require("../models/token/BondingErc20Transaction")["BondingErc20Transaction"], PRIMARY_MARKET_SUPPLY = 800000000n * 10n ** 18n, FARTOKEN_FACTORY_ADDRESS = "0x5c4743942072d2d0772b9887770e0943a67af6b4", WOW_FACTORY_ADDRESS = "0x997020e5f59ccb79c74d527be492cc610cb9fa2b", fetchIPFSMetadata = async r => {
+} = require("../helpers/fartoken"), BondingErc20Transaction = require("../models/token/BondingErc20Transaction")["BondingErc20Transaction"], PRIMARY_MARKET_SUPPLY = 800000000n * 10n ** 18n, FARTOKEN_FACTORY_ADDRESS = "0x5c4743942072d2d0772b9887770e0943a67af6b4", WOW_FACTORY_ADDRESS = "0x997020e5f59ccb79c74d527be492cc610cb9fa2b", FID_FACTORY_ADDRESS = "0x43116248a582e417bbc3b6d271602bdb1218bf40", fetchIPFSMetadata = async r => {
   if (!r?.startsWith("ipfs://")) return null;
   try {
     var e = r.replace("ipfs://", "");
@@ -61,34 +61,34 @@ app.post("/nft-activity", express.raw({
     var e = r.body.toString("utf8"), a = (await isValidWebhook(r, e), JSON.parse(e));
     if (!a.event?.activity) throw new Error("No activity found in req.body.event webhook!");
     var o = new _RegistrarService("optimism"), n = new _RegistrarService();
-    for (const m of a.event.activity) {
+    for (const A of a.event.activity) {
       var {
         contractAddress: s,
         erc721TokenId: i
-      } = m, c = i?.toLowerCase(), d = m.toAddress?.toLowerCase();
-      if (!c || !c.startsWith("0x")) throw new Error(`Invalid tokenId! Must start with 0x: ${c} for contractAddress: ` + s);
-      if (!d || !d.startsWith("0x")) throw new Error(`Invalid owner! Must start with 0x: ${d} for tokenId: ` + c);
+      } = A, d = i?.toLowerCase(), c = A.toAddress?.toLowerCase();
+      if (!d || !d.startsWith("0x")) throw new Error(`Invalid tokenId! Must start with 0x: ${d} for contractAddress: ` + s);
+      if (!c || !c.startsWith("0x")) throw new Error(`Invalid owner! Must start with 0x: ${c} for tokenId: ` + d);
       if (![ prod().REGISTRAR_ADDRESS.toLowerCase(), prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase() ].includes(s.toLowerCase())) throw new Error("No valid registrar contract found for contractAddress: " + s);
       var l = await Metadata.findOne({
-        uri: c
-      }), u = s.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), w = l?.domain || c, p = await CastHandle.findOne({
-        handle: w
-      }), h = u ? o : n;
+        uri: d
+      }), u = s.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), w = l?.domain || d, p = await CastHandle.findOne({
+        tokenId: CastHandle.normalizeTokenId(d)
+      }), k = u ? o : n;
       let e = null;
       try {
-        p?.expiresAt || (e = await h.expiresAt(w, {
-          tokenId: c
+        p?.expiresAt || (e = await k.expiresAt(w, {
+          tokenId: d
         }));
       } catch (e) {
         console.error(`Error getting expiresAt for handle: ${w} on ` + (u ? "OP" : "ETH"), e), 
         Sentry.captureException(e);
       }
-      var k = await CastHandle.findOneAndUpdate({
-        handle: w
+      var h = await CastHandle.findOneAndUpdate({
+        tokenId: CastHandle.normalizeTokenId(d)
       }, {
-        owner: d.toLowerCase(),
+        owner: c.toLowerCase(),
         chain: u ? "OP" : "ETH",
-        tokenId: c.toLowerCase(),
+        handle: w,
         ...e ? {
           expiresAt: e
         } : {}
@@ -98,31 +98,31 @@ app.post("/nft-activity", express.raw({
       });
       if (config().SHOULD_CREATE_PACKS && l?.domain) {
         try {
-          await Promise.all([ memcache.delete("tcg:inventory:first-page:" + k.owner, {
+          await Promise.all([ memcache.delete("tcg:inventory:first-page:" + h.owner, {
             noreply: !0
-          }), memcache.delete("tcg:packs:first-page:" + k.owner, {
+          }), memcache.delete("tcg:packs:first-page:" + h.owner, {
             noreply: !0
           }) ]);
         } catch (e) {
           console.error(e);
         }
-        var f, y = await Pack.findOne({
-          handle: k._id
+        var f, T = await Pack.findOne({
+          handle: h._id
         });
         let e;
-        e = u ? "Premium" : w.length <= 9 ? "Collector" : "Normal", y ? (y.handle = k._id, 
-        y.type = e, await y.save()) : (await Pack.create({
+        e = u ? "Premium" : w.length <= 9 ? "Collector" : "Normal", T ? (T.handle = h._id, 
+        T.type = e, await T.save()) : (await Pack.create({
           set: config().PACK_SET,
           type: e,
-          handle: k._id
+          handle: h._id
         }), (f = await Account.findByAddressAndChainId({
-          address: d,
+          address: c,
           chainId: 1
         })) && await Player.findOne({
           account: f._id
-        }) && await k.setCastHandleMetadataForFarheroPacks(e));
+        }) && await h.setCastHandleMetadataForFarheroPacks(e));
       }
-      console.log(`NFT Activity Webhook - Updated cast handle: ${w} to owner: ${d} on ` + (u ? "OP" : "ETH"));
+      console.log(`NFT Activity Webhook - Updated cast handle: ${w} to owner: ${c} on ` + (u ? "OP" : "ETH"));
     }
     return t.status(200).send("NFT activity webhook received");
   } catch (e) {
@@ -148,8 +148,8 @@ app.post("/nft-activity", express.raw({
     if (0 === s.length) return r.status(200).send("No influencer addresses found");
     var i = new Date();
     for (const p of o) if ([ "token", "external", "erc20" ].includes(p.category) && !p.erc721TokenId && !p.erc1155Metadata) {
-      var c = BASE_DEX_CONTRACTS_LOWERCASE[p.fromAddress.toLowerCase()], d = BASE_DEX_CONTRACTS_LOWERCASE[p.toAddress.toLowerCase()];
-      let e = !(!c && !d);
+      var d = BASE_DEX_CONTRACTS_LOWERCASE[p.fromAddress.toLowerCase()], c = BASE_DEX_CONTRACTS_LOWERCASE[p.toAddress.toLowerCase()];
+      let e = !(!d && !c);
       e ? await Transactions.updateMany({
         hash: p.hash
       }, {
@@ -160,9 +160,9 @@ app.post("/nft-activity", express.raw({
         hash: p.hash,
         isSwap: !0
       });
-      const h = p.toAddress.toLowerCase(), k = p.fromAddress.toLowerCase();
-      var l, u = p.hash + ":log:" + p.log.logIndex, w = s.find(e => e.address === h || e.address === k);
-      w ? (l = !c && w.address !== k && "0x0000000000000000000000000000000000000000" !== k, 
+      const k = p.toAddress.toLowerCase(), h = p.fromAddress.toLowerCase();
+      var l, u = p.hash + ":log:" + p.log.logIndex, w = s.find(e => e.address === k || e.address === h);
+      w ? (l = !d && w.address !== h && "0x0000000000000000000000000000000000000000" !== h, 
       await Transactions.updateOne({
         uniqueId: u
       }, {
@@ -171,8 +171,8 @@ app.post("/nft-activity", express.raw({
           blockNum: p.blockNum,
           uniqueId: u,
           hash: p.hash,
-          from: k,
-          to: h,
+          from: h,
+          to: k,
           value: p.value,
           asset: p.asset,
           category: l ? "airdrop" : "token" === p.category ? "erc20" : p.category,
@@ -187,7 +187,7 @@ app.post("/nft-activity", express.raw({
         }
       }, {
         upsert: !0
-      })) : console.error(`No influencer found for address ${k} or ` + h);
+      })) : console.error(`No influencer found for address ${h} or ` + k);
     }
     r.status(200).send("Webhook received and processed");
   } catch (e) {
@@ -199,61 +199,67 @@ app.post("/nft-activity", express.raw({
   try {
     var e = r.body.toString("utf8"), a = (await isValidWebhook(r, e), JSON.parse(e));
     if (!a.event?.data?.block?.logs) throw new Error("No logs found in req.body.event.data.block webhook!");
-    if ("BASE_MAINNET" !== a.event.network) return t.status(200).send("Webhook received but not on BASE_MAINNET");
+    if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(a.event.network)) return t.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
     var o = a.event.data.block.logs, n = a.event.data.block.timestamp, s = parseInt(a.event.data.block.number);
-    for (const B of o) try {
-      var i, c, d, l, u, w, p, h, k, f, y, m, g, v, A, E, b, T, S, C = {
-        ...B,
+    for (const F of o) try {
+      var i, d, c, l, u, w, p, k, h, f, T, A, y, E, m, b, g, S, v, I, C, R = {
+        ...F,
         blockNumber: s,
-        transactionHash: B.transaction.hash
-      }, I = B.account.address.toLowerCase(), L = (I === WOW_FACTORY_ADDRESS ? new ethers.utils.Interface(wowTokenFactoryABI) : new ethers.utils.Interface(farTokenFactoryABI)).parseLog(C);
-      [ "WowTokenCreated", "FarTokenCreated" ].includes(L.name) && ({
+        transactionHash: F.transaction.hash
+      }, _ = F.account.address.toLowerCase(), B = (_ === WOW_FACTORY_ADDRESS ? new ethers.utils.Interface(wowTokenFactoryABI) : _ === FID_FACTORY_ADDRESS ? new ethers.utils.Interface(fidTokenFactoryABI) : new ethers.utils.Interface(farTokenFactoryABI)).parseLog(R);
+      [ "WowTokenCreated", "FarTokenCreated", "FIDTokenCreated" ].includes(B.name) && ({
         tokenCreator: i,
-        platformReferrer: c,
-        protocolFeeRecipient: d,
+        platformReferrer: d,
+        protocolFeeRecipient: c,
         bondingCurve: l,
         tokenURI: u,
         name: w,
         symbol: p,
-        tokenAddress: h,
-        poolAddress: k
-      } = L.args, f = B.transaction?.from?.address?.toLowerCase(), y = await fetchIPFSMetadata(u), 
-      m = BondingErc20.findOneAndUpdate({
-        tokenAddress: h.toLowerCase()
+        tokenAddress: k,
+        poolAddress: h,
+        allocatedSupply: f,
+        fid: T
+      } = B.args, A = F.transaction?.from?.address?.toLowerCase(), y = await fetchIPFSMetadata(u), 
+      E = BondingErc20.findOneAndUpdate({
+        tokenAddress: k.toLowerCase()
       }, {
         tokenCreator: i.toLowerCase(),
-        platformReferrer: c.toLowerCase(),
-        protocolFeeRecipient: d.toLowerCase(),
+        platformReferrer: d.toLowerCase(),
+        protocolFeeRecipient: c.toLowerCase(),
         bondingCurve: l.toLowerCase(),
         tokenURI: u,
         metadata: y,
         name: w,
         symbol: p,
-        poolAddress: k.toLowerCase(),
-        chainId: 8453,
-        factoryAddress: I,
+        poolAddress: h.toLowerCase(),
+        chainId: _ === FID_FACTORY_ADDRESS ? 10 : 8453,
+        factoryAddress: _,
         timestamp: new Date(1e3 * n),
         blockNumber: s,
-        actualCreator: f,
-        type: I === WOW_FACTORY_ADDRESS ? "WOW" : "FARTOKEN",
+        actualCreator: A,
+        type: _ === WOW_FACTORY_ADDRESS ? "WOW" : _ === FID_FACTORY_ADDRESS ? "FIDTOKEN" : "FARTOKEN",
         lastStatsUpdate: new Date(1e3 * n),
-        lastProcessedBlock: s
+        lastProcessedBlock: s,
+        ..._ === FID_FACTORY_ADDRESS && {
+          allocatedSupply: f.toString(),
+          fid: parseInt(T || "0")
+        }
       }, {
         upsert: !0,
         new: !0
-      }), g = BondingErc20History.create({
-        tokenAddress: h.toLowerCase(),
+      }), m = BondingErc20History.create({
+        tokenAddress: k.toLowerCase(),
         timestamp: new Date(1e3 * n),
         blockNumber: s,
-        txHash: B.transaction.hash,
-        eventName: "WowTokenCreated",
+        txHash: F.transaction.hash,
+        eventName: B.name,
         tokenCreator: i.toLowerCase(),
-        platformReferrer: c.toLowerCase(),
-        protocolFeeRecipient: d.toLowerCase(),
+        platformReferrer: d.toLowerCase(),
+        protocolFeeRecipient: c.toLowerCase(),
         bondingCurve: l.toLowerCase(),
         tokenURI: u,
         metadata: y,
-        poolAddress: k.toLowerCase(),
+        poolAddress: h.toLowerCase(),
         marketType: 0,
         marketCapInETH: "0",
         bondingCurveProgress: "0",
@@ -262,43 +268,43 @@ app.post("/nft-activity", express.raw({
         cumulativeTxCount: 0,
         cumulativeVolume: "0",
         holdersCount: 0,
-        rawEventData: L.args
-      }), v = Transactions.updateOne({
-        uniqueId: B.transaction.hash
+        rawEventData: B.args
+      }), b = Transactions.updateOne({
+        uniqueId: F.transaction.hash
       }, {
         $set: {
           fid: i.toLowerCase(),
           blockNum: s,
-          uniqueId: B.transaction.hash,
-          hash: B.transaction.hash,
+          uniqueId: F.transaction.hash,
+          hash: F.transaction.hash,
           from: ethers.constants.AddressZero,
-          to: h.toLowerCase(),
+          to: k.toLowerCase(),
           value: 0,
           asset: p,
           category: "erc20created",
           rawContract: {
             value: 0,
-            address: h.toLowerCase(),
+            address: k.toLowerCase(),
             decimal: 18
           },
           timestamp: new Date(),
-          chain: "BASE",
+          chain: _ === FID_FACTORY_ADDRESS ? "OPTIMISM" : "BASE",
           isSwap: !0,
           isFartoken: !0
         }
       }, {
         upsert: !0
-      }), A = BondingErc20Transaction.updateOne({
-        tokenAddress: h.toLowerCase()
+      }), g = BondingErc20Transaction.updateOne({
+        tokenAddress: k.toLowerCase()
       }, {
         $set: {
-          tokenAddress: h.toLowerCase(),
+          tokenAddress: k.toLowerCase(),
           timestamp: new Date(1e3 * n),
           blockNumber: s,
-          txHash: B.transaction.hash,
+          txHash: F.transaction.hash,
           type: "Create",
           from: ethers.constants.AddressZero,
-          to: h.toLowerCase(),
+          to: k.toLowerCase(),
           address: i.toLowerCase(),
           addressBalance: "0",
           tokenAmount: "0",
@@ -307,17 +313,17 @@ app.post("/nft-activity", express.raw({
         }
       }, {
         upsert: !0
-      }), E = getHash(`getBondingTokenTransactions:${h.toLowerCase()}:10:initial`), 
-      b = getHash("getBondingTokens:initial:lastActivity"), T = getHash("getBondingTokens:initial:timestamp"), 
-      S = getHash(`getBondingTokenHistory:${h.toLowerCase()}:5m`), await Promise.all([ m, g, v, A, memcache.delete(E, {
+      }), S = getHash(`getBondingTokenTransactions:${k.toLowerCase()}:10:initial`), 
+      v = getHash("getBondingTokens:initial:lastActivity"), I = getHash("getBondingTokens:initial:timestamp"), 
+      C = getHash(`getBondingTokenHistory:${k.toLowerCase()}:5m`), await Promise.all([ E, m, b, g, memcache.delete(S, {
         noreply: !0
-      }), memcache.delete(b, {
+      }), memcache.delete(v, {
         noreply: !0
-      }), memcache.delete(T, {
+      }), memcache.delete(I, {
         noreply: !0
-      }), memcache.delete(S, {
+      }), memcache.delete(C, {
         noreply: !0
-      }) ]), console.log("Created BondingErc20 for token: " + h));
+      }) ]), console.log("Created BondingErc20 for token: " + k));
     } catch (e) {
       console.error("Error processing log:", e), Sentry.captureException(e);
       continue;
@@ -337,6 +343,7 @@ app.post("/nft-activity", express.raw({
     var e = r.body.toString("utf8"), a = (await isValidWebhook(r, e), JSON.parse(e));
     if ("GRAPHQL" !== a.type) throw new Error("Unexpected webhook type: " + a.type);
     if (!a.event?.data?.block?.logs) throw new Error("No logs found in req.body.event.data.block webhook!");
+    if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(a.event.network)) return t.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
     var o = a.event.data.block.logs, n = parseInt(a.event.data.block.number), s = new Date(1e3 * a.event.data.block.timestamp);
     if (!Array.isArray(o)) throw new Error("Logs is not an array!");
     for (const w of o) {
@@ -344,21 +351,23 @@ app.post("/nft-activity", express.raw({
         ...w,
         blockNumber: n,
         transactionHash: w.transaction?.hash
-      }, c = w.account.address?.toLowerCase();
-      if (c) {
-        var d = await BondingErc20.findOne({
-          tokenAddress: c
+      }, d = w.account.address?.toLowerCase();
+      if (d) {
+        var c = await BondingErc20.findOne({
+          tokenAddress: d
         });
-        if (d) try {
-          var l = ("WOW" === d.type ? new ethers.utils.Interface(wowTokenABI) : new ethers.utils.Interface(farTokenABI)).parseLog(i), u = l.name;
+        if (c) try {
+          var l = ("WOW" === c.type ? new ethers.utils.Interface(wowTokenABI) : "FIDTOKEN" === c.type ? new ethers.utils.Interface(fidTokenABI) : new ethers.utils.Interface(farTokenABI)).parseLog(i), u = l.name;
           switch (u) {
+           case "FIDTokenBuy":
+           case "FIDTokenSell":
            case "FarTokenBuy":
            case "FarTokenSell":
            case "WowTokenBuy":
            case "WowTokenSell":
             await processFarTokenTradeEvent({
-              tokenAddress: c,
-              token: d,
+              tokenAddress: d,
+              token: c,
               event: {
                 ...i,
                 transaction: {
@@ -373,11 +382,12 @@ app.post("/nft-activity", express.raw({
             });
             break;
 
+           case "FIDTokenTransfer":
            case "FarTokenTransfer":
            case "WowTokenTransfer":
             await processFarTokenTransferEvent({
-              tokenAddress: c,
-              token: d,
+              tokenAddress: d,
+              token: c,
               event: {
                 ...i,
                 transaction: {
@@ -390,10 +400,11 @@ app.post("/nft-activity", express.raw({
             });
             break;
 
+           case "FIDTokenMarketGraduated":
            case "FarTokenMarketGraduated":
            case "WowMarketGraduated":
             await processFarTokenGraduatedEvent({
-              tokenAddress: c,
+              tokenAddress: d,
               event: {
                 ...i,
                 transaction: {
@@ -414,10 +425,10 @@ app.post("/nft-activity", express.raw({
               }
             });
           }
-          (!d.lastProcessedBlock || n > d.lastProcessedBlock) && (d.lastStatsUpdate = s, 
-          d.lastProcessedBlock = n, await d.save());
+          (!c.lastProcessedBlock || n > c.lastProcessedBlock) && (c.lastStatsUpdate = s, 
+          c.lastProcessedBlock = n, await c.save());
         } catch (e) {
-          console.error(`Error processing event for token ${c}:`, e);
+          console.error(`Error processing event for token ${d}:`, e);
           continue;
         }
       } else Sentry.captureMessage("Missing token address in log:", {
