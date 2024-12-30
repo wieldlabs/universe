@@ -12,7 +12,7 @@ const express = require("express"), app = express.Router(), Sentry = require("@s
 } = require("../helpers/registrar"), crypto = require("crypto"), {
   Pack,
   Player
-} = require("../models/farcaster/tcg"), _RegistrarService = require("../services/RegistrarService")["Service"], Webhook = require("../models/Webhook")["Webhook"], wowTokenFactoryABI = require("../abis/wowTokenFactory")["wowTokenFactoryABI"], farTokenFactoryABI = require("../abis/farTokenFactory")["farTokenFactoryABI"], fidTokenFactoryABI = require("../abis/fidTokenFactory")["fidTokenFactoryABI"], wowTokenABI = require("../abis/wowToken")["wowTokenABI"], farTokenABI = require("../abis/farToken")["farTokenABI"], fidTokenABI = require("../abis/fidToken")["fidTokenABI"], BondingErc20 = require("../models/token/BondingErc20")["BondingErc20"], ethers = require("ethers"), padWithZeros = require("../helpers/number")["padWithZeros"], BondingErc20History = require("../models/token/BondingErc20History")["BondingErc20History"], axios = require("axios"), {
+} = require("../models/farcaster/tcg"), _RegistrarService = require("../services/RegistrarService")["Service"], Webhook = require("../models/Webhook")["Webhook"], wowTokenFactoryABI = require("../helpers/abi/wowTokenFactory")["wowTokenFactoryABI"], farTokenFactoryABI = require("../helpers/abi/farTokenFactory")["farTokenFactoryABI"], fidTokenFactoryABI = require("../helpers/abi/fidTokenFactory")["fidTokenFactoryABI"], wowTokenABI = require("../helpers/abi/wowToken")["wowTokenABI"], farTokenABI = require("../helpers/abi/farToken")["farTokenABI"], fidTokenABI = require("../helpers/abi/fidToken")["fidTokenABI"], BondingErc20 = require("../models/token/BondingErc20")["BondingErc20"], ethers = require("ethers"), padWithZeros = require("../helpers/number")["padWithZeros"], BondingErc20History = require("../models/token/BondingErc20History")["BondingErc20History"], axios = require("axios"), {
   Influencers,
   InfluencerAddresses,
   InfluencerTokens,
@@ -71,16 +71,16 @@ app.post("/nft-activity", express.raw({
       if (![ prod().REGISTRAR_ADDRESS.toLowerCase(), prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase() ].includes(s.toLowerCase())) throw new Error("No valid registrar contract found for contractAddress: " + s);
       var l = await Metadata.findOne({
         uri: d
-      }), u = s.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), w = l?.domain || d, p = await CastHandle.findOne({
+      }), u = s.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), p = l?.domain || d, w = await CastHandle.findOne({
         tokenId: CastHandle.normalizeTokenId(d)
       }), k = u ? o : n;
       let e = null;
       try {
-        p?.expiresAt || (e = await k.expiresAt(w, {
+        w?.expiresAt || (e = await k.expiresAt(p, {
           tokenId: d
         }));
       } catch (e) {
-        console.error(`Error getting expiresAt for handle: ${w} on ` + (u ? "OP" : "ETH"), e), 
+        console.error(`Error getting expiresAt for handle: ${p} on ` + (u ? "OP" : "ETH"), e), 
         Sentry.captureException(e);
       }
       var h = await CastHandle.findOneAndUpdate({
@@ -88,7 +88,7 @@ app.post("/nft-activity", express.raw({
       }, {
         owner: c.toLowerCase(),
         chain: u ? "OP" : "ETH",
-        handle: w,
+        handle: p,
         ...e ? {
           expiresAt: e
         } : {}
@@ -110,7 +110,7 @@ app.post("/nft-activity", express.raw({
           handle: h._id
         });
         let e;
-        e = u ? "Premium" : w.length <= 9 ? "Collector" : "Normal", T ? (T.handle = h._id, 
+        e = u ? "Premium" : p.length <= 9 ? "Collector" : "Normal", T ? (T.handle = h._id, 
         T.type = e, await T.save()) : (await Pack.create({
           set: config().PACK_SET,
           type: e,
@@ -122,7 +122,7 @@ app.post("/nft-activity", express.raw({
           account: f._id
         }) && await h.setCastHandleMetadataForFarheroPacks(e));
       }
-      console.log(`NFT Activity Webhook - Updated cast handle: ${w} to owner: ${c} on ` + (u ? "OP" : "ETH"));
+      console.log(`NFT Activity Webhook - Updated cast handle: ${p} to owner: ${c} on ` + (u ? "OP" : "ETH"));
     }
     return t.status(200).send("NFT activity webhook received");
   } catch (e) {
@@ -147,39 +147,39 @@ app.post("/nft-activity", express.raw({
     });
     if (0 === s.length) return r.status(200).send("No influencer addresses found");
     var i = new Date();
-    for (const p of o) if ([ "token", "external", "erc20" ].includes(p.category) && !p.erc721TokenId && !p.erc1155Metadata) {
-      var d = BASE_DEX_CONTRACTS_LOWERCASE[p.fromAddress.toLowerCase()], c = BASE_DEX_CONTRACTS_LOWERCASE[p.toAddress.toLowerCase()];
+    for (const w of o) if ([ "token", "external", "erc20" ].includes(w.category) && !w.erc721TokenId && !w.erc1155Metadata) {
+      var d = BASE_DEX_CONTRACTS_LOWERCASE[w.fromAddress.toLowerCase()], c = BASE_DEX_CONTRACTS_LOWERCASE[w.toAddress.toLowerCase()];
       let e = !(!d && !c);
       e ? await Transactions.updateMany({
-        hash: p.hash
+        hash: w.hash
       }, {
         $set: {
           isSwap: !0
         }
       }) : e = !!await Transactions.exists({
-        hash: p.hash,
+        hash: w.hash,
         isSwap: !0
       });
-      const k = p.toAddress.toLowerCase(), h = p.fromAddress.toLowerCase();
-      var l, u = p.hash + ":log:" + p.log.logIndex, w = s.find(e => e.address === k || e.address === h);
-      w ? (l = !d && w.address !== h && "0x0000000000000000000000000000000000000000" !== h, 
+      const k = w.toAddress.toLowerCase(), h = w.fromAddress.toLowerCase();
+      var l, u = w.hash + ":log:" + w.log.logIndex, p = s.find(e => e.address === k || e.address === h);
+      p ? (l = !d && p.address !== h && "0x0000000000000000000000000000000000000000" !== h, 
       await Transactions.updateOne({
         uniqueId: u
       }, {
         $set: {
-          fid: w.fid,
-          blockNum: p.blockNum,
+          fid: p.fid,
+          blockNum: w.blockNum,
           uniqueId: u,
-          hash: p.hash,
+          hash: w.hash,
           from: h,
           to: k,
-          value: p.value,
-          asset: p.asset,
-          category: l ? "airdrop" : "token" === p.category ? "erc20" : p.category,
+          value: w.value,
+          asset: w.asset,
+          category: l ? "airdrop" : "token" === w.category ? "erc20" : w.category,
           rawContract: {
-            value: p.rawContract.rawValue,
-            address: p.rawContract.address,
-            decimal: p.rawContract.decimals
+            value: w.rawContract.rawValue,
+            address: w.rawContract.address,
+            decimal: w.rawContract.decimals
           },
           timestamp: i,
           chain: "BASE",
@@ -202,7 +202,7 @@ app.post("/nft-activity", express.raw({
     if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(a.event.network)) return t.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
     var o = a.event.data.block.logs, n = a.event.data.block.timestamp, s = parseInt(a.event.data.block.number);
     for (const F of o) try {
-      var i, d, c, l, u, w, p, k, h, f, T, A, y, E, m, b, g, S, v, I, C, R = {
+      var i, d, c, l, u, p, w, k, h, f, T, A, y, E, m, b, g, S, v, I, C, R = {
         ...F,
         blockNumber: s,
         transactionHash: F.transaction.hash
@@ -213,8 +213,8 @@ app.post("/nft-activity", express.raw({
         protocolFeeRecipient: c,
         bondingCurve: l,
         tokenURI: u,
-        name: w,
-        symbol: p,
+        name: p,
+        symbol: w,
         tokenAddress: k,
         poolAddress: h,
         allocatedSupply: f,
@@ -229,8 +229,8 @@ app.post("/nft-activity", express.raw({
         bondingCurve: l.toLowerCase(),
         tokenURI: u,
         metadata: y,
-        name: w,
-        symbol: p,
+        name: p,
+        symbol: w,
         poolAddress: h.toLowerCase(),
         chainId: _ === FID_FACTORY_ADDRESS ? 10 : 8453,
         factoryAddress: _,
@@ -280,7 +280,7 @@ app.post("/nft-activity", express.raw({
           from: ethers.constants.AddressZero,
           to: k.toLowerCase(),
           value: 0,
-          asset: p,
+          asset: w,
           category: "erc20created",
           rawContract: {
             value: 0,
@@ -346,12 +346,12 @@ app.post("/nft-activity", express.raw({
     if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(a.event.network)) return t.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
     var o = a.event.data.block.logs, n = parseInt(a.event.data.block.number), s = new Date(1e3 * a.event.data.block.timestamp);
     if (!Array.isArray(o)) throw new Error("Logs is not an array!");
-    for (const w of o) {
+    for (const p of o) {
       var i = {
-        ...w,
+        ...p,
         blockNumber: n,
-        transactionHash: w.transaction?.hash
-      }, d = w.account.address?.toLowerCase();
+        transactionHash: p.transaction?.hash
+      }, d = p.account.address?.toLowerCase();
       if (d) {
         var c = await BondingErc20.findOne({
           tokenAddress: d
