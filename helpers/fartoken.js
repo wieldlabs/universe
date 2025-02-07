@@ -4,7 +4,7 @@ const ethers = require("ethers"), BondingErc20History = require("../models/token
 } = require("alchemy-sdk"), BondingErc20 = require("../models/token/BondingErc20")["BondingErc20"], {
   memcache,
   getHash
-} = require("../connectmemcache"), uniswapV3Abi = require("../helpers/abi/uniswap-v3")["uniswapV3Abi"], A = ethers.BigNumber.from("1060848709"), B = ethers.BigNumber.from("4379701787"), DECIMALS = ethers.BigNumber.from("1000000000000000000"), MAX_SUPPLY = ethers.BigNumber.from("800000000000000000000000000"), MAX_PRIMARY_SUPPLY = ethers.BigNumber.from("799000000000000000000000000"), MAX_TOTAL_SUPPLY = ethers.BigNumber.from("1000000000000000000000000000"), DESIRED_RAISE = ethers.utils.parseEther("8"), BLOCK_TIME_CACHE_KEY = "latest_block_stats", BLOCK_TIME_UPDATE_INTERVAL = 36e5, BLOCKS_TO_SAMPLE = 100;
+} = require("../connectmemcache"), uniswapV3Abi = require("../helpers/abi/uniswap-v3")["uniswapV3Abi"], Transactions = require("../models/farcaster/analytics")["Transactions"], A = ethers.BigNumber.from("1060848709"), B = ethers.BigNumber.from("4379701787"), DECIMALS = ethers.BigNumber.from("1000000000000000000"), MAX_SUPPLY = ethers.BigNumber.from("800000000000000000000000000"), MAX_PRIMARY_SUPPLY = ethers.BigNumber.from("799000000000000000000000000"), MAX_TOTAL_SUPPLY = ethers.BigNumber.from("1000000000000000000000000000"), DESIRED_RAISE = ethers.utils.parseEther("8"), BLOCK_TIME_CACHE_KEY = "latest_block_stats", BLOCK_TIME_UPDATE_INTERVAL = 36e5, BLOCKS_TO_SAMPLE = 100;
 
 function calculateMarketCap(e) {
   e = ethers.BigNumber.isBigNumber(e) ? e : ethers.BigNumber.from(e.toString()), 
@@ -76,24 +76,24 @@ async function processFarTokenTradeEvent({
     seller: i,
     totalEth: l = "0",
     buyerTokenBalance: c = "0",
-    sellerTokenBalance: m = "0",
-    totalSupply: u = "0",
+    sellerTokenBalance: u = "0",
+    totalSupply: m = "0",
     marketType: d,
     recipient: g,
     tokensBought: p = "0",
-    tokensSold: k = "0"
+    tokensSold: h = "0"
   } = a.args;
-  if (1 === d) return o && console.log(`Skipping trade for ${e} with total supply ${u} - graduated`), 
+  if (1 === d) return o && console.log(`Skipping trade for ${e} with total supply ${m} - graduated`), 
   {
     marketCapInETH: null,
     totalSupply: null
   };
-  s = calculateMarketCap(u.toString()), o && console.log("Market cap calculation:", {
-    totalSupply: u.toString(),
+  s = calculateMarketCap(m.toString()), o && console.log("Market cap calculation:", {
+    totalSupply: m.toString(),
     marketCapInETH: s.toString(),
     tokenAddress: e
   }), o && console.log(`${r}: ${t.transactionHash} - ${l.toString()} ETH`);
-  var o = [ "WowTokenBuy", "FarTokenBuy", "FIDTokenBuy" ].includes(r), e = e.toLowerCase(), l = padWithZeros(l.toString()), p = padWithZeros((o ? p : k)?.toString?.() || "0"), k = {
+  var o = [ "WowTokenBuy", "FarTokenBuy", "FIDTokenBuy" ].includes(r), e = e.toLowerCase(), k = padWithZeros(l.toString()), p = padWithZeros((o ? p : h)?.toString?.() || "0"), h = {
     tokenAddress: e,
     timestamp: n || await getBlockTimestamp(t.blockNumber),
     blockNumber: "string" == typeof t.blockNumber ? parseInt(t.blockNumber, 16) : Number(t.blockNumber),
@@ -102,11 +102,11 @@ async function processFarTokenTradeEvent({
     from: o ? ethers.constants.AddressZero : i,
     to: o ? a : ethers.constants.AddressZero,
     recipient: g,
-    amountInETH: l,
+    amountInETH: k,
     tokenAmount: p,
-    fromBalance: m.toString(),
+    fromBalance: u.toString(),
     toBalance: c.toString(),
-    totalSupply: u.toString(),
+    totalSupply: m.toString(),
     marketType: d,
     marketCapInETH: s.toString()
   }, d = {
@@ -118,29 +118,54 @@ async function processFarTokenTradeEvent({
     from: o ? ethers.constants.AddressZero : i,
     to: o ? a : ethers.constants.AddressZero,
     address: g.toLowerCase(),
-    addressBalance: (o ? c : m).toString(),
+    addressBalance: (o ? c : u).toString(),
     tokenAmount: p,
-    amountInETH: l,
-    totalSupply: u.toString()
-  }, [ n, r ] = await Promise.all([ BondingErc20History.findOne({
+    amountInETH: k,
+    totalSupply: m.toString()
+  }, r = {
+    fid: g.toLowerCase(),
+    blockNum: t.blockNumber.toString().startsWith("0x") ? t.blockNumber.toString() : "0x" + t.blockNumber.toString(16),
+    uniqueId: t.transactionHash,
+    hash: t.transactionHash,
+    from: o ? ethers.constants.AddressZero : i,
+    to: o ? a : ethers.constants.AddressZero,
+    value: parseFloat(ethers.utils.formatEther(l)),
+    asset: "FARTOKEN",
+    category: "erc20",
+    rawContract: {
+      value: p,
+      address: e,
+      decimal: "18"
+    },
+    timestamp: n || await getBlockTimestamp(t.blockNumber),
+    chain: "BASE",
+    isSwap: !0,
+    isFartoken: !0
+  }, [ c, u ] = await Promise.all([ BondingErc20History.findOne({
     txHash: t.transactionHash
   }), BondingErc20Transaction.findOne({
     txHash: t.transactionHash
-  }) ]), i = [], a = [];
-  return n || (i.push(BondingErc20History.create(k)), g = getHash(`getBondingTokenHistory:${e}:5m`), 
-  a.push(memcache.delete(g, {
+  }) ]), k = [], g = [];
+  return k.push(Transactions.updateOne({
+    uniqueId: t.transactionHash
+  }, {
+    $set: r
+  }, {
+    upsert: !0
+  })), c || (k.push(BondingErc20History.create(h)), i = getHash(`getBondingTokenHistory:${e}:5m`), 
+  g.push(memcache.delete(i, {
     noreply: !0
-  }))), r || (i.push(BondingErc20Transaction.create(d)), o = getHash(`getBondingTokenTransactions:${e}:10:initial`), 
-  c = getHash("getBondingTokens:initial:lastActivity"), m = getHash("getBondingTokens:initial:timestamp"), 
-  a.push(memcache.delete(o, {
+  }))), u || (k.push(BondingErc20Transaction.create(d)), o = getHash(`getBondingTokenTransactions:${e}:10:initial`), 
+  a = getHash("getBondingTokens:initial:lastActivity"), l = getHash("getBondingTokens:initial:timestamp"), 
+  g.push(memcache.delete(o, {
     noreply: !0
-  }), memcache.delete(c, {
+  }), memcache.delete(a, {
     noreply: !0
-  }), memcache.delete(m, {
+  }), memcache.delete(l, {
     noreply: !0
-  }))), await Promise.all(i), await Promise.all(a), {
+  }))), await Promise.all(k), await Promise.all(g), {
     marketCapInETH: s,
-    totalSupply: u
+    totalSupply: m
   };
 }
 
@@ -164,41 +189,66 @@ async function processFarTokenTransferEvent({
     address: null,
     balance: null
   };
-  let m;
+  let u;
   try {
-    var u = calculateMarketCap(c), d = calculateMarketCap(ethers.BigNumber.from(c).sub(l));
-    m = u.sub(d);
+    var m = calculateMarketCap(c), d = calculateMarketCap(ethers.BigNumber.from(c).sub(l));
+    u = m.sub(d);
   } catch (e) {
-    console.error("Error calculating ETH value for transfer:", e), m = ethers.constants.Zero;
+    console.error("Error calculating ETH value for transfer:", e), u = ethers.constants.Zero;
   }
-  var u = r == ethers.constants.AddressZero, d = n == ethers.constants.AddressZero, g = u ? n : r, s = u ? i : s, p = "0" == s, e = e.toLowerCase(), o = {
-    tokenAddress: e,
+  var m = r == ethers.constants.AddressZero, d = n == ethers.constants.AddressZero, g = m ? n : r, s = m ? i : s, p = "0" == s, h = e.toLowerCase(), p = {
+    tokenAddress: h,
     timestamp: o || await getBlockTimestamp(t.blockNumber),
     blockNumber: "string" == typeof t.blockNumber ? parseInt(t.blockNumber, 16) : Number(t.blockNumber),
     txHash: t.transactionHash,
-    type: u ? "Buy" : d ? "Sell" : "Transfer",
+    type: m ? "Buy" : d ? "Sell" : "Transfer",
     from: r.toLowerCase(),
     to: n.toLowerCase(),
     address: g.toLowerCase(),
     addressBalance: p ? "0" : padWithZeros(s.toString()),
     tokenAmount: padWithZeros(l.toString()),
-    amountInETH: padWithZeros(m.toString()),
+    amountInETH: padWithZeros(u.toString()),
     totalSupply: c.toString()
-  };
-  return await BondingErc20Transaction.findOne({
+  }, c = {
+    fid: g.toLowerCase(),
+    blockNum: t.blockNumber.toString().startsWith("0x") ? t.blockNumber.toString() : "0x" + t.blockNumber.toString(16),
+    uniqueId: t.transactionHash,
+    hash: t.transactionHash,
+    from: r.toLowerCase(),
+    to: n.toLowerCase(),
+    value: parseFloat(ethers.utils.formatEther(u)),
+    asset: "FARTOKEN",
+    category: m ? "buy" : d ? "sell" : "transfer",
+    rawContract: {
+      value: l.toString(),
+      address: e.toLowerCase(),
+      decimal: "18"
+    },
+    timestamp: o || await getBlockTimestamp(t.blockNumber),
+    chain: "BASE",
+    isSwap: m || d,
+    isFartoken: !0
+  }, r = (await Transactions.updateOne({
+    uniqueId: t.transactionHash
+  }, {
+    $set: c
+  }, {
+    upsert: !0
+  }), await BondingErc20Transaction.findOne({
     txHash: t.transactionHash
-  }) ? a && console.log("Skipping duplicate transaction: " + t.transactionHash) : (await BondingErc20Transaction.create(o), 
-  u = getHash(`getBondingTokenTransactions:${e}:10:initial`), d = getHash("getBondingTokens:initial:lastActivity"), 
-  r = getHash("getBondingTokens:initial:timestamp"), await Promise.all([ memcache.delete(u, {
+  }));
+  return r ? a && console.log("Skipping duplicate transaction: " + t.transactionHash) : (await BondingErc20Transaction.create(p), 
+  n = getHash(`getBondingTokenTransactions:${h}:10:initial`), e = getHash("getBondingTokens:initial:lastActivity"), 
+  o = getHash("getBondingTokens:initial:timestamp"), await Promise.all([ memcache.delete(n, {
     noreply: !0
-  }), memcache.delete(d, {
+  }), memcache.delete(e, {
     noreply: !0
-  }), memcache.delete(r, {
+  }), memcache.delete(o, {
     noreply: !0
   }) ]), a && (console.log("Created transaction record for transfer: " + t.transactionHash), 
   console.log(`Stats for transfer ${t.transactionHash}:`), console.log("  Address: " + g), 
   console.log(`  Address Balance: ${ethers.utils.formatEther(s)} tokens`), console.log(`  Transfer Amount: ${ethers.utils.formatEther(l)} tokens`), 
-  console.log(`  Value in ETH: ${ethers.utils.formatEther(m)} ETH`))), {
+  console.log(`  Value in ETH: ${ethers.utils.formatEther(u)} ETH`))), {
     address: g,
     balance: i
   };
@@ -373,10 +423,10 @@ async function calculateUniswapMarketCap(t, r, a) {
   try {
     var n = await getProvider(), s = new ethers.Contract(t, uniswapV3Abi, n), i = WETH_ADDRESS < a ? WETH_ADDRESS : a, l = i === WETH_ADDRESS;
     if (!i) return console.error("Token not found in pool"), "0";
-    var c = await s.slot0(), m = ethers.BigNumber.from(c.sqrtPriceX96);
-    if (m.isZero()) return console.error("Invalid sqrtPriceX96: 0"), "0";
-    var u = ethers.BigNumber.from(2).pow(96), d = m.mul(m), g = ethers.BigNumber.from(10).pow(18);
-    let e = d.mul(g).div(u).div(u);
+    var c = await s.slot0(), u = ethers.BigNumber.from(c.sqrtPriceX96);
+    if (u.isZero()) return console.error("Invalid sqrtPriceX96: 0"), "0";
+    var m = ethers.BigNumber.from(2).pow(96), d = u.mul(u), g = ethers.BigNumber.from(10).pow(18);
+    let e = d.mul(g).div(m).div(m);
     l || (e = g.mul(g).div(e));
     var p = (ethers.BigNumber.isBigNumber(r) ? r : ethers.BigNumber.from(r.toString())).mul(g).div(e);
     return await memcache.set(o, p.toString(), {

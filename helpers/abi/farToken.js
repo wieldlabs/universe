@@ -92,11 +92,19 @@ const farTokenABI = [ {
   type: "error"
 }, {
   inputs: [],
+  name: "EnforcedPause",
+  type: "error"
+}, {
+  inputs: [],
   name: "EthAmountTooSmall",
   type: "error"
 }, {
   inputs: [],
   name: "EthTransferFailed",
+  type: "error"
+}, {
+  inputs: [],
+  name: "ExpectedPause",
   type: "error"
 }, {
   inputs: [],
@@ -111,12 +119,44 @@ const farTokenABI = [ {
   name: "InsufficientLiquidity",
   type: "error"
 }, {
+  inputs: [ {
+    internalType: "address",
+    name: "account",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "currentNonce",
+    type: "uint256"
+  } ],
+  name: "InvalidAccountNonce",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InvalidAllocatedSupply",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InvalidAmount",
+  type: "error"
+}, {
   inputs: [],
   name: "InvalidInitialization",
   type: "error"
 }, {
   inputs: [],
   name: "InvalidMarketType",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InvalidShortString",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InvalidSignature",
+  type: "error"
+}, {
+  inputs: [],
+  name: "InvalidTokenCreator",
   type: "error"
 }, {
   inputs: [],
@@ -160,7 +200,19 @@ const farTokenABI = [ {
   type: "error"
 }, {
   inputs: [],
+  name: "SignatureExpired",
+  type: "error"
+}, {
+  inputs: [],
   name: "SlippageBoundsExceeded",
+  type: "error"
+}, {
+  inputs: [ {
+    internalType: "string",
+    name: "str",
+    type: "string"
+  } ],
+  name: "StringTooLong",
   type: "error"
 }, {
   anonymous: !1,
@@ -181,6 +233,26 @@ const farTokenABI = [ {
     type: "uint256"
   } ],
   name: "Approval",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [],
+  name: "EIP712DomainChanged",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "from",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "amount",
+    type: "uint256"
+  } ],
+  name: "FarTokenAddToReserve",
   type: "event"
 }, {
   anonymous: !1,
@@ -236,7 +308,7 @@ const farTokenABI = [ {
     type: "uint256"
   }, {
     indexed: !1,
-    internalType: "enum IFarToken.MarketType",
+    internalType: "enum IFarTokenV2.MarketType",
     name: "marketType",
     type: "uint8"
   } ],
@@ -316,7 +388,7 @@ const farTokenABI = [ {
     type: "uint256"
   }, {
     indexed: !1,
-    internalType: "enum IFarToken.MarketType",
+    internalType: "enum IFarTokenV2.MarketType",
     name: "marketType",
     type: "uint8"
   } ],
@@ -376,7 +448,7 @@ const farTokenABI = [ {
     type: "uint256"
   }, {
     indexed: !1,
-    internalType: "enum IFarToken.MarketType",
+    internalType: "enum IFarTokenV2.MarketType",
     name: "marketType",
     type: "uint8"
   } ],
@@ -420,12 +492,32 @@ const farTokenABI = [ {
 }, {
   anonymous: !1,
   inputs: [ {
+    indexed: !0,
+    internalType: "address",
+    name: "to",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "amount",
+    type: "uint256"
+  } ],
+  name: "FarTokenWithdrawFromReserve",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [ {
     indexed: !1,
     internalType: "uint64",
     name: "version",
     type: "uint64"
   } ],
   name: "Initialized",
+  type: "event"
+}, {
+  anonymous: !1,
+  inputs: [],
+  name: "Paused",
   type: "event"
 }, {
   anonymous: !1,
@@ -447,6 +539,21 @@ const farTokenABI = [ {
   } ],
   name: "Transfer",
   type: "event"
+}, {
+  anonymous: !1,
+  inputs: [],
+  name: "Unpaused",
+  type: "event"
+}, {
+  inputs: [],
+  name: "ADD_TO_RESERVE_TYPEHASH",
+  outputs: [ {
+    internalType: "bytes32",
+    name: "",
+    type: "bytes32"
+  } ],
+  stateMutability: "view",
+  type: "function"
 }, {
   inputs: [],
   name: "MAX_ORDER_REFERRER_FEE_BPS",
@@ -480,16 +587,6 @@ const farTokenABI = [ {
 }, {
   inputs: [],
   name: "MIN_ORDER_SIZE",
-  outputs: [ {
-    internalType: "uint256",
-    name: "",
-    type: "uint256"
-  } ],
-  stateMutability: "view",
-  type: "function"
-}, {
-  inputs: [],
-  name: "ORDER_REFERRER_FEE_BPS",
   outputs: [ {
     internalType: "uint256",
     name: "",
@@ -534,6 +631,58 @@ const farTokenABI = [ {
     internalType: "address",
     name: "",
     type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "WITHDRAW_FROM_RESERVE_TYPEHASH",
+  outputs: [ {
+    internalType: "bytes32",
+    name: "",
+    type: "bytes32"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "amount",
+    type: "uint256"
+  } ],
+  name: "addToReserve",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "amount",
+    type: "uint256"
+  }, {
+    internalType: "address",
+    name: "from",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "deadline",
+    type: "uint256"
+  }, {
+    internalType: "bytes",
+    name: "signature",
+    type: "bytes"
+  } ],
+  name: "addToReserveWithSig",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [],
+  name: "allocatedSupply",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
   } ],
   stateMutability: "view",
   type: "function"
@@ -591,7 +740,7 @@ const farTokenABI = [ {
   inputs: [],
   name: "bondingCurve",
   outputs: [ {
-    internalType: "contract BondingCurve",
+    internalType: "contract BondingCurveV2",
     name: "",
     type: "address"
   } ],
@@ -625,7 +774,7 @@ const farTokenABI = [ {
     name: "comment",
     type: "string"
   }, {
-    internalType: "enum IFarToken.MarketType",
+    internalType: "enum IFarTokenV2.MarketType",
     name: "expectedMarketType",
     type: "uint8"
   }, {
@@ -647,6 +796,12 @@ const farTokenABI = [ {
   type: "function"
 }, {
   inputs: [],
+  name: "collectFees",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [],
   name: "currentExchangeRate",
   outputs: [ {
     internalType: "uint256",
@@ -662,6 +817,60 @@ const farTokenABI = [ {
     internalType: "uint8",
     name: "",
     type: "uint8"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "desiredRaise",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "domainSeparatorV4",
+  outputs: [ {
+    internalType: "bytes32",
+    name: "",
+    type: "bytes32"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "eip712Domain",
+  outputs: [ {
+    internalType: "bytes1",
+    name: "fields",
+    type: "bytes1"
+  }, {
+    internalType: "string",
+    name: "name",
+    type: "string"
+  }, {
+    internalType: "string",
+    name: "version",
+    type: "string"
+  }, {
+    internalType: "uint256",
+    name: "chainId",
+    type: "uint256"
+  }, {
+    internalType: "address",
+    name: "verifyingContract",
+    type: "address"
+  }, {
+    internalType: "bytes32",
+    name: "salt",
+    type: "bytes32"
+  }, {
+    internalType: "uint256[]",
+    name: "extensions",
+    type: "uint256[]"
   } ],
   stateMutability: "view",
   type: "function"
@@ -723,8 +932,26 @@ const farTokenABI = [ {
   type: "function"
 }, {
   inputs: [ {
+    internalType: "bytes32",
+    name: "structHash",
+    type: "bytes32"
+  } ],
+  name: "hashTypedDataV4",
+  outputs: [ {
+    internalType: "bytes32",
+    name: "",
+    type: "bytes32"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
     internalType: "address",
     name: "_tokenCreator",
+    type: "address"
+  }, {
+    internalType: "address",
+    name: "_operator",
     type: "address"
   }, {
     internalType: "address",
@@ -754,6 +981,14 @@ const farTokenABI = [ {
     internalType: "uint256",
     name: "_orderReferrerFeeBps",
     type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "_allocatedSupply",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "_desiredRaise",
+    type: "uint256"
   } ],
   name: "initialize",
   outputs: [],
@@ -763,7 +998,7 @@ const farTokenABI = [ {
   inputs: [],
   name: "marketType",
   outputs: [ {
-    internalType: "enum IFarToken.MarketType",
+    internalType: "enum IFarTokenV2.MarketType",
     name: "",
     type: "uint8"
   } ],
@@ -776,6 +1011,20 @@ const farTokenABI = [ {
     internalType: "string",
     name: "",
     type: "string"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "address",
+    name: "owner",
+    type: "address"
+  } ],
+  name: "nonces",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
   } ],
   stateMutability: "view",
   type: "function"
@@ -817,11 +1066,37 @@ const farTokenABI = [ {
   type: "function"
 }, {
   inputs: [],
+  name: "operator",
+  outputs: [ {
+    internalType: "address",
+    name: "",
+    type: "address"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
   name: "orderReferrerFeeBps",
   outputs: [ {
     internalType: "uint256",
     name: "",
     type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
+  inputs: [],
+  name: "pause",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [],
+  name: "paused",
+  outputs: [ {
+    internalType: "bool",
+    name: "",
+    type: "bool"
   } ],
   stateMutability: "view",
   type: "function"
@@ -876,6 +1151,16 @@ const farTokenABI = [ {
   stateMutability: "view",
   type: "function"
 }, {
+  inputs: [],
+  name: "reservedSupply",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
   inputs: [ {
     internalType: "uint256",
     name: "tokensToSell",
@@ -893,7 +1178,7 @@ const farTokenABI = [ {
     name: "comment",
     type: "string"
   }, {
-    internalType: "enum IFarToken.MarketType",
+    internalType: "enum IFarTokenV2.MarketType",
     name: "expectedMarketType",
     type: "uint8"
   }, {
@@ -914,11 +1199,21 @@ const farTokenABI = [ {
   stateMutability: "nonpayable",
   type: "function"
 }, {
+  inputs: [ {
+    internalType: "address",
+    name: "_operator",
+    type: "address"
+  } ],
+  name: "setOperator",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
   inputs: [],
   name: "state",
   outputs: [ {
     components: [ {
-      internalType: "enum IFarToken.MarketType",
+      internalType: "enum IFarTokenV2.MarketType",
       name: "marketType",
       type: "uint8"
     }, {
@@ -926,7 +1221,7 @@ const farTokenABI = [ {
       name: "marketAddress",
       type: "address"
     } ],
-    internalType: "struct IFarToken.MarketState",
+    internalType: "struct IFarTokenV2.MarketState",
     name: "",
     type: "tuple"
   } ],
@@ -1023,6 +1318,16 @@ const farTokenABI = [ {
   stateMutability: "nonpayable",
   type: "function"
 }, {
+  inputs: [],
+  name: "uniswapV3PositionId",
+  outputs: [ {
+    internalType: "uint256",
+    name: "",
+    type: "uint256"
+  } ],
+  stateMutability: "view",
+  type: "function"
+}, {
   inputs: [ {
     internalType: "int256",
     name: "amount0Delta",
@@ -1037,6 +1342,48 @@ const farTokenABI = [ {
     type: "bytes"
   } ],
   name: "uniswapV3SwapCallback",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [],
+  name: "unpause",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "amount",
+    type: "uint256"
+  }, {
+    internalType: "address",
+    name: "to",
+    type: "address"
+  } ],
+  name: "withdrawFromReserve",
+  outputs: [],
+  stateMutability: "nonpayable",
+  type: "function"
+}, {
+  inputs: [ {
+    internalType: "uint256",
+    name: "amount",
+    type: "uint256"
+  }, {
+    internalType: "address",
+    name: "to",
+    type: "address"
+  }, {
+    internalType: "uint256",
+    name: "deadline",
+    type: "uint256"
+  }, {
+    internalType: "bytes",
+    name: "signature",
+    type: "bytes"
+  } ],
+  name: "withdrawFromReserveWithSig",
   outputs: [],
   stateMutability: "nonpayable",
   type: "function"

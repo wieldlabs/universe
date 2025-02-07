@@ -152,7 +152,14 @@ const Moralis = require("moralis").default, ethers = require("ethers")["ethers"]
       let e = (await Moralis.EvmApi.wallets.getWalletTokenBalancesPrice({
         address: a,
         chain: r
-      })).result.map(e => e.toJSON()) || [];
+      })).result.map(e => {
+        var a, t = {
+          ...e.toJSON()
+        };
+        return e.usdPrice ? (a = ethers.utils.formatUnits(e.totalSupply || "0", e.decimals || 18), 
+        t.market_cap_usd = e.usdPrice * parseFloat(a)) : t.market_cap_usd = null, 
+        t;
+      }) || [];
       return (e = t ? e.filter(e => 1 <= parseFloat(e.usd_value)) : e).sort((e, a) => a.usd_value - e.usd_value), 
       e;
     } catch (e) {

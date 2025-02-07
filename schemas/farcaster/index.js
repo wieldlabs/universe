@@ -1,4 +1,4 @@
-const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_LABEL = "expireFarcasterL1Data", hubSubscriptionsSchema = new mongoose.Schema({
+const mongoose = require("mongoose"), hubSubscriptionsSchema = new mongoose.Schema({
   host: {
     type: String,
     required: !0,
@@ -63,33 +63,21 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   deletedAt: 1
 }, {
   name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
   expireAfterSeconds: 0
 }), messagesSchema.index({
   prunedAt: 1
 }, {
   name: "expirePruned",
-  partialFilterExpression: {
-    external: !1
-  },
   expireAfterSeconds: 0
 }), messagesSchema.index({
   revokedAt: 1
 }, {
   name: "expireRevoked",
-  partialFilterExpression: {
-    external: !1
-  },
   expireAfterSeconds: 0
 }), messagesSchema.index({
   timestamp: 1
 }, {
   name: "expireMessages",
-  partialFilterExpression: {
-    external: !1
-  },
   expireAfterSeconds: 604800
 }), new mongoose.Schema({
   deletedAt: Date,
@@ -162,14 +150,6 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   _id: 1,
   external: 1
 }), castsSchema.index({
-  deletedAt: 1
-}, {
-  name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
-  expireAfterSeconds: 0
-}), castsSchema.index({
   threadHash: 1,
   deletedAt: 1,
   timestamp: -1,
@@ -182,14 +162,6 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   external: 1,
   _id: 1,
   timestamp: 1
-}), castsSchema.index({
-  timestamp: 1
-}, {
-  name: L1_RETENTION_LABEL,
-  partialFilterExpression: {
-    external: !1
-  },
-  expireAfterSeconds: L1_RETENTION_TIME
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -216,6 +188,8 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
 }, {
   timestamps: !0
 })), signersSchema = (reactionsSchema.index({
+  timestamp: 1
+}), reactionsSchema.index({
   targetHash: 1,
   reactionType: 1,
   deletedAt: 1
@@ -229,25 +203,9 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   targetHash: 1,
   deletedAt: 1
 }), reactionsSchema.index({
-  deletedAt: 1
-}, {
-  name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
-  expireAfterSeconds: 0
-}), reactionsSchema.index({
   reactionType: 1,
   fid: 1,
   targetUrl: 1
-}), reactionsSchema.index({
-  timestamp: 1
-}, {
-  name: L1_RETENTION_LABEL,
-  partialFilterExpression: {
-    external: !1
-  },
-  expireAfterSeconds: L1_RETENTION_TIME
 }), new mongoose.Schema({
   deletedAt: Date,
   timestamp: {
@@ -281,14 +239,6 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
 })), claimSchema = (signersSchema.index({
   fid: 1,
   signer: 1
-}), signersSchema.index({
-  deletedAt: 1
-}, {
-  name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
-  expireAfterSeconds: 0
 }), new mongoose.Schema({
   address: String,
   claimSignature: String,
@@ -343,14 +293,6 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
 }), verificationsSchema.index({
   "claimObj.address": 1,
   deletedAt: 1
-}), verificationsSchema.index({
-  deletedAt: 1
-}, {
-  name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
-  expireAfterSeconds: 0
 }), verificationsSchema.index({
   "claimObj.protocol": 1,
   deletedAt: 1,
@@ -419,14 +361,6 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   external: 1,
   deletedAt: 1,
   value: 1
-}), userDataSchema.index({
-  deletedAt: 1
-}, {
-  name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
-  expireAfterSeconds: 0
 }), new mongoose.Schema({
   fid: {
     type: String,
@@ -540,9 +474,6 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   deletedAt: 1
 }, {
   name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
   expireAfterSeconds: 0
 }), new mongoose.Schema({
   deletedAt: Date,
@@ -609,17 +540,11 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   deletedAt: 1
 }, {
   name: "expireDeleted",
-  partialFilterExpression: {
-    external: !1
-  },
   expireAfterSeconds: 0
 }), notificationsSchema.index({
   timestamp: 1
 }, {
   name: "expireNotifications",
-  partialFilterExpression: {
-    external: !1
-  },
   expireAfterSeconds: 2592e3
 }), notificationsSchema.index({
   "payload.castHash": 1,
@@ -1122,146 +1047,51 @@ const mongoose = require("mongoose"), L1_RETENTION_TIME = 63072e3, L1_RETENTION_
   }
 }, {
   timestamps: !0
-})), agentSchema = new mongoose.Schema({
-  agentId: {
-    type: String,
-    index: !0,
-    unique: !0
-  },
-  expiresAt: {
-    type: Date,
-    index: !0
-  },
+})), frameNotificationSchema = new mongoose.Schema({
   fid: {
-    type: String,
-    index: !0
-  },
-  external: {
-    type: Boolean,
-    default: !1
-  },
-  key: {
-    type: String
-  },
-  currentOwnerFid: {
-    type: String,
-    index: !0
-  },
-  currentOwnerAddress: {
-    type: String,
-    index: !0
-  },
-  instructions: {
-    type: String
-  },
-  examples: {
-    type: String
-  },
-  agentAddress: {
-    type: String,
-    index: !0
-  },
-  encryptionMetadata: {
-    address: {
-      type: String
-    },
-    timestamp: {
-      type: String
-    },
-    key: {
-      type: String
-    }
-  },
-  signerKeys: [ {
-    publicKey: {
-      type: String
-    },
-    privateKey: {
-      type: String
-    },
-    encryptionMetadata: {
-      address: {
-        type: String
-      },
-      timestamp: {
-        type: String
-      },
-      key: {
-        type: String
-      }
-    }
-  } ],
-  isReserved: {
-    type: Boolean,
-    default: !1
-  }
-}, {
-  timestamps: !0
-}), agentRequestSchema = (agentSchema.index({
-  fid: 1,
-  expiresAt: 1
-}), agentSchema.index({
-  agentId: 1,
-  expiresAt: 1
-}), agentSchema.index({
-  expiresAt: 1,
-  isReserved: 1
-}), new mongoose.Schema({
-  currentOwnerFid: {
-    type: String,
-    required: !0,
-    index: !0
-  },
-  currentOwnerAddress: {
-    type: String,
-    required: !0,
-    index: !0
-  },
-  instructions: {
     type: String,
     required: !0
   },
-  examples: {
-    type: String
-  },
-  status: {
+  appFid: {
     type: String,
-    enum: [ "pending", "approved", "rejected", "completed" ],
-    default: "pending",
-    index: !0
+    required: !0
   },
-  tokenOptions: {
-    imageUrl: {
-      type: String
+  webhookId: {
+    type: String,
+    required: !0
+  },
+  notificationDetails: {
+    url: {
+      type: String,
+      required: !0
     },
-    name: {
-      type: String
-    },
-    symbol: {
-      type: String
+    token: {
+      type: String,
+      required: !0
     }
   },
-  notes: {
-    type: String
-  },
-  assignedAgentId: {
-    type: String,
-    index: !0
-  },
-  nsfw: {
+  valid: {
     type: Boolean,
     default: !1
   }
 }, {
   timestamps: !0
-}));
+});
 
-agentRequestSchema.index({
-  currentOwnerFid: 1,
-  status: 1
-}), agentRequestSchema.index({
-  createdAt: 1,
-  status: 1
+frameNotificationSchema.index({
+  fid: 1,
+  appFid: 1,
+  webhookId: 1
+}), frameNotificationSchema.index({
+  fid: 1,
+  appFid: 1,
+  webhookId: 1,
+  valid: 1
+}), frameNotificationSchema.index({
+  valid: 1
+}), frameNotificationSchema.index({
+  fid: 1,
+  valid: 1
 }), module.exports = {
   hubSubscriptionsSchema: hubSubscriptionsSchema,
   messagesSchema: messagesSchema,
@@ -1285,6 +1115,5 @@ agentRequestSchema.index({
   syncedActionsSchema: syncedActionsSchema,
   syncedVerificationSchema: syncedVerificationSchema,
   farpaySchema: farpaySchema,
-  agentSchema: agentSchema,
-  agentRequestSchema: agentRequestSchema
+  frameNotificationSchema: frameNotificationSchema
 };

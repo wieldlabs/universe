@@ -14,7 +14,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   }
 });
 
-app.post("/v1/summon", [ authContext, heavyLimiter ], async (e, t) => {
+app.post("/v1/summon", [ heavyLimiter, authContext ], async (e, t) => {
   var {
     type: r,
     method: s
@@ -38,7 +38,7 @@ app.post("/v1/summon", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/quests", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/quests", [ heavyLimiter, authContext ], async (e, t) => {
   var r = e.body["questId"], s = new _FarcasterRpgService();
   try {
     return await s.claimQuestReward({
@@ -52,7 +52,7 @@ app.post("/v1/summon", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.get("/v1/player", [ authContext, lightLimiter ], async (e, t) => {
+}), app.get("/v1/player", [ lightLimiter, authContext ], async (e, t) => {
   var r = new _FarcasterRpgService(), s = e.query["sort"];
   try {
     var {

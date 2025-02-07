@@ -177,12 +177,12 @@ class FarcasterTcgService {
       }
     }, this.unboxQuests = {}, this.MAX_SHOP_CARDS = 3, this.MAX_CARDS_IN_HAND = 4, 
     this.FAVORITE_ODDS = .1, this._BOT_PLAYER = null, this.MAX_FIELD_CARDS = 4, 
-    this.DEBUG = "development" === process.env.NODE_ENV, this.SHOP_OPEN_SECONDS = 19, 
+    this.DEBUG = "development" === process.env.NODE_ENV, this.SHOP_OPEN_SECONDS = 22, 
     this.OPPONENT_OPTIONS = [ "opp1", "opp2", "opp3", "opp4", "opp5" ], this.ARENA_OPTIONS = [ "arena1", "arena2", "arena3", "arena4", "arena5" ], 
     this.PACK_GRACE_PERIOD_SECONDS = Math.floor(Date.now() / 1e3) + 15552e3, this.INVENTORY_CACHE_KEY = "tcg:inventory:first-page", 
     this.PACKS_CACHE_KEY = "tcg:packs:first-page", this.CACHE_TTL = 10, this.PLAYER_STARTING_HEALTH = 10, 
     this.OVERLOAD_PER_PERIOD = 1e4, this.PERIOD_IN_DAYS = 7, this.OVERLOAD_MULTIPLIER = .1, 
-    this.INTERNAL_INVITE_CODES = [ "projecteverest", "farquestloyalty", "jcdenton" ], 
+    this.INTERNAL_INVITE_CODES = [ "projecteverest", "farquestloyalty", "base", "jcdenton", "frame" ], 
     this.INTERNAL_ACCOUNT_USERNAME = "jc", this.FARHERO_CHECK_PASSES_INVITE_CODE = "CheckPasses", 
     this.FARHERO_HANDLES_REQUIRED_FOR_INVITE = (process.env.NODE_ENV, 1), this.MAX_ROUNDS_BEFORE_DRAW = 15, 
     this.quests = {
@@ -407,7 +407,7 @@ class FarcasterTcgService {
     t = t.account.addresses[0].address?.toLowerCase();
     if (e.owner.toLowerCase() !== t) throw new Error("Invalid handle owner");
     if (![ "normal", "premium", "collector" ].includes(a)) throw new Error("Invalid pack type");
-    if ("premium" === a && "OP" !== e.chain) throw new Error("Premium packs can only be on OP");
+    if ("premium" === a && "OP" !== e.chain && "BASE" !== e.chain) throw new Error("Premium packs can only be on OP or BASE");
     if ("collector" === a && (isNaN(e.handle?.length) || 9 < e.handle?.length)) throw new Error("Collector pack has invalid handle length!");
     t = e.expiresAt;
     if (!t) throw new Error("Unable to fetch expiration date for this handle");
@@ -537,7 +537,7 @@ class FarcasterTcgService {
       var n = [];
       for (const l of s) if (!l.displayItemId) {
         let e;
-        e = "OP" === l.chain ? "Premium" : l.handle?.length <= 9 ? "Collector" : "Normal", 
+        e = "OP" === l.chain || "BASE" === l.chain ? "Premium" : l.handle?.length <= 9 ? "Collector" : "Normal", 
         n.push(l.setCastHandleMetadataForFarheroPacks(e));
       }
       var i = !o.dropClaimed, d = (o.dropClaimed = !0, [ ...n, o.save() ]);
@@ -1027,7 +1027,7 @@ class FarcasterTcgService {
             limit: this.MAX_CARDS_IN_HAND,
             session: N
           });
-          const I = {
+          const A = {
             ...jsonClone(s),
             player: O._id,
             source: -1,
@@ -1038,8 +1038,8 @@ class FarcasterTcgService {
             gameCardStats: [ ...s.gameCardStats, ...i.map(e => e.stats) ]
           };
           b.gameCards.push(...i), i.forEach((e, a) => {
-            I.playersHand[S][a] = b.gameCards.indexOf(e);
-          }), r.actions.push(I);
+            A.playersHand[S][a] = b.gameCards.indexOf(e);
+          }), r.actions.push(A);
         } else if ("RefreshShop" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot refresh shop when not in the shop state!");
           if (r.actions.some(e => "RefreshShop" === e.type && e.player.equals(O._id))) throw new Error("Cannot refresh shop twice in a row");
@@ -1063,9 +1063,9 @@ class FarcasterTcgService {
           r.actions.push(l);
         } else if ("PlayCard" === x) {
           if ("Shop" !== r.state) throw new Error("Cannot play card when not in the shop state!");
-          const A = s.playersHand[S][k];
-          if (-1 === A || void 0 === A) throw new Error("Card not found in hand");
-          var c = s.gameCardStats[A];
+          const I = s.playersHand[S][k];
+          if (-1 === I || void 0 === I) throw new Error("Card not found in hand");
+          var c = s.gameCardStats[I];
           if (c.cost > s.playersEnergy[S]) throw new Error("Player does not have enough energy to play the card");
           const P = {
             ...jsonClone(s),
@@ -1075,22 +1075,22 @@ class FarcasterTcgService {
             type: x,
             time: new Date(),
             cost: c.cost
-          }, R = (P.playersHand[S][k] = -1, P.playersField[S][F] = A, P.playersEnergy[S] -= c.cost, 
+          }, R = (P.playersHand[S][k] = -1, P.playersField[S][F] = I, P.playersEnergy[S] -= c.cost, 
           this._applyCardAbilities({
             match: b,
             action: P,
             attackerIndex: S,
             defenderIndex: -1,
-            attackerCard: A,
+            attackerCard: I,
             defenderCard: -1,
             trigger: TRIGGER.Summon
-          }), b.gameCards[A]);
+          }), b.gameCards[I]);
           let t = 0;
           P.playersField[S].forEach(e => {
             var a;
-            -1 === e || e === A || (a = b.gameCards[e]).class !== R.class && a.family !== R.family || (P.gameCardStats[e].health += 1, 
+            -1 === e || e === I || (a = b.gameCards[e]).class !== R.class && a.family !== R.family || (P.gameCardStats[e].health += 1, 
             t++);
-          }), 0 < t && (P.gameCardStats[A].health += t), r.actions.push(P);
+          }), 0 < t && (P.gameCardStats[I].health += t), r.actions.push(P);
         } else if ("CardAttack" === x) {
           if ("Battle" !== r.state) throw new Error("Cannot attack when not in the battle state!");
           if (!q) throw new Error("Cannot attack manually when auto-battling");
@@ -1591,7 +1591,10 @@ class FarcasterTcgService {
         account: e
       });
       if (!i) throw new Error("Player not found");
-      if (i.invitedBy) throw new Error("Player has already been invited");
+      if (i.invitedBy) return {
+        success: !0,
+        message: "You have already been invited before!"
+      };
       if (this.INTERNAL_INVITE_CODES.includes(a?.toLowerCase?.())) await s(i); else {
         if (a === this.FARHERO_CHECK_PASSES_INVITE_CODE) return await r.account.populate("addresses"), 
         o = r.account.addresses[0].address?.toLowerCase(), n = (await getAddressPasses(o, !1))["passes"], 

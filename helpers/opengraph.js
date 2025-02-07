@@ -47,21 +47,21 @@ async function followRedirect(e) {
   }
 }
 
-const getHtml = async e => {
+const getHtml = async (e, a = !1) => {
   var t = await memcache.get(getHash("getHtml:ogData:" + e));
   if (t) return JSON.parse(t.value);
-  let a;
+  let r;
   try {
     if (/^(https?:\/\/)?(www\.)?(twitter\.com|x\.com|t\.co)/i.test(e)) {
       let t = e.replace("twitter.com", "x.com");
       t.includes("t.co") && (t = await followRedirect(t));
-      var r = (await axios.get("https://publish.x.com/oembed?url=" + t, {
+      var i = (await axios.get("https://publish.x.com/oembed?url=" + t, {
         timeout: MAX_HTML_TIMEOUT,
         maxContentLength: MAX_HTML_CONTENT_LENGTH
       }))["data"];
-      a = r.html;
+      r = i.html;
     } else {
-      var i = e.startsWith("http") ? e : "http://" + e, o = (await axios.get(i, {
+      var o = e.startsWith("http") ? e : "http://" + e, c = (await axios.get(o, {
         headers: {
           Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
           "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
@@ -72,16 +72,17 @@ const getHtml = async e => {
         timeout: MAX_HTML_TIMEOUT,
         maxContentLength: MAX_HTML_CONTENT_LENGTH
       }))["data"];
-      a = o;
+      r = c;
     }
   } catch (t) {
-    throw console.error("caching getHTML error to prevent server overload"), await memcache.set(getHash("getHtml:ogData:" + e), JSON.stringify({
+    throw a && console.error("caching getHTML error to prevent server overload"), 
+    await memcache.set(getHash("getHtml:ogData:" + e), JSON.stringify({
       getHtmlError: "Error fetching HTML"
     }), {
       lifetime: 3600
     }), t;
   }
-  return await fetchAndCacheOpenGraphData(e, a);
+  return await fetchAndCacheOpenGraphData(e, r);
 };
 
 module.exports = {

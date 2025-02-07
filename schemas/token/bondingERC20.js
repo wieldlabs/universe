@@ -2,11 +2,20 @@ const mongoose = require("mongoose"), schema = new mongoose.Schema({
   tokenAddress: {
     type: String,
     required: !0,
-    unique: !0
+    unique: !0,
+    validate: {
+      validator: function(e) {
+        return e === e.toLowerCase();
+      },
+      message: e => e.value + " must be lowercase"
+    }
   },
   tokenCreator: {
     type: String,
     required: !0
+  },
+  overrideTokenCreator: {
+    type: String
   },
   platformReferrer: {
     type: String,

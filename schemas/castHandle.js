@@ -10,7 +10,7 @@ const mongoose = require("mongoose"), schema = mongoose.Schema({
   },
   chain: {
     type: String,
-    enum: [ "ETH", "OP" ],
+    enum: [ "ETH", "OP", "BASE" ],
     required: !0
   },
   tokenId: {

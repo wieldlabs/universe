@@ -15,13 +15,13 @@ class RegistrarService {
     }), n = new ethers.Contract(prod().OPTIMISM_CONTROLLER_ADDRESS, prod().OPTIMISM_CONTROLLER_ABI, i), 
     r = new ethers.Contract(prod().OPTIMISM_REGISTRAR_ADDRESS, prod().REGISTRAR_ABI, i), 
     this.AlchemyService = t, this.alchemyProvider = i, this.controller = n, this.registrar = r) : "base" === e && (t = new _AlchemyService({
-      apiKey: config().BASE_NODE_URL,
-      chain: config().BASE_NODE_NETWORK
+      apiKey: prod().BASE_NODE_URL,
+      chain: prod().BASE_NODE_NETWORK
     }), i = getProvider({
-      network: config().BASE_NODE_NETWORK,
-      node: config().BASE_NODE_URL
-    }), n = new ethers.Contract(config().BASE_CONTROLLER_ADDRESS, config().BASE_CONTROLLER_ABI, i), 
-    r = new ethers.Contract(config().BASE_REGISTRAR_ADDRESS, config().BASE_REGISTRAR_ABI, i), 
+      network: prod().BASE_NODE_NETWORK,
+      node: prod().BASE_NODE_URL
+    }), n = new ethers.Contract(prod().BASE_CONTROLLER_ADDRESS, prod().BASE_CONTROLLER_ABI, i), 
+    r = new ethers.Contract(prod().BASE_REGISTRAR_ADDRESS, prod().REGISTRAR_ABI, i), 
     this.AlchemyService = t, this.alchemyProvider = i, this.controller = n, this.registrar = r) : (e = new _AlchemyService({
       apiKey: prod().NODE_URL,
       chain: prod().NODE_NETWORK

@@ -109,23 +109,27 @@ class ScoreService {
   async getPosition({
     address: e,
     bebdomain: r,
-    includeNoScore: s = !1
+    includeNoScore: s = !1,
+    initialScore: a = 0
   }) {
     e = validateAndConvertAddress(e), e = await Score.findOne({
       address: e,
       scoreType: r
-    }), e = e ? e.score : 0, e = [ Score.countDocuments({
+    });
+    let o;
+    o = a ? a + (e ? parseInt(e.score) : 0) : e ? e.score : 0;
+    a = [ Score.countDocuments({
       scoreType: r,
       score: {
-        $gte: padWithZeros(e.toString())
+        $gte: padWithZeros(o.toString())
       }
-    }) ], s && e.push(Score.countDocuments({
+    }) ], s && a.push(Score.countDocuments({
       scoreType: r,
       score: {
         $in: [ "", "0" ]
       }
-    })), r = await Promise.all(e), e = r[0];
-    return s ? e + r[1] : e;
+    })), e = await Promise.all(a), r = e[0];
+    return s ? r + e[1] : r;
   }
   async addXP({
     address: e,

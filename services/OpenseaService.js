@@ -184,7 +184,10 @@ class OpenseaService {
     let e, t, s;
     if ("OP" === r.chain) e = "optimism", t = prod().OPTIMISM_REGISTRAR_ADDRESS, 
     s = "castoptimism"; else if ("ETH" === r.chain) e = "ethereum", t = prod().REGISTRAR_ADDRESS, 
-    s = "casthandles"; else if (r) throw new Error("Invalid handle format");
+    s = "casthandles"; else {
+      if ("BASE" !== r.chain) throw new Error("Invalid handle format");
+      e = "base", t = prod().BASE_REGISTRAR_ADDRESS, s = "castbase";
+    }
     var a = convertHexTokenIdToNumber(r.tokenId);
     if (!a) throw new Error("Invalid handle");
     if (!t) throw new Error(`Contract address not set for ${e} chain`);

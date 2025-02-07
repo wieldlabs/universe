@@ -349,7 +349,7 @@ const generateSchoolImageMiddleware = async (t, e, r) => {
 
 function getQuestTitle() {
   var e = new Date(config().FARSCHOOL_START_DATE), t = new Date(), t = Math.floor((t - e) / 864e5);
-  return "Lesson " + Math.min(t + 1, 150);
+  return "Lesson " + Math.min(t + 1, 360);
 }
 
 app.get("/v1/school", [ generateSchoolImageMiddleware, generateRewardImageMiddleware ], async (e, t) => {

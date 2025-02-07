@@ -20,9 +20,8 @@ const mongoose = require("mongoose"), {
   syncedChannelsSchema,
   syncedActionsSchema,
   syncedVerificationSchema,
-  agentSchema,
   farpaySchema,
-  agentRequestSchema
+  frameNotificationSchema
 } = require("../../schemas/farcaster");
 
 class HubSubscriptionsClass {
@@ -256,27 +255,7 @@ class SyncedVerificationClass {
 
 syncedVerificationSchema.loadClass(SyncedVerificationClass);
 
-const SyncedVerification = mongoose.models.SyncedVerification || mongoose.model("farcaster.SyncedVerification", syncedVerificationSchema);
-
-class AgentClass {
-  static ping() {
-    console.log("model: AgentClass");
-  }
-}
-
-agentSchema.loadClass(AgentClass);
-
-const Agent = mongoose.models.Agent || mongoose.model("farcaster.Agent", agentSchema);
-
-class AgentRequestClass {
-  static ping() {
-    console.log("model: AgentRequestClass");
-  }
-}
-
-agentRequestSchema.loadClass(AgentRequestClass);
-
-const AgentRequest = mongoose.models.AgentRequest || mongoose.model("farcaster.AgentRequest", agentRequestSchema), UserDataType = {
+const SyncedVerification = mongoose.models.SyncedVerification || mongoose.model("farcaster.SyncedVerification", syncedVerificationSchema), UserDataType = {
   USER_DATA_TYPE_NONE: 0,
   USER_DATA_TYPE_PFP: 1,
   USER_DATA_TYPE_DISPLAY: 2,
@@ -302,6 +281,16 @@ const AgentRequest = mongoose.models.AgentRequest || mongoose.model("farcaster.A
   MESSAGE_TYPE_USER_DATA_ADD: 11,
   MESSAGE_TYPE_USERNAME_PROOF: 12
 };
+
+class FrameNotificationClass {
+  static ping() {
+    console.log("model: FrameNotificationClass");
+  }
+}
+
+frameNotificationSchema.loadClass(FrameNotificationClass);
+
+const FrameNotification = mongoose.models.FrameNotification || mongoose.model("farcaster.FrameNotification", frameNotificationSchema);
 
 module.exports = {
   HubSubscriptions: HubSubscriptions,
@@ -329,6 +318,5 @@ module.exports = {
   SyncedActions: SyncedActions,
   SyncedVerification: SyncedVerification,
   FarPay: FarPay,
-  Agent: Agent,
-  AgentRequest: AgentRequest
+  FrameNotification: FrameNotification
 };

@@ -41,8 +41,8 @@ async function getAddressPasses(e, a) {
   if (!e || e.length < 10) throw new Error("address is invalid");
   let t = null, r = [];
   try {
-    var s = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, i = await memcache.get(s), o = await memcache.get(n);
-    if (i ? (r = JSON.parse(i.value), t = !0) : o ? t = JSON.parse(o.value) : (t = await CastHandle.exists({
+    var s = "getAddressPasses:" + e, n = "getAddressPasses_isHolder:" + e, i = await memcache.get(s), d = await memcache.get(n);
+    if (i ? (r = JSON.parse(i.value), t = !0) : d ? t = JSON.parse(d.value) : (t = await CastHandle.exists({
       owner: e.toLowerCase()
     }), await memcache.set(n, JSON.stringify(t), {
       lifetime: t ? 3600 : 1
@@ -62,34 +62,10 @@ async function getAddressPasses(e, a) {
   };
 }
 
-function setupAlchemyServices() {
-  return {
-    AlchemyService: new _AlchemyService({
-      apiKey: prod().NODE_URL,
-      chain: prod().NODE_NETWORK
-    }),
-    OptimismAlchemyService: new _AlchemyService({
-      apiKey: prod().OPTIMISM_NODE_URL,
-      chain: prod().OPTIMISM_NODE_NETWORK
-    })
-  };
-}
-
-async function checkIsHolderWithFallback(e, a, t) {
-  let r = await a.isHolderOfCollection({
-    wallet: t,
-    contractAddress: prod().OPTIMISM_REGISTRAR_ADDRESS
-  });
-  return r = r || await e.isHolderOfCollection({
-    wallet: t,
-    contractAddress: prod().REGISTRAR_ADDRESS
-  });
-}
-
 async function getCastHandles(e) {
   return (await CastHandle.find({
     owner: e.toLowerCase()
-  })).filter(e => e?.handle).map(e => "ETH" === e.chain ? e.handle.toLowerCase() + ".cast" : e.handle.replace("op_", "").toLowerCase() + ".op.cast");
+  })).filter(e => e?.handle).map(e => "ETH" === e.chain ? e.handle.toLowerCase() + ".cast" : "OP" === e.chain ? e.handle.replace("op_", "").toLowerCase() + ".op.cast" : e.handle.replace("base_", "").toLowerCase() + ".base.cast");
 }
 
 async function getCastHandlesWithMetadata({
@@ -123,7 +99,7 @@ async function getCastHandlesWithMetadata({
     lifetime: 10
   })));
   r = i.filter(e => e?.handle);
-  let o = null;
+  let d = null;
   return [ await Promise.all(r.map(async e => {
     var a = "ETH" === e.chain ? 1 : 10, [ a ] = await Promise.all([ n.getListing({
       fid: -1,
@@ -134,7 +110,7 @@ async function getCastHandlesWithMetadata({
       ...e.toObject(),
       listing: a
     };
-  })), o = i.length === a ? i[i.length - 1]._id + "-" + i[i.length - 1]._id : o ];
+  })), d = i.length === a ? i[i.length - 1]._id + "-" + i[i.length - 1]._id : d ];
 }
 
 async function getListingDetails({
@@ -226,15 +202,15 @@ function hexToBytes(a) {
 
 function extractAndReplaceMentions(e, s = {}) {
   let n = "";
-  const i = [], o = [];
+  const i = [], d = [];
   return e.split(/(\s|\n)/).forEach((e, a) => {
     var t, r;
     e.startsWith("@") && (t = /(?<!\]\()@([a-zA-Z0-9_\-]+(\.[a-z]{2,})*)/g.exec(e)?.[1]) && t in s ? (r = Buffer.from(n).length, 
-    i.push(s[t]), o.push(r), n += e.replace("@" + t, "")) : n += e;
+    i.push(s[t]), d.push(r), n += e.replace("@" + t, "")) : n += e;
   }), {
     text: n,
     mentions: i,
-    mentionsPositions: o
+    mentionsPositions: d
   };
 }
 
@@ -258,11 +234,11 @@ const makeMessage = async ({
       break;
 
      case MessageType.CAST_REMOVE:
-      var o = Date.now() - 314496e5, d = toFarcasterTime(o).value;
+      var d = Date.now() - 314496e5, o = toFarcasterTime(d).value;
       i = await makeCastRemoveRpc(t, {
         fid: parseInt(r),
         network: DEFAULT_NETWORK,
-        timestamp: d
+        timestamp: o
       }, n);
       break;
 
@@ -324,18 +300,18 @@ const makeMessage = async ({
   });
   throw i.error || new Error("Invalid Farcaster data");
 }, makeRequest = async (e, a, t, r, s = {}, n = {}, i = {}) => {
-  var o = "production" === process.env.NODE_ENV ? "https://build.far.quest" : "http://localhost:8080", e = await makeMessage({
+  var d = "production" === process.env.NODE_ENV ? "https://build.far.quest" : "http://localhost:8080", e = await makeMessage({
     privateKey: e,
     messageType: a,
     body: t,
     fid: r,
     overrides: s
   });
-  let d = "0x" === r?.slice(0, 2);
-  d = d || Object.keys(n).some(a => "object" == typeof n[a] ? Object.keys(n[a]).some(e => "0x" === n[a][e]?.slice(0, 2)) : "0x" === n[a]?.slice?.(0, 2));
+  let o = "0x" === r?.slice(0, 2);
+  o = o || Object.keys(n).some(a => "object" == typeof n[a] ? Object.keys(n[a]).some(e => "0x" === n[a][e]?.slice(0, 2)) : "0x" === n[a]?.slice?.(0, 2));
   a = i.accessToken;
-  return a ? (await axios.post(o + "/farcaster/v2/message", {
-    isExternal: d,
+  return a ? (await axios.post(d + "/farcaster/v2/message", {
+    isExternal: o,
     message: e,
     bodyOverrides: n
   }, {
@@ -346,7 +322,7 @@ const makeMessage = async ({
     }
   })).data : (t = ("SECURE" === process.env.HUB_SECURE ? getSSLHubRpcClient : getInsecureHubRpcClient)(process.env.HUB_ADDRESS), 
   await postMessage({
-    isExternal: d || r.startsWith("0x") || !1,
+    isExternal: o || r.startsWith("0x") || !1,
     externalFid: r,
     messageJSON: e,
     hubClient: t,
@@ -363,23 +339,24 @@ const makeMessage = async ({
   embeds: s,
   parentHash: n,
   parentFid: i,
-  parentUrl: o,
-  fid: d,
+  parentUrl: d,
+  fid: o,
   accessToken: c
 }) => {
+  a = extractAndReplaceMentions(a, t.reduce((e, a, t) => (e[a] = r[t], e), {})), 
   t = {
-    ...extractAndReplaceMentions(a, t.reduce((e, a, t) => (e[a] = r[t], e), {})),
+    ...a,
     embeds: s || []
   }, s = {}, n && (t.parentCastId = {
     hash: hexToBytes(n.slice(2)),
     fid: parseInt(i)
   }, s.parentCastId = {
     fid: i
-  }), o && (t.parentUrl = o), s.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e)), 
-  t.type = 320 < Buffer.from(a, "utf-8").length ? 1 : 0, n = {};
+  }), d && (t.parentUrl = d), s.mentions = t.mentions, t.mentions = t.mentions.map(e => parseInt(e)), 
+  t.type = 320 < Buffer.from(a.text, "utf-8").length ? 1 : 0, n = {};
   c && (n.accessToken = c);
   try {
-    return await makeRequest(e, MessageType.CAST_ADD, t, d, {}, s, n);
+    return await makeRequest(e, MessageType.CAST_ADD, t, o, {}, s, n);
   } catch (e) {
     throw console.error(e), new Error(e);
   }
@@ -583,5 +560,6 @@ module.exports = {
   makeMessage: makeMessage,
   registerUsername: registerUsername,
   USERNAME_PROOF_DOMAIN: USERNAME_PROOF_DOMAIN,
-  USERNAME_PROOF_TYPE: USERNAME_PROOF_TYPE
+  USERNAME_PROOF_TYPE: USERNAME_PROOF_TYPE,
+  hexToBytes: hexToBytes
 };

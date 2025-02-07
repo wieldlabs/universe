@@ -71,6 +71,35 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
       value: e.base.toString()
     }
   };
+}, getTxDataForBaseController = async e => {
+  var t = 31536e4, r = new ethers.providers.JsonRpcProvider("https://base-mainnet.g.alchemy.com/v2/" + config().BASE_NODE_URL, {
+    name: "base",
+    chainId: 8453
+  }), r = new ethers.Contract(config().CONTROLLER_ADDRESS_BASE, config().CONTROLLER_ABI, r);
+  let a = e.query.bebdomain || e.context?.untrustedData?.inputText;
+  if (!a) for (a = generateUsername({
+    useRandomNumber: !0
+  }); !a || a.length < 10; ) a = generateUsername({
+    useRandomNumber: !0
+  });
+  a = (a = a.startsWith("base_") ? a : "base_" + a).replace(".cast", "");
+  try {
+    await validateAndCreateMetadata(a);
+  } catch (e) {
+    throw new Error("Invalid domain name: " + e.message);
+  }
+  var n = e.context?.frameData?.frameActionBody?.address, n = n ? "0x" + Buffer.from(n).toString("hex") : e.query.address, e = await r.rentPrice(a, t), r = new ethers.utils.Interface(config().CONTROLLER_ABI).encodeFunctionData("register", [ a, n, 31536e4 ]);
+  return {
+    chainId: "eip155:8453",
+    method: "eth_sendTransaction",
+    attribution: !1,
+    params: {
+      abi: config().CONTROLLER_ABI,
+      to: config().CONTROLLER_ADDRESS_BASE,
+      data: r,
+      value: e.base.toString()
+    }
+  };
 }, getTxDataForBulkRegister = async e => {
   var {
     names: t,
@@ -82,9 +111,9 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
   if (t.length !== r.length) throw new Error("Input arrays must have the same length");
   var n = e.context?.frameData?.frameActionBody?.address;
   const o = n ? "0x" + Buffer.from(n).toString("hex") : e.query.address;
-  var n = new ethers.providers.AlchemyProvider("10" === a ? 10 : 1, "10" === a ? config().OPTIMISM_NODE_URL : config().ETH_NODE_URL), e = "10" === a ? config().BULK_REGISTER_ADDRESS_OP : config().BULK_REGISTER_ADDRESS, i = config().BULK_REGISTER_ABI, n = await new ethers.Contract(e, i, n).calculateTotalPrice(t, r);
+  var n = new ethers.providers.AlchemyProvider("10" === a ? 10 : "8453" === a ? 8453 : 1, "10" === a ? config().OPTIMISM_NODE_URL : "8453" === a ? config().BASE_NODE_URL : config().ETH_NODE_URL), e = "10" === a ? config().BULK_REGISTER_ADDRESS_OP : "8453" === a ? config().BULK_REGISTER_ADDRESS_BASE : config().BULK_REGISTER_ADDRESS, i = config().BULK_REGISTER_ABI, n = await new ethers.Contract(e, i, n).calculateTotalPrice(t, r);
   return {
-    chainId: "10" === a ? "eip155:10" : "eip155:1",
+    chainId: "10" === a ? "eip155:10" : "8453" === a ? "eip155:8453" : "eip155:1",
     method: "eth_sendTransaction",
     attribution: !1,
     params: {
@@ -96,7 +125,7 @@ const config = require("../helpers/config")["config"], ethers = require("ethers"
   };
 }, getBebdomainTxData = async e => {
   var t = e.query.bebdomain || e.context?.untrustedData?.inputText, r = e.query.chainId, a = e.query.count;
-  return (a && 1 < parseInt(a) ? getTxDataForBulkRegister : "1" === r || t && t.length < 7 ? getTxDataForEthController : getTxDataForOpController)(e);
+  return (a && 1 < parseInt(a) ? getTxDataForBulkRegister : "8453" === r ? getTxDataForBaseController : "1" === r || t && t.length < 7 ? getTxDataForEthController : getTxDataForOpController)(e);
 };
 
 module.exports = {

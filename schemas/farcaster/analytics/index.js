@@ -603,6 +603,14 @@ const mongoose = require("mongoose"), TIME_PERIODS = {
   timestamp: -1,
   _id: -1
 }), {
+  "0x498581ff718922c3f8e6a244956af099b2652b2b": {
+    name: "Uniswap",
+    details: "Uniswap V4 Pool Manager"
+  },
+  "0x6ff5693b99212da76ad316178a184ab56d299b43": {
+    name: "Uniswap",
+    details: "Uniswap V4 Universal Router"
+  },
   "0x2626664c2603336E57B271c5C0b26F421741e481": {
     name: "Uniswap",
     details: "Uniswap V3 Swap Router"

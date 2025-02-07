@@ -68,7 +68,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   r();
 };
 
-app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, t) => {
+app.get("/v1/nfts", [ heavyLimiter, authContext ], async (e, t) => {
   try {
     const a = parseInt(e.query.limit || DEFAULT_NFT_LIMIT), s = e.query.networks || DEFAULT_NETWORKS, o = e.query.cursors || DEFAULT_CURSORS, n = e.query.address;
     var r = await Promise.all(s.map((e, t) => o[t] === SKIP_CURSOR ? [] : getOnchainNFTs(n, e, o[t], a)));
@@ -84,7 +84,7 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, t) => {
       error: "Internal Server Error"
     });
   }
-}), app.get("/v1/tokens", [ authContext, limiter ], async (e, t) => {
+}), app.get("/v1/tokens", [ limiter, authContext ], async (e, t) => {
   try {
     parseInt(e.query.limit || DEFAULT_LIMIT);
     const a = e.query.cursors || DEFAULT_CURSORS, s = e.query.networks || DEFAULT_NETWORKS, o = e.query.address;
@@ -101,7 +101,7 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, t) => {
       error: "Internal Server Error"
     });
   }
-}), app.get("/v1/transactions", [ authContext, limiter ], async (e, t) => {
+}), app.get("/v1/transactions", [ limiter, authContext ], async (e, t) => {
   try {
     const a = parseInt(e.query.limit || DEFAULT_LIMIT), s = e.query.networks || DEFAULT_NETWORKS, o = e.query.cursors || DEFAULT_CURSORS, n = e.query.address;
     var r = await Promise.all(s.map((e, t) => o[t] === SKIP_CURSOR ? [] : getOnchainTransactions(n, e, {
@@ -120,7 +120,7 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, t) => {
       error: "Internal Server Error"
     });
   }
-}), app.get("/v1/summary", [ authContext, limiter ], async (e, t) => {
+}), app.get("/v1/summary", [ limiter, authContext ], async (e, t) => {
   try {
     var r = e.query.networks || DEFAULT_NETWORKS;
     const y = e.query.address;
@@ -148,7 +148,7 @@ app.get("/v1/nfts", [ authContext, heavyLimiter ], async (e, t) => {
       error: "Internal Server Error"
     });
   }
-}), app.get("/v1/token/summary", [ authContext, limiter ], async (e, t) => {
+}), app.get("/v1/token/summary", [ limiter, authContext ], async (e, t) => {
   e = e.query.address;
   if (!e) return t.status(400).json({
     error: "Address parameter is required"

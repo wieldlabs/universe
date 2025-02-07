@@ -479,26 +479,26 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
     var y = await Transactions.find(u).sort({
       timestamp: 1,
       _id: 1
-    }).limit(n + 1).lean(), h = y.length > n, S = y.slice(0, n), _ = new Set(S.map(e => e.fid)), I = new Set(S.filter(e => !e.isFartoken).map(e => e.rawContract?.address).filter(Boolean)), w = new Set(S.filter(e => e.isFartoken).map(e => e.rawContract?.address?.toLowerCase()).filter(Boolean));
+    }).limit(n + 1).lean(), h = y.length > n, S = y.slice(0, n), _ = new Set(S.map(e => e.fid)), A = new Set(S.filter(e => !e.isFartoken).map(e => e.rawContract?.address).filter(Boolean)), I = new Set(S.filter(e => e.isFartoken).map(e => e.rawContract?.address?.toLowerCase()).filter(Boolean));
     const $ = new Map();
-    var A = Array.from(_).map(async e => {
+    var w = Array.from(_).map(async e => {
       let r = null;
       (r = "0x" === e.slice(0, 2) ? await getFarcasterUserByAnyAddress(e) : await getFarcasterUserByFid(e)) && $.set(e, r);
-    }), T = Array.from(w), E = T.length ? BondingErc20.find({
+    }), T = Array.from(I), E = T.length ? BondingErc20.find({
       tokenAddress: {
         $in: T
       },
       type: {
         $in: BondingErc20.queryTokens()
       }
-    }) : [], k = getTokenMetadata(BASE_CHAIN_ID, [ ...I ]), [ v, C ] = await Promise.all([ k, E, ...A ]);
+    }) : [], k = getTokenMetadata(BASE_CHAIN_ID, [ ...A ]), [ v, C ] = await Promise.all([ k, E, ...w ]);
     const j = v.reduce((e, r) => (e[r.address.toLowerCase()] = r, e), {}), N = C.reduce((e, r) => (e[r.tokenAddress.toLowerCase()] = {
       ...r.metadata,
       address: r.tokenAddress,
       logo: cleanIpfsImage(r.metadata?.image)
     }, e), {});
     var O, P = S.map(e => {
-      var r = e.from.toLowerCase(), t = e.to.toLowerCase(), a = BASE_DEX_CONTRACTS_LOWERCASE[r], s = BASE_DEX_CONTRACTS_LOWERCASE[t], i = e.from === ethers.constants.AddressZero, n = j[e.rawContract?.address?.toLowerCase()] || N[e.rawContract?.address?.toLowerCase()];
+      var r = e.from.toLowerCase(), t = e.to.toLowerCase(), a = BASE_DEX_CONTRACTS_LOWERCASE[r] || e.isFartoken && r === ethers.constants.AddressZero, s = BASE_DEX_CONTRACTS_LOWERCASE[t] || e.isFartoken && t === ethers.constants.AddressZero, i = e.from === ethers.constants.AddressZero && "erc20created" === e.category, n = j[e.rawContract?.address?.toLowerCase()] || N[e.rawContract?.address?.toLowerCase()];
       return e.isFartoken && !n ? null : {
         ...e,
         isSwap: !(!a && !s),
@@ -556,17 +556,17 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       chain: i,
       timePeriod: n
     });
-    const I = u.map(e => e.address.toLowerCase());
+    const A = u.map(e => e.address.toLowerCase());
     var m, f = {
       chain: i,
       isSwap: !0,
       $or: [ {
         from: {
-          $in: I
+          $in: A
         }
       }, {
         to: {
-          $in: I
+          $in: A
         }
       } ]
     }, p = (o && (f.timestamp = {
@@ -584,7 +584,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), {
       timestamp: -1,
       _id: -1
     }).limit(s + 1).lean(), y = g.length > s, h = g.slice(0, s), S = h.map(e => enhanceTransaction(e, {
-      influencerAddresses: I
+      influencerAddresses: A
     }));
     let e = null;
     y && 0 < h.length && (m = h[h.length - 1], e = new Date(m.timestamp).getTime() + "-" + m._id);

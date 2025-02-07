@@ -1624,6 +1624,24 @@
     neverthrow "^6.0.0"
     viem "^2.17.4"
 
+"@farcaster/frame-core@0.0.24":
+  version "0.0.24"
+  resolved "https://registry.yarnpkg.com/@farcaster/frame-core/-/frame-core-0.0.24.tgz#35c2403f561a74b6551e3032d6d57a730c3dc413"
+  integrity sha512-iO/Jxz6mZBVUoLIY753Id5Yhn6DHBakQkIBXf0mreAcnjPGCMvKx/0xKEM3ns3M801PqoX7VLYO4q+kKxYzQ0A==
+  dependencies:
+    ox "^0.4.4"
+    zod "^3.24.1"
+
+"@farcaster/frame-node@^0.0.13":
+  version "0.0.13"
+  resolved "https://registry.yarnpkg.com/@farcaster/frame-node/-/frame-node-0.0.13.tgz#ba9d37358589b263aa9566cf1763b1eb528672e6"
+  integrity sha512-99rhLSpyhKKnWFh8eWx8N5tTYEToFkIzg9r5lRm2bvfsZaT0zXr/cA+G9pWDFZyodfoyS/cLHS46Qsm8P52uTg==
+  dependencies:
+    "@farcaster/frame-core" "0.0.24"
+    "@noble/curves" "^1.7.0"
+    ox "^0.4.4"
+    zod "^3.24.1"
+
 "@farcaster/hub-nodejs@^0.12.7":
   version "0.12.7"
   resolved "https://registry.yarnpkg.com/@farcaster/hub-nodejs/-/hub-nodejs-0.12.7.tgz#dea5bcad08dc99f6fe88597ae7bc190fd2c5c91f"
@@ -2472,6 +2490,18 @@
   dependencies:
     "@noble/hashes" "1.3.3"
 
+"@noble/curves@^1.7.0":
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-1.8.0.tgz#fe035a23959e6aeadf695851b51a87465b5ba8f7"
+  integrity sha512-j84kjAbzEnQHaSIhRPUmB3/eVXu2k3dKPl2LOrR8fSOIL+89U+7lV117EWHtq/GHM3ReGHM46iRBdZfpc4HRUQ==
+  dependencies:
+    "@noble/hashes" "1.7.0"
+
+"@noble/ed25519@^2.2.2":
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/@noble/ed25519/-/ed25519-2.2.2.tgz#3d8d803ad3b30a42fedbce60fffb3485ec836243"
+  integrity sha512-8dbNnAGY8497RMEes5MWzjZkKRLWToKwenlrqzHTWVKyOaEzLqU2iPaVJGRvkyEcJL6CmuqSt0paPFB2aR6WwA==
+
 "@noble/hashes@1.2.0", "@noble/hashes@~1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.2.0.tgz#a3150eeb09cc7ab207ebf6d7b9ad311a9bdbed12"
@@ -2491,6 +2521,11 @@
   version "1.5.0"
   resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.5.0.tgz#abadc5ca20332db2b1b2aa3e496e9af1213570b0"
   integrity sha512-1j6kQFb7QRru7eKN3ZDvRcP13rugwdxZqCjbiAVZfIJwgj2A65UmT4TgARXGlXgnRkORLTDTrO19ZErt7+QXgA==
+
+"@noble/hashes@1.7.0":
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/@noble/hashes/-/hashes-1.7.0.tgz#5d9e33af2c7d04fee35de1519b80c958b2e35e39"
+  integrity sha512-HXydb0DgzTpDPwbVeDGCG1gIu7X6+AuU6Zl6av/E/KG8LMsvPntvq+w17CHRpKBmN6Ybdrt1eP3k4cj8DJa78w==
 
 "@noble/secp256k1@1.7.1", "@noble/secp256k1@~1.7.0":
   version "1.7.1"
@@ -9126,6 +9161,32 @@ ox@0.1.0:
     abitype "^1.0.6"
     eventemitter3 "5.0.1"
 
+ox@^0.4.4:
+  version "0.4.4"
+  resolved "https://registry.yarnpkg.com/ox/-/ox-0.4.4.tgz#9d1757c026406e60097680d98ffedf9e3bc1fa0b"
+  integrity sha512-oJPEeCDs9iNiPs6J0rTx+Y0KGeCGyCAA3zo94yZhm8G5WpOxrwUtn2Ie/Y8IyARSqqY/j9JTKA3Fc1xs1DvFnw==
+  dependencies:
+    "@adraffy/ens-normalize" "^1.10.1"
+    "@noble/curves" "^1.6.0"
+    "@noble/hashes" "^1.5.0"
+    "@scure/bip32" "^1.5.0"
+    "@scure/bip39" "^1.4.0"
+    abitype "^1.0.6"
+    eventemitter3 "5.0.1"
+
+ox@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/ox/-/ox-0.6.0.tgz#ba8f89d68b5e8afe717c8a947ffacc0669ea155d"
+  integrity sha512-blUzTLidvUlshv0O02CnLFqBLidNzPoAZdIth894avUAotTuWziznv6IENv5idRuOSSP3dH8WzcYw84zVdu0Aw==
+  dependencies:
+    "@adraffy/ens-normalize" "^1.10.1"
+    "@noble/curves" "^1.6.0"
+    "@noble/hashes" "^1.5.0"
+    "@scure/bip32" "^1.5.0"
+    "@scure/bip39" "^1.4.0"
+    abitype "^1.0.6"
+    eventemitter3 "5.0.1"
+
 p-cancelable@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/p-cancelable/-/p-cancelable-3.0.0.tgz#63826694b54d61ca1c20ebcb6d3ecf5e14cd8050"
@@ -11274,3 +11335,8 @@ zen-observable@0.8.15:
   version "0.8.15"
   resolved "https://registry.yarnpkg.com/zen-observable/-/zen-observable-0.8.15.tgz#96415c512d8e3ffd920afd3889604e30b9eaac15"
   integrity sha512-PQ2PC7R9rslx84ndNBZB/Dkv8V8fZEpk83RLgXtYd0fwUgEjseMn1Dgajh2x6S8QbZAFa9p2qVCEuYZNgve0dQ==
+
+zod@^3.24.1:
+  version "3.24.1"
+  resolved "https://registry.yarnpkg.com/zod/-/zod-3.24.1.tgz#27445c912738c8ad1e9de1bea0359fa44d9d35ee"
+  integrity sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A==

@@ -1,17 +1,11 @@
 const farTokenBondingCurveABI = [ {
   inputs: [],
-  name: "InsufficientLiquidity",
-  type: "error"
+  stateMutability: "nonpayable",
+  type: "constructor"
 }, {
   inputs: [],
-  name: "A",
-  outputs: [ {
-    internalType: "uint256",
-    name: "",
-    type: "uint256"
-  } ],
-  stateMutability: "view",
-  type: "function"
+  name: "InsufficientLiquidity",
+  type: "error"
 }, {
   inputs: [],
   name: "B",
@@ -29,7 +23,15 @@ const farTokenBondingCurveABI = [ {
     type: "uint256"
   }, {
     internalType: "uint256",
+    name: "allocatedSupply",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
     name: "ethOrderSize",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "desiredRaise",
     type: "uint256"
   } ],
   name: "getEthBuyQuote",
@@ -38,7 +40,7 @@ const farTokenBondingCurveABI = [ {
     name: "",
     type: "uint256"
   } ],
-  stateMutability: "pure",
+  stateMutability: "view",
   type: "function"
 }, {
   inputs: [ {
@@ -47,7 +49,15 @@ const farTokenBondingCurveABI = [ {
     type: "uint256"
   }, {
     internalType: "uint256",
+    name: "allocatedSupply",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
     name: "ethOrderSize",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "desiredRaise",
     type: "uint256"
   } ],
   name: "getEthSellQuote",
@@ -56,7 +66,7 @@ const farTokenBondingCurveABI = [ {
     name: "",
     type: "uint256"
   } ],
-  stateMutability: "pure",
+  stateMutability: "view",
   type: "function"
 }, {
   inputs: [ {
@@ -65,7 +75,15 @@ const farTokenBondingCurveABI = [ {
     type: "uint256"
   }, {
     internalType: "uint256",
+    name: "allocatedSupply",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
     name: "tokenOrderSize",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "desiredRaise",
     type: "uint256"
   } ],
   name: "getTokenBuyQuote",
@@ -74,7 +92,7 @@ const farTokenBondingCurveABI = [ {
     name: "",
     type: "uint256"
   } ],
-  stateMutability: "pure",
+  stateMutability: "view",
   type: "function"
 }, {
   inputs: [ {
@@ -83,7 +101,15 @@ const farTokenBondingCurveABI = [ {
     type: "uint256"
   }, {
     internalType: "uint256",
+    name: "allocatedSupply",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
     name: "tokensToSell",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "desiredRaise",
     type: "uint256"
   } ],
   name: "getTokenSellQuote",
@@ -92,7 +118,7 @@ const farTokenBondingCurveABI = [ {
     name: "",
     type: "uint256"
   } ],
-  stateMutability: "pure",
+  stateMutability: "view",
   type: "function"
 } ];
 

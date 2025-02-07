@@ -27,7 +27,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
   return t;
 };
 
-app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
+app.post("/v1/unbox", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -57,7 +57,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/quests", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/quests", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -77,7 +77,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.get("/v1/leaderboard", [ authContext, lightLimiter ], async (e, t) => {
+}), app.get("/v1/leaderboard", [ lightLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -99,7 +99,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.get("/v1/player", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.get("/v1/player", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -117,7 +117,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.get("/v1/player/position", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.get("/v1/player/position", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -137,7 +137,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/player/favorite/add", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/player/favorite/add", [ heavyLimiter, authContext ], async (e, t) => {
   var a = e.body["playableCardId"], s = new _FarcasterTcgService(), e = await Player.findOne({
     account: e.context.account._id
   });
@@ -152,7 +152,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.delete("/v1/player/favorite/remove", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.delete("/v1/player/favorite/remove", [ heavyLimiter, authContext ], async (e, t) => {
   var a = e.body["playableCardId"], s = new _FarcasterTcgService(), e = await Player.findOne({
     account: e.context.account._id
   });
@@ -167,7 +167,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/match/start", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/match/start", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -198,7 +198,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/match/sync", [ authContext, lightLimiter ], async (e, t) => {
+}), app.post("/v1/match/sync", [ lightLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -221,7 +221,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/match/advance", [ authContext, lightLimiter ], async (e, t) => {
+}), app.post("/v1/match/advance", [ lightLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -246,7 +246,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/match/action/add", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/match/action/add", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -277,7 +277,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/match/quit", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/match/quit", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -300,7 +300,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.get("/v1/all-cards", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.get("/v1/all-cards", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -322,7 +322,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/buy-rented-pack", [ authContext, lightLimiter ], async (e, t) => {
+}), app.post("/v1/buy-rented-pack", [ lightLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -346,7 +346,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.get("/v1/inventory", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.get("/v1/inventory", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -379,7 +379,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.get("/v1/packs", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.get("/v1/packs", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -412,7 +412,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/convert-handles", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/convert-handles", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -430,7 +430,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/apply-invite", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/apply-invite", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"
@@ -454,7 +454,7 @@ app.post("/v1/unbox", [ authContext, heavyLimiter ], async (e, t) => {
       message: e.message
     });
   }
-}), app.post("/v1/complete-quest", [ authContext, heavyLimiter ], async (e, t) => {
+}), app.post("/v1/complete-quest", [ heavyLimiter, authContext ], async (e, t) => {
   if (!e.context.account) return t.json({
     success: !1,
     message: "Account not found"

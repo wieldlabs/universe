@@ -39,56 +39,56 @@ const express = require("express"), app = express.Router(), Sentry = require("@s
   }
 };
 
-function isValidSignatureForStringBody(e, r, t) {
-  t = crypto.createHmac("sha256", t), t.update(e, "utf8"), e = t.digest("hex");
+function isValidSignatureForStringBody(e, r, a) {
+  a = crypto.createHmac("sha256", a), a.update(e, "utf8"), e = a.digest("hex");
   return r === e;
 }
 
 async function isValidWebhook(e, r) {
   if ("production" === process.env.NODE_ENV) {
-    var t = JSON.parse(r), a = await Webhook.findOne({
-      webhookId: t.webhookId
+    var a = JSON.parse(r), t = await Webhook.findOne({
+      webhookId: a.webhookId
     });
-    if (!a) throw new Error("No webhook found for webhookId: " + t.webhookId);
-    if (!isValidSignatureForStringBody(r, e.headers["x-alchemy-signature"], a.signingKey)) throw new Error(`Invalid signature for webhook! req.headers["x-alchemy-signature"]: ${e.headers["x-alchemy-signature"]} - req.body: ` + r);
+    if (!t) throw new Error("No webhook found for webhookId: " + a.webhookId);
+    if (!isValidSignatureForStringBody(r, e.headers["x-alchemy-signature"], t.signingKey)) throw new Error(`Invalid signature for webhook! req.headers["x-alchemy-signature"]: ${e.headers["x-alchemy-signature"]} - req.body: ` + r);
   }
 }
 
 app.post("/nft-activity", express.raw({
   type: "application/json"
-}), async (r, t) => {
+}), async (r, a) => {
   try {
-    var e = r.body.toString("utf8"), a = (await isValidWebhook(r, e), JSON.parse(e));
-    if (!a.event?.activity) throw new Error("No activity found in req.body.event webhook!");
-    var o = new _RegistrarService("optimism"), n = new _RegistrarService();
-    for (const A of a.event.activity) {
+    var e = r.body.toString("utf8"), t = (await isValidWebhook(r, e), JSON.parse(e));
+    if (!t.event?.activity) throw new Error("No activity found in req.body.event webhook!");
+    var o = new _RegistrarService("optimism"), n = new _RegistrarService(), s = new _RegistrarService("base");
+    for (const y of t.event.activity) {
       var {
-        contractAddress: s,
-        erc721TokenId: i
-      } = A, d = i?.toLowerCase(), c = A.toAddress?.toLowerCase();
-      if (!d || !d.startsWith("0x")) throw new Error(`Invalid tokenId! Must start with 0x: ${d} for contractAddress: ` + s);
-      if (!c || !c.startsWith("0x")) throw new Error(`Invalid owner! Must start with 0x: ${c} for tokenId: ` + d);
-      if (![ prod().REGISTRAR_ADDRESS.toLowerCase(), prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase() ].includes(s.toLowerCase())) throw new Error("No valid registrar contract found for contractAddress: " + s);
-      var l = await Metadata.findOne({
-        uri: d
-      }), u = s.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), p = l?.domain || d, w = await CastHandle.findOne({
-        tokenId: CastHandle.normalizeTokenId(d)
-      }), k = u ? o : n;
+        contractAddress: i,
+        erc721TokenId: d
+      } = y, c = d?.toLowerCase(), l = y.toAddress?.toLowerCase();
+      if (!c || !c.startsWith("0x")) throw new Error(`Invalid tokenId! Must start with 0x: ${c} for contractAddress: ` + i);
+      if (!l || !l.startsWith("0x")) throw new Error(`Invalid owner! Must start with 0x: ${l} for tokenId: ` + c);
+      if (![ prod().REGISTRAR_ADDRESS.toLowerCase(), prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), prod().BASE_REGISTRAR_ADDRESS.toLowerCase() ].includes(i.toLowerCase())) throw new Error("No valid registrar contract found for contractAddress: " + i);
+      var u = await Metadata.findOne({
+        uri: c
+      }), p = i.toLowerCase() === prod().OPTIMISM_REGISTRAR_ADDRESS.toLowerCase(), w = i.toLowerCase() === prod().BASE_REGISTRAR_ADDRESS.toLowerCase(), k = u?.domain || c, h = await CastHandle.findOne({
+        tokenId: CastHandle.normalizeTokenId(c)
+      }), f = p ? o : w ? s : n;
       let e = null;
       try {
-        w?.expiresAt || (e = await k.expiresAt(p, {
-          tokenId: d
+        h?.expiresAt || (e = await f.expiresAt(k, {
+          tokenId: c
         }));
       } catch (e) {
-        console.error(`Error getting expiresAt for handle: ${p} on ` + (u ? "OP" : "ETH"), e), 
+        console.error(`Error getting expiresAt for handle: ${k} on ` + (p ? "OP" : w ? "BASE" : "ETH"), e), 
         Sentry.captureException(e);
       }
-      var h = await CastHandle.findOneAndUpdate({
-        tokenId: CastHandle.normalizeTokenId(d)
+      var A = await CastHandle.findOneAndUpdate({
+        tokenId: CastHandle.normalizeTokenId(c)
       }, {
-        owner: c.toLowerCase(),
-        chain: u ? "OP" : "ETH",
-        handle: p,
+        owner: l.toLowerCase(),
+        chain: p ? "OP" : w ? "BASE" : "ETH",
+        handle: k,
         ...e ? {
           expiresAt: e
         } : {}
@@ -96,50 +96,50 @@ app.post("/nft-activity", express.raw({
         upsert: !0,
         new: !0
       });
-      if (config().SHOULD_CREATE_PACKS && l?.domain) {
+      if (config().SHOULD_CREATE_PACKS && u?.domain) {
         try {
-          await Promise.all([ memcache.delete("tcg:inventory:first-page:" + h.owner, {
+          await Promise.all([ memcache.delete("tcg:inventory:first-page:" + A.owner, {
             noreply: !0
-          }), memcache.delete("tcg:packs:first-page:" + h.owner, {
+          }), memcache.delete("tcg:packs:first-page:" + A.owner, {
             noreply: !0
           }) ]);
         } catch (e) {
           console.error(e);
         }
-        var f, T = await Pack.findOne({
-          handle: h._id
+        var T, E = await Pack.findOne({
+          handle: A._id
         });
         let e;
-        e = u ? "Premium" : p.length <= 9 ? "Collector" : "Normal", T ? (T.handle = h._id, 
-        T.type = e, await T.save()) : (await Pack.create({
+        e = p || w ? "Premium" : k.length <= 9 ? "Collector" : "Normal", E ? (E.handle = A._id, 
+        E.type = e, await E.save()) : (await Pack.create({
           set: config().PACK_SET,
           type: e,
-          handle: h._id
-        }), (f = await Account.findByAddressAndChainId({
-          address: c,
+          handle: A._id
+        }), (T = await Account.findByAddressAndChainId({
+          address: l,
           chainId: 1
         })) && await Player.findOne({
-          account: f._id
-        }) && await h.setCastHandleMetadataForFarheroPacks(e));
+          account: T._id
+        }) && await A.setCastHandleMetadataForFarheroPacks(e));
       }
-      console.log(`NFT Activity Webhook - Updated cast handle: ${p} to owner: ${c} on ` + (u ? "OP" : "ETH"));
+      console.log(`NFT Activity Webhook - Updated cast handle: ${k} to owner: ${l} on ` + (p ? "OP" : w ? "BASE" : "ETH"));
     }
-    return t.status(200).send("NFT activity webhook received");
+    return a.status(200).send("NFT activity webhook received");
   } catch (e) {
     console.error("Error handling webhook:", e), Sentry.captureException(e, {
       extra: {
         rawBody: r.body?.toString("utf8")
       }
-    }), t.status(500).send("Internal Server Error");
+    }), a.status(500).send("Internal Server Error");
   }
 }), app.post("/analytics-address-activity", express.raw({
   type: "application/json"
 }), async (e, r) => {
   try {
-    var t = e.body.toString("utf8"), a = (await isValidWebhook(e, t), JSON.parse(t));
-    if (!a.event?.activity) throw new Error("No activity found in req.body.event webhook!");
-    if ("BASE_MAINNET" !== a.event.network) return r.status(200).send("Webhook received but not on BASE_MAINNET");
-    var o = a.event.activity.filter(e => "token" === e.category), n = [ ...new Set([ ...o.map(e => e.fromAddress.toLowerCase()), ...o.map(e => e.toAddress.toLowerCase()) ]) ], s = await InfluencerAddresses.find({
+    var a = e.body.toString("utf8"), t = (await isValidWebhook(e, a), JSON.parse(a));
+    if (!t.event?.activity) throw new Error("No activity found in req.body.event webhook!");
+    if ("BASE_MAINNET" !== t.event.network) return r.status(200).send("Webhook received but not on BASE_MAINNET");
+    var o = t.event.activity.filter(e => "token" === e.category), n = [ ...new Set([ ...o.map(e => e.fromAddress.toLowerCase()), ...o.map(e => e.toAddress.toLowerCase()) ]) ], s = await InfluencerAddresses.find({
       address: {
         $in: n
       },
@@ -195,14 +195,14 @@ app.post("/nft-activity", express.raw({
   }
 }), app.post("/bonding-token-created", express.raw({
   type: "application/json"
-}), async (r, t) => {
+}), async (r, a) => {
   try {
-    var e = r.body.toString("utf8"), a = (await isValidWebhook(r, e), JSON.parse(e));
-    if (!a.event?.data?.block?.logs) throw new Error("No logs found in req.body.event.data.block webhook!");
-    if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(a.event.network)) return t.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
-    var o = a.event.data.block.logs, n = a.event.data.block.timestamp, s = parseInt(a.event.data.block.number);
+    var e = r.body.toString("utf8"), t = (await isValidWebhook(r, e), JSON.parse(e));
+    if (!t.event?.data?.block?.logs) throw new Error("No logs found in req.body.event.data.block webhook!");
+    if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(t.event.network)) return a.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
+    var o = t.event.data.block.logs, n = t.event.data.block.timestamp, s = parseInt(t.event.data.block.number);
     for (const F of o) try {
-      var i, d, c, l, u, p, w, k, h, f, T, A, y, E, m, b, g, S, v, I, C, R = {
+      var i, d, c, l, u, p, w, k, h, f, A, T, E, y, S, m, b, g, v, I, C, R = {
         ...F,
         blockNumber: s,
         transactionHash: F.transaction.hash
@@ -218,9 +218,9 @@ app.post("/nft-activity", express.raw({
         tokenAddress: k,
         poolAddress: h,
         allocatedSupply: f,
-        fid: T
-      } = B.args, A = F.transaction?.from?.address?.toLowerCase(), y = await fetchIPFSMetadata(u), 
-      E = BondingErc20.findOneAndUpdate({
+        fid: A
+      } = B.args, T = F.transaction?.from?.address?.toLowerCase(), E = await fetchIPFSMetadata(u), 
+      y = BondingErc20.findOneAndUpdate({
         tokenAddress: k.toLowerCase()
       }, {
         tokenCreator: i.toLowerCase(),
@@ -228,26 +228,26 @@ app.post("/nft-activity", express.raw({
         protocolFeeRecipient: c.toLowerCase(),
         bondingCurve: l.toLowerCase(),
         tokenURI: u,
-        metadata: y,
+        metadata: E,
         name: p,
-        symbol: w,
+        symbol: BondingErc20.cleanSymbol(w),
         poolAddress: h.toLowerCase(),
         chainId: _ === FID_FACTORY_ADDRESS ? 10 : 8453,
         factoryAddress: _,
         timestamp: new Date(1e3 * n),
         blockNumber: s,
-        actualCreator: A,
+        actualCreator: T,
         type: _ === WOW_FACTORY_ADDRESS ? "WOW" : _ === FID_FACTORY_ADDRESS ? "FIDTOKEN" : "FARTOKEN",
         lastStatsUpdate: new Date(1e3 * n),
         lastProcessedBlock: s,
         ..._ === FID_FACTORY_ADDRESS && {
           allocatedSupply: f.toString(),
-          fid: parseInt(T || "0")
+          fid: parseInt(A || "0")
         }
       }, {
         upsert: !0,
         new: !0
-      }), m = BondingErc20History.create({
+      }), S = BondingErc20History.create({
         tokenAddress: k.toLowerCase(),
         timestamp: new Date(1e3 * n),
         blockNumber: s,
@@ -258,7 +258,7 @@ app.post("/nft-activity", express.raw({
         protocolFeeRecipient: c.toLowerCase(),
         bondingCurve: l.toLowerCase(),
         tokenURI: u,
-        metadata: y,
+        metadata: E,
         poolAddress: h.toLowerCase(),
         marketType: 0,
         marketCapInETH: "0",
@@ -269,7 +269,7 @@ app.post("/nft-activity", express.raw({
         cumulativeVolume: "0",
         holdersCount: 0,
         rawEventData: B.args
-      }), b = Transactions.updateOne({
+      }), m = Transactions.updateOne({
         uniqueId: F.transaction.hash
       }, {
         $set: {
@@ -294,7 +294,7 @@ app.post("/nft-activity", express.raw({
         }
       }, {
         upsert: !0
-      }), g = BondingErc20Transaction.updateOne({
+      }), b = BondingErc20Transaction.updateOne({
         tokenAddress: k.toLowerCase()
       }, {
         $set: {
@@ -313,9 +313,9 @@ app.post("/nft-activity", express.raw({
         }
       }, {
         upsert: !0
-      }), S = getHash(`getBondingTokenTransactions:${k.toLowerCase()}:10:initial`), 
+      }), g = getHash(`getBondingTokenTransactions:${k.toLowerCase()}:10:initial`), 
       v = getHash("getBondingTokens:initial:lastActivity"), I = getHash("getBondingTokens:initial:timestamp"), 
-      C = getHash(`getBondingTokenHistory:${k.toLowerCase()}:5m`), await Promise.all([ E, m, b, g, memcache.delete(S, {
+      C = getHash(`getBondingTokenHistory:${k.toLowerCase()}:5m`), await Promise.all([ y, S, m, b, memcache.delete(g, {
         noreply: !0
       }), memcache.delete(v, {
         noreply: !0
@@ -328,23 +328,23 @@ app.post("/nft-activity", express.raw({
       console.error("Error processing log:", e), Sentry.captureException(e);
       continue;
     }
-    t.status(200).send("Webhook processed successfully");
+    a.status(200).send("Webhook processed successfully");
   } catch (e) {
     console.error("Error processing webhook:", e), Sentry.captureException(e, {
       extra: {
         rawBody: r.body?.toString("utf8")
       }
-    }), t.status(500).send("Internal Server Error");
+    }), a.status(500).send("Internal Server Error");
   }
 }), app.post("/bonding-token-events", express.raw({
   type: "application/json"
-}), async (r, t) => {
+}), async (r, a) => {
   try {
-    var e = r.body.toString("utf8"), a = (await isValidWebhook(r, e), JSON.parse(e));
-    if ("GRAPHQL" !== a.type) throw new Error("Unexpected webhook type: " + a.type);
-    if (!a.event?.data?.block?.logs) throw new Error("No logs found in req.body.event.data.block webhook!");
-    if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(a.event.network)) return t.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
-    var o = a.event.data.block.logs, n = parseInt(a.event.data.block.number), s = new Date(1e3 * a.event.data.block.timestamp);
+    var e = r.body.toString("utf8"), t = (await isValidWebhook(r, e), JSON.parse(e));
+    if ("GRAPHQL" !== t.type) throw new Error("Unexpected webhook type: " + t.type);
+    if (!t.event?.data?.block?.logs) throw new Error("No logs found in req.body.event.data.block webhook!");
+    if (![ "BASE_MAINNET", "OPT_MAINNET" ].includes(t.event.network)) return a.status(200).send("Webhook received but not on BASE_MAINNET or OPT_MAINNET");
+    var o = t.event.data.block.logs, n = parseInt(t.event.data.block.number), s = new Date(1e3 * t.event.data.block.timestamp);
     if (!Array.isArray(o)) throw new Error("Logs is not an array!");
     for (const p of o) {
       var i = {
@@ -371,7 +371,7 @@ app.post("/nft-activity", express.raw({
               event: {
                 ...i,
                 transaction: {
-                  blockNumber: a.event.data.block.number,
+                  blockNumber: t.event.data.block.number,
                   hash: i.transactionHash
                 },
                 event: u
@@ -391,7 +391,7 @@ app.post("/nft-activity", express.raw({
               event: {
                 ...i,
                 transaction: {
-                  blockNumber: a.event.data.block.number,
+                  blockNumber: t.event.data.block.number,
                   hash: i.transactionHash
                 }
               },
@@ -408,7 +408,7 @@ app.post("/nft-activity", express.raw({
               event: {
                 ...i,
                 transaction: {
-                  blockNumber: a.event.data.block.number,
+                  blockNumber: t.event.data.block.number,
                   hash: i.transactionHash
                 }
               },
@@ -439,13 +439,13 @@ app.post("/nft-activity", express.raw({
         }
       });
     }
-    t.status(200).send("Events processed successfully");
+    a.status(200).send("Events processed successfully");
   } catch (e) {
     console.error("Error processing events:", e), Sentry.captureException(e, {
       extra: {
         rawBody: r.body?.toString("utf8")
       }
-    }), t.status(500).send("Internal Server Error");
+    }), a.status(500).send("Internal Server Error");
   }
 }), module.exports = {
   router: app

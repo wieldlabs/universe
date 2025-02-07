@@ -7,7 +7,7 @@ function isEncodedLabelhash(a) {
 const validRegex = new RegExp("^[a-z0-9-]+$");
 
 function validateName(a) {
-  var e = a.startsWith("op_") ? "op_" : "", a = a.replaceAll("op_", "").split(".");
+  var e = a.startsWith("op_") ? "op_" : a.startsWith("base_") ? "base_" : "", a = a.replaceAll("op_", "").replaceAll("base_", "").split(".");
   if (a.some(a => 0 == a.length)) throw new Error("Domain cannot have empty labels");
   let n;
   try {

@@ -105,6 +105,11 @@ const farTokenFactoryABI = [ {
   }, {
     indexed: !1,
     internalType: "address",
+    name: "operator",
+    type: "address"
+  }, {
+    indexed: !1,
+    internalType: "address",
     name: "platformReferrer",
     type: "address"
   }, {
@@ -151,6 +156,16 @@ const farTokenFactoryABI = [ {
     indexed: !1,
     internalType: "uint256",
     name: "orderReferrerFeeBps",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "allocatedSupply",
+    type: "uint256"
+  }, {
+    indexed: !1,
+    internalType: "uint256",
+    name: "desiredRaise",
     type: "uint256"
   } ],
   name: "FarTokenCreated",
@@ -217,6 +232,10 @@ const farTokenFactoryABI = [ {
     type: "address"
   }, {
     internalType: "address",
+    name: "_operator",
+    type: "address"
+  }, {
+    internalType: "address",
     name: "_platformReferrer",
     type: "address"
   }, {
@@ -238,6 +257,14 @@ const farTokenFactoryABI = [ {
   }, {
     internalType: "uint256",
     name: "_orderReferrerFeeBps",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "_allocatedSupply",
+    type: "uint256"
+  }, {
+    internalType: "uint256",
+    name: "_desiredRaise",
     type: "uint256"
   } ],
   name: "deploy",

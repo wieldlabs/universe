@@ -58,29 +58,12 @@ class QuestService extends QuestRewardService {
     t?.data?.forEach(e => {
       e?.key && (a[e.key] = e.value);
     });
-    var {
-      contractAddress: t,
-      count: s = 1,
-      attributeType: n = null,
-      attributeValue: i = null,
-      chain: u = "eth-mainnet"
-    } = a;
+    t = a.contractAddress;
     if (!t) return !1;
-    var d = {
-      "eth-mainnet": prod().NODE_URL,
-      "opt-mainnet": process.env.OPTIMISM_NODE_URL
-    }, d = new _AlchemyService({
-      apiKey: d[u],
-      chain: u
-    });
     try {
-      return await r.account?.populate?.("addresses"), await d.verifyOwnership({
-        address: r.account.addresses?.[0]?.address,
-        contractAddresses: [ t ],
-        count: s,
-        attributeType: n,
-        attributeValue: i
-      });
+      await r.account?.populate?.("addresses");
+      var s = r.account.addresses?.[0]?.address?.toLowerCase?.();
+      return 0 < (await getAddressPasses(s, !1)).passes?.length;
     } catch (e) {
       return !1;
     }
@@ -97,9 +80,7 @@ class QuestService extends QuestRewardService {
       count: s = 1
     } = a;
     if (!t) return !1;
-    prod().NODE_URL, process.env.OPTIMISM_NODE_URL;
     try {
-      t.split(",");
       await r.account?.populate?.("addresses");
       var n = r.account.addresses?.[0]?.address?.toLowerCase?.();
       return s <= (await getAddressPasses(n, !1)).passes?.length;
@@ -166,8 +147,8 @@ class QuestService extends QuestRewardService {
     requirements: s = [],
     rewards: n = [],
     community: i,
-    startsAt: u,
-    endsAt: d
+    startsAt: d,
+    endsAt: u
   } = {}) {
     t = new _ContentService().makeContent({
       contentRaw: t.raw,
@@ -179,8 +160,8 @@ class QuestService extends QuestRewardService {
       imageUrl: a,
       schedule: r,
       community: i,
-      startsAt: u,
-      endsAt: d
+      startsAt: d,
+      endsAt: u
     });
     return e.requirements = await this.createQuestRequirements({
       requirements: s
