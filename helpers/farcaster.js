@@ -313,7 +313,7 @@ const getSyncedChannelById = async e => {
       "claimObj.protocol": 0
     } ]
   }).sort({
-    timestamp: 1
+    timestamp: -1
   })) && (t = t.claimObj || JSON.parse(t.claim)) ? (await memcache.set("getConnectedAddressForFid:" + e, t.address.toLowerCase()), 
   t.address) : null : null;
 }, getConnectedAddressesForFid = async e => {
@@ -423,10 +423,13 @@ const getSyncedChannelById = async e => {
     ...r ? {} : {
       external: !1
     }
-  }).read("secondaryPreferred").limit(2 < e ? Math.ceil(e / 2) : 1).sort(a) : [] ]), n = [ ...n, ...s, ...a ];
+  }).read("secondaryPreferred").limit(2 < e ? Math.ceil(e / 2) : 1).sort(a) : [] ]), n = [ ...n, ...s, ...a ].slice(0, e);
   const d = {};
   s = n.map(e => d[e.fid] ? null : (d[e.fid] = !0, e.fid)).filter(e => null !== e), 
-  a = await Promise.all(s.map(e => getFarcasterUserByFid(e)));
+  a = (await Promise.all(s.map(e => getFarcasterUserByFid(e)))).filter(Boolean).sort((e, t) => {
+    e = e.followerCount || 0;
+    return (t.followerCount || 0) - e;
+  });
   return await memcache.set(getHash(i), JSON.stringify(a), {
     lifetime: 300
   }), a;

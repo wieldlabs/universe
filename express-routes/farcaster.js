@@ -685,14 +685,14 @@ app.get("/v2/feed", [ limiter, authContext ], async (e, r) => {
   }
 }), app.get("/v2/marketplace/listings", [ limiter ], async (e, r) => {
   try {
-    var t = new _MarketplaceService(), [ a, s ] = (e.query.limit = Math.min(e.query.limit || 10, 25), 
-    await t.getListings({
+    var t = new _MarketplaceService(), a = Math.min(parseInt(e.query.limit) || 10, 25), [ s, n ] = await t.getListings({
       ...e.query,
+      limit: a,
       filters: JSON.parse(e.query.filters || "{}")
-    }));
+    });
     return r.json({
-      listings: a,
-      next: s
+      listings: s,
+      next: n
     });
   } catch (e) {
     console.error(e), r.status(500).json({

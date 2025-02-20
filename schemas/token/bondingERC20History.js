@@ -55,6 +55,9 @@ const mongoose = require("mongoose"), schema = new mongoose.Schema({
   },
   totalSupply: {
     type: String
+  },
+  tokenId: {
+    type: Number
   }
 }, {
   timestamps: !0,

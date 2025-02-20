@@ -101,6 +101,9 @@ const mongoose = require("mongoose"), schema = new mongoose.Schema({
   },
   lastProcessedBlock: {
     type: Number
+  },
+  tokenId: {
+    type: Number
   }
 }, {
   timestamps: !0

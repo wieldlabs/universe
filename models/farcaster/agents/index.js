@@ -12,8 +12,8 @@ const mongoose = require("mongoose"), {
 } = require("../../../schemas/farcaster/agents"), verifyTipsMessage = require("../../../helpers/agents/signature")["verifyTipsMessage"];
 
 class AgentClass {
-  static getDefaultLimit() {
-    return 5e4;
+  static getDefaultLimit(e = null) {
+    return e?.defaultLimit || 5e4;
   }
   static getMaxTipAmount(e = null) {
     return e?.maxTipAmount || 2500;
@@ -74,17 +74,19 @@ class AgentTipClass {
     throw new Error("Invalid agentTipId when generating memcache key");
   }
   static async getTipAmountForFidAndAgentId(e, t) {
-    if (e && t) return (await AgentTip.find({
+    if (!e || !t) throw new Error("Invalid address or agentId");
+    e = await AgentTip.find({
       address: e,
-      agentId: t,
+      agent: t,
       expiresAt: {
         $gt: new Date()
       },
       claimedAt: {
         $exists: !1
       }
-    })).reduce((e, t) => e + t.amount, 0);
-    throw new Error("Invalid address or agentId");
+    });
+    if (1 < new Set(e.map(e => e.agent.toString())).size) throw new Error("Tips have different agentIds in getTipAmountForFidAndAgentId");
+    return e.reduce((e, t) => e + t.amount, 0);
   }
   static async markTipsAsClaimedForFidAndAgentId(e, t, n) {
     if (!e || !t || !n) throw new Error("Invalid address or agentId or amountToClaim");
@@ -94,7 +96,7 @@ class AgentTipClass {
       if (await a.withTransaction(async () => {
         if (s = await AgentTip.find({
           address: e,
-          agentId: t,
+          agent: t,
           expiresAt: {
             $gt: new Date()
           },
@@ -103,7 +105,8 @@ class AgentTipClass {
           }
         }, null, {
           session: a
-        }), (await Promise.all(s.map(e => memcache.get(AgentTipClass.tipClaimedKey(e._id))))).some(e => e && e.value)) throw new Error("Tips already claimed according to memcache (prevent bugs with DB)");
+        }), 1 < new Set(s.map(e => e.agent.toString())).size) throw new Error("Tips have different agentIds in markTipsAsClaimedForFidAndAgentId");
+        if ((await Promise.all(s.map(e => memcache.get(AgentTipClass.tipClaimedKey(e._id))))).some(e => e && e.value)) throw new Error("Tips already claimed according to memcache (prevent bugs with DB)");
         if (!s.length) throw new Error("No unclaimed tips found");
         if (s.reduce((e, t) => e + t.amount, 0) !== n) throw new Error("Total tips do not match amount to claim");
         if (!(await Promise.all(s.map(async e => e.signerData && await verifyTipsMessage({
@@ -115,7 +118,7 @@ class AgentTipClass {
         })))).every(e => e)) throw new Error("Tips verification failed");
         await AgentTip.updateMany({
           address: e,
-          agentId: t,
+          agent: t,
           expiresAt: {
             $gt: new Date()
           },

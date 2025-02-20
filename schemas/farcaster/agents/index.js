@@ -100,10 +100,22 @@ const mongoose = require("mongoose"), agentSchema = new mongoose.Schema({
     type: Boolean,
     default: !1
   },
+  defaultLimit: {
+    type: Number
+  },
   maxTipAmount: {
     type: Number
   },
   minTipAmount: {
+    type: Number
+  },
+  public: {
+    type: Boolean
+  },
+  publicMinTipAmount: {
+    type: Number
+  },
+  publicMaxTipAmount: {
     type: Number
   }
 }, {
@@ -330,6 +342,12 @@ const mongoose = require("mongoose"), agentSchema = new mongoose.Schema({
   castAudit: {
     type: String
   },
+  intent: {
+    type: String
+  },
+  intentArgs: {
+    type: String
+  },
   isProcessed: {
     type: Boolean,
     default: !1
@@ -345,7 +363,7 @@ const mongoose = require("mongoose"), agentSchema = new mongoose.Schema({
   },
   errorType: {
     type: String,
-    enum: [ "INVALID_FORMAT", "MULTIPLE_AGENTS_MATCHED", "INVALID_INTERACTION_TYPE", "NO_VALID_AGENT_FOUND", "OTHER" ]
+    enum: [ "INVALID_FORMAT", "MULTIPLE_AGENTS_MATCHED", "INVALID_INTERACTION_TYPE", "DEEP_REPLY_CHAIN", "NO_VALID_AGENT_FOUND", "OTHER" ]
   }
 }, {
   timestamps: !0
@@ -368,6 +386,8 @@ const mongoose = require("mongoose"), agentSchema = new mongoose.Schema({
   agent: 1,
   isProcessed: 1,
   event: 1
+}), agentEventSchema.index({
+  isProcessed: 1
 }), new mongoose.Schema({
   agent: {
     type: mongoose.Schema.Types.ObjectId,
@@ -475,6 +495,10 @@ const mongoose = require("mongoose"), agentSchema = new mongoose.Schema({
 }), agentTipSchema.index({
   agentAuthorizationId: 1,
   claimedAt: 1
+}), agentTipSchema.index({
+  tipperFid: 1,
+  agent: 1,
+  createdAt: 1
 }), new mongoose.Schema({
   agent: {
     type: mongoose.Schema.Types.ObjectId,

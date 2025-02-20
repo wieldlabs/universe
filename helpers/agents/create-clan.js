@@ -6,7 +6,10 @@ const ethers = require("ethers")["ethers"], {
   getEncryptionKey,
   generateSignerKeyPair,
   encryptSignerKey
-} = require("./register"), deployAgentToken = require("./setup-agent")["deployAgentToken"], signAuthorizationMessage = require("./signature")["signAuthorizationMessage"], crypto = require("crypto"), DESIRED_RAISE = ethers.utils.parseEther("1"), PRIMARY_MARKET_SUPPLY = ethers.utils.parseEther("800000000"), DEFAULT_ALLOCATED_SUPPLY = PRIMARY_MARKET_SUPPLY.mul(50).div(100);
+} = require("./register"), {
+  deployAgentToken,
+  deployAgentTipWrapper
+} = require("./setup-agent"), signAuthorizationMessage = require("./signature")["signAuthorizationMessage"], crypto = require("crypto"), DESIRED_RAISE = ethers.utils.parseEther("1"), PRIMARY_MARKET_SUPPLY = ethers.utils.parseEther("800000000"), DEFAULT_ALLOCATED_SUPPLY = PRIMARY_MARKET_SUPPLY.mul(50).div(100);
 
 async function generateAgent(e, n = {}) {
   const a = ethers.Wallet.createRandom(), {
@@ -18,10 +21,10 @@ async function generateAgent(e, n = {}) {
   } = await generateSignerKeyPair(), {
     encryptedKey: o,
     timestamp: A
-  } = await encryptSignerKey(r, e, a.address), g = await Agent.startSession();
-  let c;
+  } = await encryptSignerKey(r, e, a.address), p = await Agent.startSession();
+  let g;
   try {
-    c = await g.withTransaction(async () => {
+    g = await p.withTransaction(async () => {
       var e = new Agent({
         key: i,
         agentAddress: a.address.toLowerCase(),
@@ -55,7 +58,7 @@ async function generateAgent(e, n = {}) {
         fid: n.currentOwnerFid,
         agent: e._id,
         isValid: !0,
-        limit: Agent.getDefaultLimit(),
+        limit: Agent.getDefaultLimit(e),
         agentEventId: null,
         castHash: crypto.randomBytes(32).toString("hex"),
         signerData: {
@@ -64,17 +67,17 @@ async function generateAgent(e, n = {}) {
         }
       });
       return await e.save({
-        session: g
+        session: p
       }), await t.save({
-        session: g
+        session: p
       }), {
         agent: e
       };
     });
   } finally {
-    await g.endSession();
+    await p.endSession();
   }
-  return c;
+  return g;
 }
 
 async function createClan({
@@ -110,9 +113,43 @@ async function createClan({
   }
 }
 
+async function createClanTipWrapper({
+  currentOwnerFid: e,
+  currentOwnerAddress: t,
+  tokenOptions: r = {},
+  shouldDeployTipWrapper: n = !0,
+  agentRequestId: a
+}) {
+  if (!r.tokenAddress) throw new Error("tokenAddress is required");
+  try {
+    var s, i = (await generateAgent(new ethers.Wallet.fromMnemonic(process.env.SWARM_KEY), {
+      currentOwnerFid: e,
+      currentOwnerAddress: t,
+      agentId: "request-" + a
+    }))["agent"];
+    return n && (s = await deployAgentTipWrapper({
+      tokenCreator: t,
+      operator: i.agentAddress,
+      tokenAddress: r.tokenAddress
+    }), i.agentId = "base-" + s, i.tokenAddress = r.tokenAddress.toLowerCase(), 
+    i.tipWrapperAddress = s.toLowerCase(), i.tokenSymbol = r.symbol, i.maxTipAmount = r.maxTipAmount || Agent.getMaxTipAmount(i), 
+    i.minTipAmount = r.minTipAmount || Agent.getMinTipAmount(i), await i.save()), 
+    a && await AgentRequest.findByIdAndUpdate(a, {
+      status: "completed",
+      completedAt: new Date(),
+      tokenAddress: i.tokenAddress
+    }), {
+      agent: i
+    };
+  } catch (e) {
+    throw console.error("Script failed:", e), e;
+  }
+}
+
 module.exports = {
   createClan: createClan,
   generateAgent: generateAgent,
+  createClanTipWrapper: createClanTipWrapper,
   DESIRED_RAISE: DESIRED_RAISE,
   PRIMARY_MARKET_SUPPLY: PRIMARY_MARKET_SUPPLY,
   DEFAULT_ALLOCATED_SUPPLY: DEFAULT_ALLOCATED_SUPPLY

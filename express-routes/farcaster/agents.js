@@ -17,7 +17,10 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), rateL
 } = require("../../helpers/farcaster"), {
   memcache,
   getHash
-} = require("../../connectmemcache"), BondingErc20Transaction = require("../../models/token/BondingErc20Transaction")["BondingErc20Transaction"], cleanIpfsImage = require("../../helpers/clean-ipfs")["cleanIpfsImage"], createClan = require("../../helpers/agents/create-clan")["createClan"], farcasterAuthContext = require("../farcaster")["farcasterAuthContext"], verifyAddressAndClaimTips = require("../../helpers/agents/tips")["verifyAddressAndClaimTips"], BASE_CHAIN_ID = "0x2105", lightLimiter = rateLimit({
+} = require("../../connectmemcache"), BondingErc20Transaction = require("../../models/token/BondingErc20Transaction")["BondingErc20Transaction"], cleanIpfsImage = require("../../helpers/clean-ipfs")["cleanIpfsImage"], {
+  createClan,
+  createClanTipWrapper
+} = require("../../helpers/agents/create-clan"), farcasterAuthContext = require("../farcaster")["farcasterAuthContext"], verifyAddressAndClaimTips = require("../../helpers/agents/tips")["verifyAddressAndClaimTips"], BASE_CHAIN_ID = "0x2105", lightLimiter = rateLimit({
   windowMs: 1e3,
   max: getLimit(5),
   message: "Too many requests or invalid API key! See docs.wield.xyz for more info.",
@@ -44,65 +47,80 @@ function escapeRegExp(e) {
   return e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-app.post("/v2/agent-requests", [ heavyLimiter ], async (e, r) => {
+app.post("/v2/agent-requests", [ heavyLimiter ], async (r, t) => {
   try {
-    var t = e.body["currentOwnerFid"];
-    if (!t) return r.status(400).json({
+    var {
+      currentOwnerFid: a,
+      shouldDeployTipWrapper: s
+    } = r.body;
+    if (!a) return t.status(400).json({
       error: "fid is required"
     });
-    var a = await getFarcasterUserByFid(t);
-    if (!a) return r.status(400).json({
+    var n = await getFarcasterUserByFid(a);
+    if (!n) return t.status(400).json({
       error: "Farcaster user not found"
     });
-    var s = getHash(e.body.tokenOptions.symbol + ":" + a.fid);
+    var i = getHash(r.body.tokenOptions.symbol + ":" + n.fid);
     if (await AgentRequest.exists({
-      requestHash: s
-    })) return r.status(400).json({
+      requestHash: i
+    })) return t.status(400).json({
       error: "Agent already exists. Please try a different symbol."
     });
     if ((await AgentRequest.find({
-      currentOwnerFid: a.fid,
+      currentOwnerFid: n.fid,
       status: "pending"
-    })).some(e => e.createdAt > new Date(Date.now() - 6e5))) return r.status(400).json({
+    })).some(e => e.createdAt > new Date(Date.now() - 6e5))) return t.status(400).json({
       error: "You already have a pending request. Please try again later."
     });
     if (25 <= await AgentRequest.countDocuments({
-      currentOwnerFid: a.fid,
+      currentOwnerFid: n.fid,
       createdAt: {
         $gte: new Date(Date.now() - 864e5)
       }
-    })) return r.status(400).json({
+    })) return t.status(400).json({
       error: "You have reached the 25 agents limit in the last 24 hours. Please try again later."
     });
     Sentry.captureMessage("Agent request created (/v2/agent-requests)", {
       extra: {
-        agentRequest: e.body
+        agentRequest: r.body
       }
     });
-    var n = new AgentRequest({
-      ...e.body,
-      requestHash: s,
-      currentOwnerFid: a.fid,
-      currentOwnerAddress: getFarcasterUserPrimaryAddress(a),
-      currentOwnerUsername: a.username,
+    var o = new AgentRequest({
+      ...r.body,
+      requestHash: i,
+      currentOwnerFid: n.fid,
+      currentOwnerAddress: getFarcasterUserPrimaryAddress(n),
+      currentOwnerUsername: n.username,
       status: "pending",
       type: "CLAN_CREATION"
     });
-    return await n.save(), createClan({
-      currentOwnerFid: a.fid,
-      currentOwnerAddress: getFarcasterUserPrimaryAddress(a),
-      agentRequestId: n._id,
+    await o.save();
+    let e = !0;
+    return void 0 !== r.body.shouldDeployToken && (e = r.body.shouldDeployToken), 
+    s ? createClanTipWrapper({
+      currentOwnerFid: n.fid,
+      currentOwnerAddress: "0xa679568586Ab40Ce14B187Bc1993DAc1Ba1372C6",
+      agentRequestId: o._id,
+      shouldDeployTipWrapper: s,
       tokenOptions: {
-        ...e.body.tokenOptions
+        ...r.body.tokenOptions
       }
-    }), r.json({
+    }) : createClan({
+      currentOwnerFid: n.fid,
+      currentOwnerAddress: getFarcasterUserPrimaryAddress(n),
+      agentRequestId: o._id,
+      shouldDeployToken: e,
+      tokenOptions: {
+        ...r.body.tokenOptions
+      }
+    }), t.json({
       result: {
-        agentRequest: n
+        agentRequest: o
       },
       source: "v2"
     });
   } catch (e) {
-    return Sentry.captureException(e), console.error(e), r.status(500).json({
+    return Sentry.captureException(e), console.error(e), t.status(500).json({
       error: "Internal Server Error"
     });
   }
@@ -118,6 +136,27 @@ app.post("/v2/agent-requests", [ heavyLimiter ], async (e, r) => {
       error: "Agent request not found"
     }) : r.status(400).json({
       error: "Agent request ID is required"
+    });
+  } catch (e) {
+    return Sentry.captureException(e), console.error(e), r.status(500).json({
+      error: "Internal Server Error"
+    });
+  }
+}), app.get("/v2/agent/:tokenAddress", [ limiter ], async (e, r) => {
+  try {
+    var t, a = e.params["tokenAddress"];
+    return a ? (t = await Agent.findOne({
+      tokenAddress: a.toLowerCase()
+    })) ? r.json({
+      result: {
+        agentId: t._id,
+        tipWrapperAddress: t.tipWrapperAddress
+      },
+      source: "v2"
+    }) : r.status(404).json({
+      error: "Agent not found"
+    }) : r.status(400).json({
+      error: "Token address is required"
     });
   } catch (e) {
     return Sentry.captureException(e), console.error(e), r.status(500).json({
@@ -187,23 +226,23 @@ app.get("/v2/clans", [ limiter ], async (r, t) => {
     } ]), await Agent.find(u).sort({
       createdAt: -1,
       _id: -1
-    }).limit(Number(s) + 1)), g = l.length > s, m = g ? l.slice(0, s) : l;
-    const A = await oneEthToUsd();
-    var p, y = (await Promise.all(m.map(e => getAgentWithTokenInfo(e, A)))).filter(e => e);
+    }).limit(Number(s) + 1)), g = l.length > s, p = g ? l.slice(0, s) : l;
+    const v = await oneEthToUsd();
+    var m, y = (await Promise.all(p.map(e => getAgentWithTokenInfo(e, v)))).filter(e => e);
     let e = null;
-    g && 0 < m.length && (p = m[m.length - 1], e = p.createdAt.getTime() + "-" + p._id);
-    var v = {
+    g && 0 < p.length && (m = p[p.length - 1], e = m.createdAt.getTime() + "-" + m._id);
+    var A = {
       clans: y,
       pagination: {
         next: e,
         hasMore: g
       }
     };
-    return a ? await memcache.set(d, JSON.stringify(v), {
+    return a ? await memcache.set(d, JSON.stringify(A), {
       lifetime: 30
-    }) : await memcache.set(d, JSON.stringify(v), {
+    }) : await memcache.set(d, JSON.stringify(A), {
       lifetime: 60
-    }), t.json(v);
+    }), t.json(A);
   } catch (e) {
     return Sentry.captureException(e), console.error(e), t.status(500).json({
       error: "Internal Server Error"

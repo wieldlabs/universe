@@ -46,7 +46,7 @@ const app = require("express").Router(), Sentry = require("@sentry/node"), Bondi
   };
   return t[e] || t["1h"];
 }, cleanIpfsImage = e => {
-  return e?.startsWith("ipfs://") ? "https://wieldcd.net/cdn-cgi/image/fit=contain,anim=false,f=auto,w=256/" + encodeURIComponent(e.replace("ipfs://", "https://pinata.wieldcd.net/ipfs/") + ("?pinataGatewayToken=" + process.env.PINATA_GATEWAY_TOKEN)) : e;
+  return e?.startsWith("ipfs://") ? "https://wieldcd.net/cdn-cgi/image/fit=contain,f=auto,w=256/" + encodeURIComponent(e.replace("ipfs://", "https://pinata.wieldcd.net/ipfs/") + ("?pinataGatewayToken=" + process.env.PINATA_GATEWAY_TOKEN)) : e;
 }, cleanTokenData = e => {
   return e.data ? {
     data: e.data.map(e => ({
@@ -70,15 +70,23 @@ function escapeRegExp(e) {
   return e.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-app.get("/search", async (e, t) => {
+app.get("/search", async (t, a) => {
   try {
-    var a, r, s, n, i = e.query["query"];
-    return i ? (a = getHash("searchTokens:" + i), (r = await memcache.get(a)) ? t.json({
-      tokens: JSON.parse(r.value)
-    }) : (0 < (s = await BondingErc20.aggregate([ {
+    var {
+      query: r,
+      nsfw: s = !1
+    } = t.query;
+    if (!r) return a.status(400).json({
+      error: "Search query is required"
+    });
+    var n = getHash("searchTokens:" + r), i = await memcache.get(n);
+    if (i) return a.json({
+      tokens: JSON.parse(i.value)
+    });
+    let e = await BondingErc20.aggregate([ {
       $match: {
         name: {
-          $regex: new RegExp("^" + escapeRegExp(i), "i")
+          $regex: new RegExp("^" + escapeRegExp(r), "i")
         },
         type: {
           $in: BondingErc20.queryTokens()
@@ -96,22 +104,23 @@ app.get("/search", async (e, t) => {
       }
     }, {
       $limit: 10
-    } ])).length && await memcache.set(a, JSON.stringify(s), {
-      lifetime: 21600
-    }), n = s.map(e => ({
+    } ]);
+    0 < (e = s ? e : e.filter(e => !isTokenNSFW(e))).length && await memcache.set(n, JSON.stringify(e), {
+      lifetime: 600
+    });
+    var o = e.map(e => ({
       ...cleanTokenData(e),
       metadata: {
         ...e.metadata,
         image: cleanIpfsImage(e.metadata?.image)
       }
-    })), t.json({
-      tokens: n
-    }))) : t.status(400).json({
-      error: "Search query is required"
+    }));
+    return a.json({
+      tokens: o
     });
   } catch (e) {
     return console.error("Failed to search tokens:", e), Sentry.captureException(e), 
-    t.status(500).json({
+    a.status(500).json({
       error: "Internal Server Error"
     });
   }
@@ -146,13 +155,13 @@ app.get("/search", async (e, t) => {
 }), app.get("/:tokenAddress", limiter, async (n, i) => {
   try {
     var o = n.params["tokenAddress"];
-    const B = o.toLowerCase(), b = "BASE";
-    var l = getHash("getBondingToken:" + B), d = await memcache.get(l);
+    const b = o.toLowerCase(), P = "BASE";
+    var l = getHash("getBondingToken:" + b), d = await memcache.get(l);
     if (d) return i.json(cleanTokenData(JSON.parse(d.value)));
-    var m, c, p, u, g, y, [ k ] = await Promise.all([ BondingErc20.findOne({
-      tokenAddress: B
-    }) ]), T = async () => {
-      var e = (await getTokenOwners(NETWORK[b].chainId, B, {
+    var m, c, p, u, g, y, k, [ T ] = await Promise.all([ BondingErc20.findOne({
+      tokenAddress: b
+    }) ]), h = async () => {
+      var e = (await getTokenOwners(NETWORK[P].chainId, b, {
         limit: 10
       }))?.result || [];
       return Promise.all(e.map(async e => ({
@@ -165,103 +174,107 @@ app.get("/search", async (e, t) => {
         usdValue: e.usd_value
       })));
     };
-    if (k?.type && !BondingErc20.availableTokens().includes(k.type)) return i.status(403).json({
+    if (T?.type && !BondingErc20.availableTokens().includes(T.type)) return i.status(403).json({
       error: "Token not available"
     });
-    if (!k) return [ m, c, p ] = await Promise.all([ getTokenMetadata(NETWORK[b].chainId, [ B ]), getTokenPrice(NETWORK[b].chainId, B), T() ]), 
-    u = m[0], g = c || {}, y = {
+    if (!T) return [ m, c, p, u ] = await Promise.all([ getTokenMetadata(NETWORK[P].chainId, [ b ]), getTokenPrice(NETWORK[P].chainId, b), h(), Agent.findOne({
+      tokenAddress: b,
+      type: "CLAN"
+    }) ]), g = m[0], y = c || {}, k = {
       isFartoken: !1,
-      tokenAddress: B,
-      name: u.name,
-      symbol: u.symbol,
-      decimals: u.decimals,
-      totalSupply: u.total_supply,
-      marketCapInETH: g.nativePrice?.value || "0",
-      marketCapUSD: u.fully_diluted_valuation?.toString() || "0",
-      pricePerToken: g.nativePrice?.value || "0",
-      pricePerTokenUSD: g.usdPrice?.toString() || "0",
-      timestamp: u.created_at,
+      tokenAddress: b,
+      name: g.name,
+      symbol: g.symbol,
+      decimals: g.decimals,
+      totalSupply: g.total_supply,
+      marketCapInETH: y.nativePrice?.value || "0",
+      marketCapUSD: g.fully_diluted_valuation?.toString() || "0",
+      pricePerToken: y.nativePrice?.value || "0",
+      pricePerTokenUSD: y.usdPrice?.toString() || "0",
+      timestamp: g.created_at,
       marketType: "uniswap",
       metadata: {
-        name: u.name || k?.metadata?.name,
-        symbol: u.symbol || k?.metadata?.symbol,
-        image: u.logo || cleanIpfsImage(k?.metadata?.image),
-        description: u.description || k?.metadata?.description,
+        name: g.name || T?.metadata?.name,
+        symbol: g.symbol || T?.metadata?.symbol,
+        image: g.logo || cleanIpfsImage(T?.metadata?.image),
+        description: g.description || T?.metadata?.description,
         links: {
-          website: u.website || k?.metadata?.websiteLink,
-          twitter: u.twitter || k?.metadata?.twitter,
-          discord: u.discord || k?.metadata?.discord,
-          telegram: u.telegram || k?.metadata?.telegram
+          website: g.website || T?.metadata?.websiteLink,
+          twitter: g.twitter || T?.metadata?.twitter,
+          discord: g.discord || T?.metadata?.discord,
+          telegram: g.telegram || T?.metadata?.telegram
         }
       },
       exchangeInfo: {
-        name: g.exchangeName,
-        address: g.exchangeAddress,
-        pairAddress: g.pairAddress,
-        liquidityUSD: g.pairTotalLiquidityUsd
+        name: y.exchangeName,
+        address: y.exchangeAddress,
+        pairAddress: y.pairAddress,
+        liquidityUSD: y.pairTotalLiquidityUsd
       },
       securityInfo: {
-        score: u.security_score,
-        verified: u.verified_contract,
-        possibleSpam: u.possible_spam
+        score: g.security_score,
+        verified: g.verified_contract,
+        possibleSpam: g.possible_spam
       },
-      priceChange24h: g["24hrPercentChange"],
+      priceChange24h: y["24hrPercentChange"],
       topHolders: p,
-      pairAddress: g.pairAddress,
-      pairTotalLiquidityUsd: g.pairTotalLiquidityUsd
-    }, await memcache.set(l, JSON.stringify(y), {
+      pairAddress: y.pairAddress,
+      pairTotalLiquidityUsd: y.pairTotalLiquidityUsd,
+      agentId: u?._id,
+      tipWrapperAddress: u?.tipWrapperAddress
+    }, await memcache.set(l, JSON.stringify(k), {
       lifetime: 30
-    }), i.json(cleanTokenData(y));
-    var h = [ 1 === k.marketType ? T() : getTokenHolders(B, {
+    }), i.json(cleanTokenData(k));
+    var w = [ 1 === T.marketType ? h() : getTokenHolders(b, {
       limit: 10
     }), BondingErc20Transaction.findOne({
-      tokenAddress: B
+      tokenAddress: b
     }).sort({
       timestamp: -1,
       _id: -1
-    }).select("totalSupply"), getFarcasterUserByAnyAddress((k.overrideTokenCreator || k.tokenCreator).toLowerCase()), oneEthToUsd(), Agent.findOne({
-      tokenAddress: k.tokenAddress.toLowerCase(),
+    }).select("totalSupply"), getFarcasterUserByAnyAddress((T.overrideTokenCreator || T.tokenCreator).toLowerCase()), oneEthToUsd(), Agent.findOne({
+      tokenAddress: T.tokenAddress.toLowerCase(),
       type: "CLAN"
-    }) ], [ w, f, S, v, A, ...E ] = (1 === k.marketType && h.push(calculateMarketCapWithUniswap(k.marketType, MAX_TOTAL_SUPPLY, k.poolAddress, k.tokenAddress)), 
-    await Promise.all(h));
+    }) ], [ f, S, A, v, E, ...C ] = (1 === T.marketType && w.push(calculateMarketCapWithUniswap(T.marketType, MAX_TOTAL_SUPPLY, T.poolAddress, T.tokenAddress)), 
+    await Promise.all(w));
     let e, t, a, r, s = parseInt(BASE_CHAIN_ID);
-    var C, I = f?.totalSupply?.replace(/^0+/, "") || "0", U = (t = 0 < E.length ? ([ C ] = E, 
-    e = ethers.utils.formatEther(C), weiToUsd(C, v)) : (e = calculateMarketCap(I), 
-    weiToUsd(e, v)), "FIDTOKEN" === k.type && (a = calculateAllocatedMarketCap(I, k.allocatedSupply?.replace?.(/^0+/, "") || "0"), 
-    r = weiToUsd(a, v), s = 10), getPricePerToken(I)), N = {
-      tokenAddress: k.tokenAddress,
-      name: k.name,
-      symbol: k.symbol,
-      decimals: k.decimals,
-      totalSupply: I,
+    var I, N = S?.totalSupply?.replace(/^0+/, "") || "0", U = (t = 0 < C.length ? ([ I ] = C, 
+    e = ethers.utils.formatEther(I), weiToUsd(I, v)) : (e = calculateMarketCap(N), 
+    weiToUsd(e, v)), "FIDTOKEN" === T.type && (a = calculateAllocatedMarketCap(N, T.allocatedSupply?.replace?.(/^0+/, "") || "0"), 
+    r = weiToUsd(a, v), s = 10), getPricePerToken(N)), B = {
+      tokenAddress: T.tokenAddress,
+      name: T.name,
+      symbol: T.symbol,
+      decimals: T.decimals,
+      totalSupply: N,
       marketCapInETH: e.toString(),
       marketCapUSD: t.toString(),
       pricePerToken: U,
       pricePerTokenUSD: weiToUsd(U, v),
-      timestamp: k.timestamp,
-      marketType: k.marketType,
+      timestamp: T.timestamp,
+      marketType: T.marketType,
       metadata: {
-        ...k.metadata,
-        nsfw: isTokenNSFW(k),
-        image: cleanIpfsImage(k.metadata?.image)
+        ...T.metadata,
+        nsfw: isTokenNSFW(T),
+        image: cleanIpfsImage(T.metadata?.image)
       },
-      bondingCurveProgress: getBondingCurveProgress(I?.replace(/^0+/, "") || "0"),
-      tokenCreator: k.tokenCreator,
-      actualCreator: k.actualCreator,
-      tokenCreatorProfile: S,
-      topHolders: 1 !== k.marketType ? w.holders : w,
-      holdersCount: 1 !== k.marketType ? w.stats.holdersCount : 0,
+      bondingCurveProgress: getBondingCurveProgress(N?.replace(/^0+/, "") || "0"),
+      tokenCreator: T.tokenCreator,
+      actualCreator: T.actualCreator,
+      tokenCreatorProfile: A,
+      topHolders: 1 !== T.marketType ? f.holders : f,
+      holdersCount: 1 !== T.marketType ? f.stats.holdersCount : 0,
       isFartoken: !0,
-      type: k.type,
+      type: T.type,
       adjustedMarketCapInETH: a?.toString(),
       adjustedMarketCapUSD: r?.toString(),
       chainId: s,
-      agentId: A?._id,
-      tipWrapperAddress: A?.tipWrapperAddress
+      agentId: E?._id,
+      tipWrapperAddress: E?.tipWrapperAddress
     };
-    return await memcache.set(l, JSON.stringify(N), {
+    return await memcache.set(l, JSON.stringify(B), {
       lifetime: 30
-    }), i.json(cleanTokenData(N));
+    }), i.json(cleanTokenData(B));
   } catch (e) {
     return Sentry.captureException(e), console.error(e), i.status(500).json({
       error: "Internal Server Error"
@@ -456,10 +469,10 @@ app.get("/search", async (e, t) => {
         return Math.ceil(t / a);
       }
     })(s, g, y);
-    const U = g / w, N = [];
+    const N = g / w, U = [];
     for (let e = 0; e < w; e++) {
-      var f = new Date(I.getTime() + e * U);
-      N.push({
+      var f = new Date(I.getTime() + e * N);
+      U.push({
         timestamp: f.toISOString(),
         marketCap: n,
         totalSupply: i,
@@ -474,10 +487,10 @@ app.get("/search", async (e, t) => {
     }
     let o = new Set(), l = BigNumber.from("0"), d = 0;
     T.forEach(e => {
-      var t = new Date(e.timestamp).getTime(), t = Math.floor((t - I.getTime()) / U);
-      if (0 <= t && t < N.length) {
+      var t = new Date(e.timestamp).getTime(), t = Math.floor((t - I.getTime()) / N);
+      if (0 <= t && t < U.length) {
         e.marketCapInETH && (n = e.marketCapInETH), e.totalSupply && (i = e.totalSupply);
-        var a, r, s = N[t];
+        var a, r, s = U[t];
         s.marketCap = n, s.totalSupply = i, s.lastUpdate = e.timestamp, e.amountInETH && (r = BigNumber.from(s.volume || "0"), 
         a = BigNumber.from(e.amountInETH?.replace(/^0+/, "") || "0"), s.volume = r.add(a).toString(), 
         s.tradeCount++, r = BigNumber.from(s.largestTx.amount), a.gt(r) && (s.largestTx = {
@@ -485,10 +498,10 @@ app.get("/search", async (e, t) => {
           recipient: e.recipient || e.to,
           type: e.eventName
         }), l = l.add(a), d++, e.from && o.add(e.from), e.to) && o.add(e.to);
-        for (let e = t + 1; e < N.length; e++) N[e].marketCap = n, N[e].totalSupply = i;
+        for (let e = t + 1; e < U.length; e++) U[e].marketCap = n, U[e].totalSupply = i;
       }
     });
-    var S = await Promise.all(N.map(async e => {
+    var S = await Promise.all(U.map(async e => {
       var t;
       return e.largestTx.recipient ? (t = await getFarcasterUserByAnyAddress(e.largestTx.recipient.toLowerCase()), 
       {
@@ -500,7 +513,7 @@ app.get("/search", async (e, t) => {
       }) : e;
     }));
     const B = await oneEthToUsd();
-    var v, A = {
+    var A, v = {
       data: S,
       stats: {
         totalVolume: l.toString(),
@@ -509,17 +522,17 @@ app.get("/search", async (e, t) => {
         uniqueTraders: o.size
       }
     }, E = {
-      ...cleanTokenData(A),
+      ...cleanTokenData(v),
       isFartoken: !0,
       isGraduated: !1
     }, C = (E.data.forEach(e => {
       e.marketCapUsd = weiToUsd(e.marketCap, B), e.volumeUsd = weiToUsd(e.volume, B);
-    }), 1 === c.marketType && (v = await getTokenPrice(NETWORK.BASE.chainId, m), 
+    }), 1 === c.marketType && (A = await getTokenPrice(NETWORK.BASE.chainId, m), 
     E.stats = {
-      ...v,
-      pairAddress: v.pairAddress,
-      pairTotalLiquidityUsd: v.pairTotalLiquidityUsd,
-      ...A.stats
+      ...A,
+      pairAddress: A.pairAddress,
+      pairTotalLiquidityUsd: A.pairTotalLiquidityUsd,
+      ...v.stats
     }, E.isGraduated = !0), "5m" === s ? 1 : "15m" === s ? 30 : 60);
     return await memcache.set(p, JSON.stringify(E), {
       lifetime: C
@@ -545,8 +558,8 @@ app.get("/search", async (e, t) => {
     };
     if (o) {
       var u = o.split(",");
-      const N = BondingErc20.queryTokens();
-      var g = u.filter(e => N.includes(e));
+      const U = BondingErc20.queryTokens();
+      var g = u.filter(e => U.includes(e));
       0 < g.length && (p.type = {
         $in: g
       });
@@ -564,8 +577,8 @@ app.get("/search", async (e, t) => {
       ["lastActivity" === n ? "lastStatsUpdate" : "timestamp"]: T,
       _id: T
     }).limit(21)), w = 20 < h.length, f = w ? h.slice(1, 21) : h;
-    const U = await oneEthToUsd();
-    var S, v, A, E, C = await Promise.all(h.map(async e => {
+    const N = await oneEthToUsd();
+    var S, A, v, E, C = await Promise.all(h.map(async e => {
       var t = [ getFarcasterUserByAnyAddress((e.overrideTokenCreator || e.tokenCreator).toLowerCase()), BondingErc20Transaction.findOne({
         tokenAddress: e.tokenAddress
       }).sort({
@@ -578,13 +591,13 @@ app.get("/search", async (e, t) => {
       if (0 < l.length) {
         var [ l ] = l;
         try {
-          a = ethers.utils.formatEther(l), r = weiToUsd(l, U);
+          a = ethers.utils.formatEther(l), r = weiToUsd(l, N);
         } catch (e) {
           console.error(e), a = "0", r = "0";
         }
-      } else a = calculateMarketCap(d), r = weiToUsd(a, U);
+      } else a = calculateMarketCap(d), r = weiToUsd(a, N);
       "FIDTOKEN" === e.type && (s = calculateAllocatedMarketCap(d, e.allocatedSupply?.replace?.(/^0+/, "") || "0"), 
-      n = weiToUsd(s, U), i = 10);
+      n = weiToUsd(s, N), i = 10);
       var l = getPricePerToken(d), m = e.lastStatsUpdate || e.timestamp, c = m ? new Date().getTime() + "-" + e._id : null;
       return {
         _id: e._id.toString(),
@@ -608,7 +621,7 @@ app.get("/search", async (e, t) => {
         marketCapInETH: a.toString(),
         marketCapUSD: r.toString(),
         pricePerToken: l,
-        pricePerTokenUSD: weiToUsd(l, U),
+        pricePerTokenUSD: weiToUsd(l, N),
         bondingCurveProgress: getBondingCurveProgress(d),
         isFartoken: !0,
         latestTransaction: o,
@@ -618,10 +631,10 @@ app.get("/search", async (e, t) => {
         chainId: i
       };
     }));
-    let e = null, t = (w && (S = f[f.length - 1], v = ("lastActivity" === n ? S.lastStatsUpdate : S.timestamp)?.getTime(), 
-    e = v + "-" + S._id), null);
-    l && 0 < f.length && (A = f[0], E = ("lastActivity" === n ? A.lastStatsUpdate : A.timestamp)?.getTime(), 
-    t = E + "-" + A._id);
+    let e = null, t = (w && (S = f[f.length - 1], A = ("lastActivity" === n ? S.lastStatsUpdate : S.timestamp)?.getTime(), 
+    e = A + "-" + S._id), null);
+    l && 0 < f.length && (v = f[0], E = ("lastActivity" === n ? v.lastStatsUpdate : v.timestamp)?.getTime(), 
+    t = E + "-" + v._id);
     var I = {
       tokens: C,
       pagination: {
